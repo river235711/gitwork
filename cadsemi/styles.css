@@ -86,15 +86,16 @@ svg {
   height: 30px;
   border-radius: 7px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.logo-mark::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: 2px;
-  background: var(--bg);
+.logo-mark-svg {
+  width: 18px;
+  height: 18px;
+  stroke: #ffffff;
 }
 
 .logo-text { font-size: 1.15rem; color: var(--text); }
