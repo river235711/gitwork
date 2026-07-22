@@ -4,6 +4,7 @@
    dark gradient feature card. */
 
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-alt: #f5f7fa;
   --surface: #ffffff;
@@ -609,22 +610,4 @@ svg {
   .explore-row:nth-child(even) { padding-left: 12px; }
   .section { padding: 56px 0; }
   .feature-text { padding: 40px 28px; }
-}
-
-/* Dark mode (system preference) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0e17;
-    --bg-alt: #0e1420;
-    --surface: #121a29;
-    --surface-border: #1f2b40;
-    --text: #e6ecf5;
-    --text-muted: #94a3b8;
-    --accent: #5b8cff;
-    --accent-soft: rgba(91, 140, 255, 0.14);
-  }
-
-  .site-header { background: rgba(10, 14, 23, 0.85); }
-  .logo-mark::after { background: var(--bg); }
-  .tag-list li { background: rgba(255, 255, 255, 0.04); }
 }
