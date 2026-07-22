@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - xxxxsemitech</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Ctext x='50' y='65' font-size='70' font-weight='bold' fill='%23003366' text-anchor='middle' font-family='Arial, sans-serif'%3EX%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">xxxxsemitech</span>
+            <ul class="nav-menu">
+                <li><a href="index.html" data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products <span class="dropdown-icon">▼</span></a></li>
+                <!-- IGNORE
+                <li><a href="../applications/index.html" data-en="Applications" data-zh-cn="应用" data-zh-tw="應用" data-ja="アプリケーション">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../developer/index.html" data-en="Developer" data-zh-cn="开发者" data-zh-tw="開發者" data-ja="開発者">Developer <span class="dropdown-icon">▼</span></a></li>
+                -->
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持" data-zh-tw="支持" data-ja="サポート">Support <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../company/index.html" data-en="Company" data-zh-cn="公司" data-zh-tw="公司" data-ja="企業">Company <span class="dropdown-icon">▼</span></a></li>
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-tw')" data-lang="zh-tw">繁體中文</a>
+                    <a class="lang-option" onclick="switchLanguage('ja')" data-lang="ja">日本語</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页" data-zh-tw="首頁" data-ja="ホーム">Home</a> / <span data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="content-section">
+            <h2 data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products</h2>
+            <p data-en="xxxxsemitech's product portfolio covers comprehensive computing solutions from mobile chips to server solutions. Our product lineup continues to evolve to meet the latest technology needs of the market." data-zh-cn="xxxxsemitech 的產品系列涵蓋從行動晶片到伺服器解決方案的全方位運算需求。我們的產品組合不斷演進，以滿足市場最新的技術需求。" data-zh-tw="xxxxsemitech 的產品系列涵蓋從行動晶片到伺服器解決方案的全方位運算需求。我們的產品組合不斷演進，以滿足市場最新的技術需求。" data-ja="xxxxsemitechの製品ポートフォリオは、モバイルチップからサーバーソリューションまでの包括的なコンピューティングソリューションをカバーしています。当社の製品ラインは、市場の最新のテクノロジーニーズを満たすために継続的に進化しています。">xxxxsemitech's product portfolio covers comprehensive computing solutions from mobile chips to server solutions. Our product lineup continues to evolve to meet the latest technology needs of the market.</p>
+        </div>
+
+        <div class="content-section">
+            <h3 data-en="Flagship Product Lines" data-zh-cn="旗艦產品系列" data-zh-tw="旗艦產品系列" data-ja="主力製品ラインアップ">Flagship Product Lines</h3>
+            <div class="products-grid">
+                <div class="product-item">
+                    <h4 data-en="Snapdragon" data-zh-cn="Snapdragon" data-zh-tw="Snapdragon" data-ja="Snapdragon">Snapdragon</h4>
+                    <p data-en="Industry-leading mobile processor delivering powerful performance and energy efficiency for smartphones, tablets, and wearables." data-zh-cn="行業領先的行動處理器，為智能手機、平板電腦和可穿戴設備提供強大的性能和能效。" data-zh-tw="行業領先的行動處理器，為智能手機、平板電腦和可穿戴設備提供強大的性能和能效。" data-ja="スマートフォン、タブレット、ウェアラブルに強力なパフォーマンスと高いエネルギー効率を提供する業界をリードするモバイルプロセッサー。">Industry-leading mobile processor delivering powerful performance and energy efficiency for smartphones, tablets, and wearables.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Adreno GPU" data-zh-cn="Adreno GPU" data-zh-tw="Adreno GPU" data-ja="Adreno GPU">Adreno GPU</h4>
+                    <p data-en="High-performance graphics processing unit designed for mobile devices, delivering exceptional gaming and content experiences." data-zh-cn="專為行動設備設計的高效能圖形處理單元，實現卓越的遊戲和內容體驗。" data-zh-tw="專為行動設備設計的高效能圖形處理單元，實現卓越的遊戲和內容體驗。" data-ja="モバイルデバイス向けに設計された高性能グラフィックスプロセッシングユニットであり、優れたゲームとコンテンツエクスペリエンスを実現します。">High-performance graphics processing unit designed for mobile devices, delivering exceptional gaming and content experiences.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Hexagon Processor" data-zh-cn="Hexagon Processor" data-zh-tw="Hexagon Processor" data-ja="Hexagon Processor">Hexagon Processor</h4>
+                    <p data-en="Dedicated AI accelerator enabling efficient AI inference and machine learning on devices." data-zh-cn="專用的 AI 加速器，實現設備端的高效 AI 推斷和機器學習。" data-zh-tw="專用的 AI 加速器，實現設備端的高效 AI 推斷和機器學習。" data-ja="デバイス上での効率的なAI推論と機械学習を可能にする専用のAIアクセラレーター。">Dedicated AI accelerator enabling efficient AI inference and machine learning on devices.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Modem Solutions" data-zh-cn="Modem Solutions" data-zh-tw="Modem Solutions" data-ja="Modem Solutions">Modem Solutions</h4>
+                    <p data-en="Complete wireless communication solutions supporting 5G, 4G LTE, and WiFi connectivity." data-zh-cn="支持 5G、4G LTE 和 WiFi 的完整無線通訊解決方案。" data-zh-tw="支持 5G、4G LTE 和 WiFi 的完整無線通訊解決方案。" data-ja="5G、4G LTE、WiFi接続をサポートする完全なワイヤレス通信ソリューション。">Complete wireless communication solutions supporting 5G, 4G LTE, and WiFi connectivity.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="IoT Platforms" data-zh-cn="IoT Platforms" data-zh-tw="IoT Platforms" data-ja="IoT Platforms">IoT Platforms</h4>
+                    <p data-en="Specialized chips for IoT applications supporting multiple connectivity protocols." data-zh-cn="針對物聯網應用的專用晶片，支持多種連接協議。" data-zh-tw="針對物聯網應用的專用晶片，支持多種連接協議。" data-ja="複数の接続プロトコルをサポートするIoTアプリケーション向けの専用チップ。">Specialized chips for IoT applications supporting multiple connectivity protocols.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Automotive Solutions" data-zh-cn="Automotive Solutions" data-zh-tw="Automotive Solutions" data-ja="Automotive Solutions">Automotive Solutions</h4>
+                    <p data-en="High-reliability chips and platforms designed for automotive applications." data-zh-cn="專為汽車應用設計的高可靠性晶片和平台。" data-zh-tw="專為汽車應用設計的高可靠性晶片和平台。" data-ja="自動車アプリケーション向けに設計された高い信頼性を持つチップとプラットフォーム。">High-reliability chips and platforms designed for automotive applications.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2 data-en="Learn About Our Latest Products" data-zh-cn="了解我們的最新產品" data-zh-tw="了解我們的最新產品" data-ja="当社の最新製品について">Learn About Our Latest Products</h2>
+            <p data-en="Explore how xxxxsemitech advances the industry" data-zh-cn="探索 xxxxsemitech 如何推進行業發展" data-zh-tw="探索 xxxxsemitech 如何推進行業發展" data-ja="xxxxsemitechがいかに業界を発展させるかを探索する">Explore how xxxxsemitech advances the industry</p>
+            <button class="cta-button" onclick="window.location.href='../applications/index.html'" data-en="View Use Cases" data-zh-cn="查看應用案例" data-zh-tw="查看應用案例" data-ja="ユースケースを表示">View Use Cases</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2025 xxxxsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2025 xxxxsemitech 公司。保留所有權利。" data-zh-tw="&copy; 2025 xxxxsemitech 公司。保留所有權利。" data-ja="&copy; 2025 xxxxsemitech Corporation。著作権所有。">&copy; 2025 xxxxsemitech Corporation. All rights reserved.</span></p>
+        <div class="footer-links">
+            <a href="../company/index.html" data-en="Privacy Policy" data-zh-cn="隱私政策" data-zh-tw="隱私政策" data-ja="プライバシーポリシー">Privacy Policy</a>
+            <a href="../company/index.html" data-en="Terms of Use" data-zh-cn="使用條款" data-zh-tw="使用條款" data-ja="利用規約">Terms of Use</a>
+            <a href="../support/index.html" data-en="Contact Us" data-zh-cn="聯繫我們" data-zh-tw="聯繫我們" data-ja="お問い合わせ">Contact Us</a>
+            <a href="../company/index.html" data-en="News" data-zh-cn="新聞" data-zh-tw="新聞" data-ja="ニュース">News</a>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.85em; opacity: 0.7;">
+            <span data-en="This is a demo website with rebranded content | Original content from qualcomm.com" data-zh-cn="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-zh-tw="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-ja="これは再ブランド化されたデモウェブサイトです | 元のコンテンツは qualcomm.com から">This is a demo website with rebranded content | Original content from qualcomm.com</span>
+        </p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中',
+                'zh-tw': '繁中',
+                'ja': '日文'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn][data-zh-tw][data-ja]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

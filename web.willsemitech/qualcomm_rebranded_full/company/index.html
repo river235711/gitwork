@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company - willsemitech</title>
+    <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+      %3Ctext x='50' y='54'
+        font-size='64'
+        font-weight='600'
+        fill='%23007AFF'
+        text-anchor='middle'
+        dominant-baseline='central'
+        font-family='Inter, Segoe UI, Helvetica, Arial, sans-serif'%3EW%3C/text%3E
+      %3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">willsemitech</span>
+            <ul class="nav-menu">
+                <!-- IGNORE
+                <li><a href="../products/index.html" data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../applications/index.html" data-en="Applications" data-zh-cn="应用" data-zh-tw="應用" data-ja="アプリケーション">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../developer/index.html" data-en="Developer" data-zh-cn="开发者" data-zh-tw="開發者" data-ja="開発者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持" data-zh-tw="支持" data-ja="サポート">Support <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="index.html" data-en="Company" data-zh-cn="公司" data-zh-tw="公司" data-ja="企業">Company <span class="dropdown-icon">▼</span></a></li>
+                -->
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                <li>
+                    <a href="index.html"
+                       data-en="Company"
+                       data-zh-cn="公司"
+                       data-zh-tw="公司"
+                       data-ja="企業">
+                       Company <span class="dropdown-icon">▼</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-tw')" data-lang="zh-tw">繁體中文</a>
+                    <a class="lang-option" onclick="switchLanguage('ja')" data-lang="ja">日本語</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页" data-zh-tw="首頁" data-ja="ホーム">Home</a> / <span data-en="Company" data-zh-cn="公司" data-zh-tw="公司" data-ja="企業">Company</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+
+        <!-- About Us -->
+        <div class="content-section">
+            <h2 
+                data-en="About Us" 
+                data-zh-cn="关于我们" 
+                data-zh-tw="關於我們" 
+                data-ja="私たちについて">
+                About Us
+            </h2>
+            <p 
+            data-en="We provide high-quality CAD engineering services and solutions for IC design and manufacturing."
+            data-zh-cn="我们提供高品质的 CAD 工程服务和解决方案，支持 IC 设计与制造。"
+            data-zh-tw="我們提供高品質的 CAD 工程服務和解決方案，支援 IC 設計與製造。"
+            data-ja="私たちは、IC設計と製造のための高品質なCADエンジニアリングサービスとソリューションを提供します。">
+            We provide high-quality CAD engineering services and solutions for IC design and manufacturing.
+            </p>
+                    <!-- Social link -->
+            <div class="about-social">
+                <a 
+                    href="https://www.linkedin.com/company/willsemitech"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="willsemitech on LinkedIn">
+                    <span class="linkedin-icon">in</span>
+                </a>
+            </div>
+        </div>
+
+
+        <!-- Join Our Team -->
+        <div class="cta-section">
+            <h2 
+                data-en="Join Our Team" 
+                data-zh-cn="加入我们" 
+                data-zh-tw="加入我們" 
+                data-ja="チームに参加する">
+                Join Our Team
+            </h2>
+            <p 
+                data-en="We welcome those who are passionate about CAD, PDK, and verification technologies to join us."
+                data-zh-cn="我们诚挚欢迎对 CAD、PDK 及验证技术充满热情的人才加入我们。"
+                data-zh-tw="我們誠摯歡迎對 CAD、PDK 及驗證技術充滿熱情的人才加入我們。"
+                data-ja="CAD、PDK、および検証技術に情熱を持つ方のご参加を心より歓迎します。">
+                We welcome those who are passionate about CAD, PDK, and verification technologies to join us.
+            </p>
+            <!-- Contact Email
+            <p 
+                data-en="Email: hr@willsemitech.com"
+                data-zh-cn="邮箱：hr@willsemitech.com"
+                data-zh-tw="電子郵件：hr@willsemitech.com"
+                data-ja="メール：hr@willsemitech.com">
+                Email: hr@willsemitech.com
+            </p>
+            
+            
+            <button class="cta-button" onclick="alert('招聘頁面')" 
+                data-en="View Job Opportunities" 
+                data-zh-cn="查看职位机会" 
+                data-zh-tw="查看職位機會" 
+                data-ja="求人情報を表示">
+                View Job Opportunities
+            </button>
+            -->
+            <button 
+                class="cta-button"
+                onclick="window.open('https://www.linkedin.com/company/willsemitech/jobs/', '_blank')"
+                data-en="View Job Opportunities" 
+                data-zh-cn="查看职位机会" 
+                data-zh-tw="查看職位機會" 
+                data-ja="求人情報を表示">
+                View Job Opportunities
+            </button>
+            
+        </div>
+
+    </div>
+
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2026 willsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2026 willsemitech 公司。保留所有權利。" data-zh-tw="&copy; 2026 willsemitech 公司。保留所有權利。" data-ja="&copy; 2026 willsemitech Corporation。著作権所有。">&copy; 2026 willsemitech Corporation. All rights reserved.</span></p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中',
+                'zh-tw': '繁中',
+                'ja': '日文'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn][data-zh-tw][data-ja]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

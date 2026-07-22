@@ -1,0 +1,176 @@
+@import url("/content/dam/qcomm-martech/style-sheets/colorPallette.css");
+#richTextContainer .rte-color.black,
+.rte-color.black{
+  color: var(--black) !important;
+}
+
+#richTextContainer .rte-color.black-55,
+.rte-color.black-55{
+  color: var(--black-55) !important;
+}
+
+#richTextContainer .rte-color.gray,
+.rte-color.gray{
+  color: var(--gray) !important;
+}
+
+#richTextContainer .rte-color.dark-blue,
+.rte-color.dark-blue{
+  color: var(--dark-blue) !important;
+}
+
+#richTextContainer .rte-color.yellow,
+.rte-color.yellow{
+  color: var(--yellow) !important;
+}
+
+#richTextContainer .rte-color.purple,
+.rte-color.purple{
+  color: var(--purple) !important;
+}
+
+#richTextContainer .rte-color.qualcomm-blue-default,
+.rte-color.qualcomm-blue-default{
+  color: var(--qualcomm-blue-default) !important;
+}
+
+#richTextContainer .rte-color.white,
+.rte-color.white{
+  color: var(--white) !important;
+}
+
+#richTextContainer .rte-color.white-80,
+.rte-color.white-80{
+  color: var(--white-80) !important;
+}
+
+#richTextContainer .rte-color.new-midnight-blue,
+.rte-color.new-midnight-blue{
+  color: var(--new-midnight-blue) !important;
+}
+
+#richTextContainer .rte-color.gunmetal,
+.rte-color.gunmetal{
+  color: var(--gunmetal) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-purple,
+.rte-color.snapdragon-purple{
+  color: var(--snapdragon-purple) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-dark-red,
+.rte-color.snapdragon-dark-red{
+  color: var(--snapdragon-dark-red) !important;
+}
+
+#richTextContainer .rte-color.bliss-blue,
+.rte-color.bliss-blue{
+  color: var(--bliss-blue) !important;
+}
+
+#richTextContainer .rte-color.power-purple,
+.rte-color.power-purple{
+  color: var(--power-purple) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-red,
+.rte-color.snapdragon-red{
+  color: var(--snapdragon-red) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-deep-red,
+.rte-color.snapdragon-deep-red{
+  color: var(--snapdragon-deep-red) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-stone,
+.rte-color.snapdragon-stone{
+  color: var(--snapdragon-stone) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-sun,
+.rte-color.snapdragon-sun{
+  color: var(--snapdragon-sun) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-amethyst,
+.rte-color.snapdragon-amethyst{
+  color: var(--snapdragon-amethyst) !important;
+}
+
+#richTextContainer .rte-color.snapdragon-ocean,
+.rte-color.snapdragon-ocean{
+  color: var(--snapdragon-ocean) !important;
+}
+
+#richTextContainer .rte-color.chip-gold,
+.rte-color.chip-gold{
+  color: var(--chip-gold) !important;
+}
+
+#richTextContainer .rte-color.transparent,
+.rte-color.transparent{
+  color: var(--transparent) !important;
+}
+
+#richTextContainer .rte-color.dark-gray,
+.rte-color.dark-gray{
+  color: var(--dark-gray) !important;
+}
+
+#richTextContainer .rte-color.light-gray,
+.rte-color.light-gray{
+  color: var(--light-gray) !important;
+}
+
+#richTextContainer .rte-color.light-blue,
+.rte-color.light-blue{
+  color: var(--light-blue) !important;
+}
+
+#richTextContainer .rte-color.midnight,
+.rte-color.midnight{
+  color: var(--midnight) !important;
+}
+
+#richTextContainer .rte-color.teal,
+.rte-color.teal{
+  color: var(--teal) !important;
+}
+
+#richTextContainer .rte-color.nickel,
+.rte-color.nickel{
+  color: var(--nickel) !important;
+}
+
+#richTextContainer .rte-color.ultra-light-gray,
+.rte-color.ultra-light-gray{
+  color: var(--ultra-light-gray) !important;
+}
+
+
+#richTextContainer .rte-color.gunmetal-1,
+.rte-color.gunmetal-1{
+  color: var(--gunmetal-1) !important;
+}
+
+#richTextContainer .rte-color.ultra-dark-gray,
+.rte-color.ultra-dark-gray{
+  color: var(--ultra-dark-gray) !important;
+}
+
+#richTextContainer .rte-color.dragonwing-purple,
+.rte-color.dragonwing-purple{
+  color: var(--dragonwing-purple) !important;
+}
+
+#richTextContainer .rte-color.dragonwing-amber,
+.rte-color.dragonwing-amber{
+  color: var(--dragonwing-amber) !important;
+}
+
+#richTextContainer .rte-color.dragonwing-orange,
+.rte-color.dragonwing-orange{
+  color: var(--dragonwing-orange) !important;
+}

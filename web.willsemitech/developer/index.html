@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer - willsemitech</title>
+    <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+      %3Ctext x='50' y='54'
+        font-size='64'
+        font-weight='600'
+        fill='%23007AFF'
+        text-anchor='middle'
+        dominant-baseline='central'
+        font-family='Inter, Segoe UI, Helvetica, Arial, sans-serif'%3EW%3C/text%3E
+      %3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">willsemitech</span>
+        </div>
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                <li><a href="../products/index.html" data-en="Products" data-zh-cn="产品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../applications/index.html" data-en="Applications" data-zh-cn="应用">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="index.html" data-en="Developer" data-zh-cn="开发者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持">Support <span class="dropdown-icon">▼</span></a></li>
+                <li>
+                    <a href="../company/index.html"
+                       data-en="Company"
+                       data-zh-cn="公司">
+                       Company <span class="dropdown-icon">▼</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页">Home</a> / <span data-en="Developer" data-zh-cn="开发者">Developer</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+
+        <div class="content-section">
+            <h2
+                data-en="Built By CAD Engineers, For CAD Engineers"
+                data-zh-cn="由 CAD 工程师打造，为 CAD 工程师服务">
+                Built By CAD Engineers, For CAD Engineers
+            </h2>
+            <p
+                data-en="Our engineers work inside the same toolchains your team already uses, so our automation drops into your flow without disruption."
+                data-zh-cn="我们的工程师使用与您团队相同的工具链，因此我们的自动化方案能顺畅导入您的流程，不造成中断。">
+                Our engineers work inside the same toolchains your team already uses, so our automation drops into your flow without disruption.
+            </p>
+        </div>
+
+        <div class="content-section">
+            <h3
+                data-en="Toolchain &amp; Scripting"
+                data-zh-cn="工具链与脚本能力">
+                Toolchain &amp; Scripting
+            </h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Schematic &amp; Layout" data-zh-cn="电路图与版图">Schematic &amp; Layout</h4>
+                    <p data-en="SKILL and OpenAccess automation across Cadence Virtuoso environments." data-zh-cn="在 Cadence Virtuoso 环境下，使用 SKILL 与 OpenAccess 进行自动化。">SKILL and OpenAccess automation across Cadence Virtuoso environments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Verification" data-zh-cn="验证">Verification</h4>
+                    <p data-en="Rule-deck scripting for Calibre and other DRC/LVS/LPE sign-off tools." data-zh-cn="为 Calibre 及其他 DRC/LVS/LPE 签核工具编写规则档脚本。">Rule-deck scripting for Calibre and other DRC/LVS/LPE sign-off tools.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Flow Automation" data-zh-cn="流程自动化">Flow Automation</h4>
+                    <p data-en="Python and Tcl pipelines that connect synthesis, place-and-route, and sign-off stages." data-zh-cn="以 Python 与 Tcl 打造串接合成、佈局绕线与签核阶段的流程。">Python and Tcl pipelines that connect synthesis, place-and-route, and sign-off stages.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="PDK Integration" data-zh-cn="PDK 整合">PDK Integration</h4>
+                    <p data-en="Foundry PDK bring-up and validation across multiple process nodes." data-zh-cn="跨多个制程节点的晶圆代工 PDK 导入与验证。">Foundry PDK bring-up and validation across multiple process nodes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h3
+                data-en="Engineering Resources"
+                data-zh-cn="工程资源">
+                Engineering Resources
+            </h3>
+            <p
+                data-en="We publish integration notes and lessons learned from active engagements on our LinkedIn page as they become available."
+                data-zh-cn="我们会在 LinkedIn 页面上不定期发布来自实际项目的整合笔记与经验分享。">
+                We publish integration notes and lessons learned from active engagements on our LinkedIn page as they become available.
+            </p>
+        </div>
+
+        <div class="cta-section">
+            <h2
+                data-en="Join Our Engineering Team"
+                data-zh-cn="加入我们的工程团队">
+                Join Our Engineering Team
+            </h2>
+            <p
+                data-en="If you enjoy building CAD automation as much as we do, we would love to hear from you."
+                data-zh-cn="如果您也和我们一样喜欢打造 CAD 自动化，欢迎与我们联系。">
+                If you enjoy building CAD automation as much as we do, we would love to hear from you.
+            </p>
+            <button class="cta-button" onclick="window.location.href='../company/index.html'"
+                data-en="View Job Opportunities"
+                data-zh-cn="查看职位机会">
+                View Job Opportunities
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2026 willsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2026 willsemitech 公司。保留所有权利。">&copy; 2026 willsemitech Corporation. All rights reserved.</span></p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Reflect the active language on <html lang> so CSS can apply
+            // per-script typography (e.g. CJK/Hangul letter-spacing).
+            document.documentElement.setAttribute('lang', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    // Handle special cases where we don't want to replace HTML content
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
