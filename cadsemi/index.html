@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CADSEMI | 半導體設計自動化顧問服務</title>
 <meta name="description" content="CADSEMI 提供 PDK 開發、電路驗證(DRC/LVS/RC/EMIR)、IC 設計佈局與自動化腳本顧問服務，橫跨 3nm 至 250nm 製程節點。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230a0e17%22/><text x=%2250%22 y=%2268%22 font-size=%2264%22 text-anchor=%22middle%22 fill=%22%2322d3ee%22 font-family=%22Arial%22>C</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232947d1%22/><text x=%2250%22 y=%2268%22 font-size=%2264%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22>C</text></svg>">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -30,25 +30,88 @@
 </header>
 
 <main>
-  <section class="hero">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <div class="container hero-inner">
-      <p class="eyebrow">半導體設計自動化顧問服務 / EDA &amp; IC Design Consulting</p>
-      <h1>從 PDK 到全晶片驗證<br>您值得信賴的矽智財夥伴</h1>
-      <p class="hero-sub">
-        CADSEMI 提供 PDK 開發移植、電路驗證、客製化佈局與自動化腳本開發，
-        團隊橫跨 3nm 先進製程至 250nm 成熟製程節點的實戰經驗，
-        協助客戶加速產品開發並確保設計品質。
-      </p>
-      <div class="hero-actions">
-        <a href="#services" class="btn btn-primary">查看服務項目</a>
-        <a href="#contact" class="btn btn-outline">立即諮詢</a>
+  <!-- Hero carousel -->
+  <section class="hero-carousel" aria-label="精選重點">
+    <div class="container">
+      <div class="carousel" id="carousel">
+
+        <article class="slide slide-blue is-active">
+          <div class="slide-text">
+            <p class="eyebrow">半導體設計自動化顧問服務</p>
+            <h1>從 PDK 到全晶片驗證<br>您值得信賴的矽智財夥伴</h1>
+            <p class="slide-sub">PDK 開發移植、電路驗證、客製化佈局與自動化腳本開發，一站式技術顧問服務。</p>
+            <a href="#services" class="chevron-link chevron-link-light">查看服務項目 <span aria-hidden="true">&rsaquo;</span></a>
+          </div>
+          <div class="slide-art" aria-hidden="true"><div class="circuit-pattern"></div></div>
+        </article>
+
+        <article class="slide slide-navy">
+          <div class="slide-text">
+            <p class="eyebrow">Foundry Node Coverage</p>
+            <h1>橫跨 3nm 至 250nm<br>全製程節點實戰經驗</h1>
+            <p class="slide-sub">從先進製程到成熟製程，協助客戶完成設計轉移與跨節點驗證。</p>
+            <a href="#node-coverage" class="chevron-link chevron-link-light">了解製程涵蓋 <span aria-hidden="true">&rsaquo;</span></a>
+          </div>
+          <div class="slide-art" aria-hidden="true"><div class="particle-pattern"></div></div>
+        </article>
+
+        <article class="slide slide-teal">
+          <div class="slide-text">
+            <p class="eyebrow">Tooling &amp; Automation</p>
+            <h1>整合業界標準工具鏈<br>加速您的設計流程</h1>
+            <p class="slide-sub">Calibre・Virtuoso・StarRC・Voltus 與自動化腳本開發，提升團隊交付效率。</p>
+            <a href="#contact" class="chevron-link chevron-link-light">立即諮詢 <span aria-hidden="true">&rsaquo;</span></a>
+          </div>
+          <div class="slide-art" aria-hidden="true"><div class="grid-pattern"></div></div>
+        </article>
+
       </div>
-      <ul class="hero-stats">
-        <li><strong>3nm–250nm</strong><span>製程節點涵蓋</span></li>
-        <li><strong>5+</strong><span>核心服務領域</span></li>
-        <li><strong>10+</strong><span>業界標準工具鏈</span></li>
-      </ul>
+
+      <div class="carousel-controls">
+        <div class="carousel-dots" id="carouselDots">
+          <button class="dot is-active" data-slide="0" aria-label="投影片 1"></button>
+          <button class="dot" data-slide="1" aria-label="投影片 2"></button>
+          <button class="dot" data-slide="2" aria-label="投影片 3"></button>
+        </div>
+        <button class="carousel-toggle" id="carouselToggle" aria-label="暫停輪播">
+          <svg class="icon-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+          <svg class="icon-play" viewBox="0 0 24 24" hidden><path d="M7 4l13 8-13 8V4z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Explore row list -->
+  <section class="section-tight">
+    <div class="container">
+      <h2 class="explore-title">探索服務項目</h2>
+      <div class="explore-grid">
+        <a class="explore-row" href="#pdk">
+          <span class="explore-icon"><svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg></span>
+          <span class="explore-label">PDK 開發與移植</span>
+          <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+        </a>
+        <a class="explore-row" href="#verification">
+          <span class="explore-icon"><svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg></span>
+          <span class="explore-label">驗證服務</span>
+          <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+        </a>
+        <a class="explore-row" href="#layout">
+          <span class="explore-icon"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg></span>
+          <span class="explore-label">設計與佈局</span>
+          <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+        </a>
+        <a class="explore-row" href="#scripting">
+          <span class="explore-icon"><svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h32M8 36h20"/><path d="M34 30l8 6-8 6"/></svg></span>
+          <span class="explore-label">自動化腳本開發</span>
+          <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+        </a>
+        <a class="explore-row" href="#node-coverage">
+          <span class="explore-icon"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="10"/><circle cx="24" cy="24" r="3"/></svg></span>
+          <span class="explore-label">全製程節點涵蓋</span>
+          <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -59,7 +122,7 @@
 
       <div class="service-grid">
 
-        <article class="service-card">
+        <article class="service-card" id="pdk">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg>
           </div>
@@ -71,7 +134,7 @@
           </ul>
         </article>
 
-        <article class="service-card">
+        <article class="service-card" id="verification">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg>
           </div>
@@ -84,7 +147,7 @@
           <p class="service-tools">工具：Calibre・PVS・StarRC・QRC・Voltus</p>
         </article>
 
-        <article class="service-card">
+        <article class="service-card" id="layout">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg>
           </div>
@@ -96,17 +159,7 @@
           </ul>
         </article>
 
-        <article class="service-card" id="node-coverage">
-          <div class="service-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="10"/><circle cx="24" cy="24" r="3"/></svg>
-          </div>
-          <h3>全製程節點涵蓋</h3>
-          <p class="service-en">Foundry Node Coverage</p>
-          <p class="service-desc">具備從先進製程到成熟製程的專案經驗，協助新舊製程節點間的設計轉移與驗證。</p>
-          <p class="node-range">3nm <span>—</span> 250nm</p>
-        </article>
-
-        <article class="service-card">
+        <article class="service-card" id="scripting">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h32M8 36h20"/><path d="M34 30l8 6-8 6"/></svg>
           </div>
@@ -118,6 +171,44 @@
           </ul>
         </article>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- Dark feature block: node coverage -->
+  <section class="section" id="node-coverage">
+    <div class="container">
+      <div class="feature-block">
+        <div class="feature-bg" aria-hidden="true"></div>
+        <div class="feature-text">
+          <p class="eyebrow eyebrow-light">Foundry Node Coverage</p>
+          <h2>全製程節點涵蓋</h2>
+          <p class="node-range">3nm <span>—</span> 250nm</p>
+          <p class="feature-sub">具備從先進製程到成熟製程的專案經驗，協助新舊製程節點間的設計轉移與驗證。</p>
+          <a href="#contact" class="chevron-link chevron-link-light">討論您的製程需求 <span aria-hidden="true">&rsaquo;</span></a>
+        </div>
+        <div class="feature-list">
+          <a class="feature-row" href="#verification">
+            <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="8" width="32" height="32" rx="4"/><path d="M16 24h16M24 16v16"/></svg></span>
+            <span class="feature-row-label">Calibre 驗證整合</span>
+            <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+          </a>
+          <a class="feature-row" href="#layout">
+            <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg></span>
+            <span class="feature-row-label">Virtuoso 設計平台</span>
+            <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+          </a>
+          <a class="feature-row" href="#verification">
+            <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 24h10l4-14 8 28 4-14h6"/></svg></span>
+            <span class="feature-row-label">StarRC / QRC 萃取</span>
+            <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+          </a>
+          <a class="feature-row" href="#verification">
+            <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 6l16 8v12c0 9-6.5 15-16 16-9.5-1-16-7-16-16V14z"/></svg></span>
+            <span class="feature-row-label">Voltus 電源完整性</span>
+            <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
+          </a>
+        </div>
       </div>
     </div>
   </section>
