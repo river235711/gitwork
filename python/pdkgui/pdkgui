@@ -2,15 +2,23 @@
 #==============================================================================
 # pdkgui  ── 啟動包裝 (C shell)
 #
-# 使用者只要把這支 script 放進 PATH(或建立 alias),
-# 直接在終端機輸入:  pdkgui   即可執行 pdkgui.py。
+# 這支 script 可以「搬到任何目錄」執行,不一定要放在 pdkgui.py 旁邊。
+# 使用者只要把它放進 PATH(或建立 alias),直接輸入:  pdkgui   即可執行。
 #
-#   例:  在 ~/.cshrc 加一行
-#         set path = ( /path/to/pdkgui $path )
-#   之後直接 key:  pdkgui
+# 定位主程式 pdkgui.py 的順序:
+#   1. 環境變數  $PDKGUI_HOME          (最優先,可在 ~/.cshrc 設定)
+#   2. 本 script 旁邊(若沒被搬走,維持原本就地執行的行為)
+#   3. 下方 DEFAULT_HOME 內建的預設安裝路徑
+#
+#   例:  在 ~/.cshrc 設定安裝目錄後,script 放哪都能跑:
+#         setenv PDKGUI_HOME /home/willhuang/work/gitwork/python/pdkgui
+#         set path = ( $HOME/bin $path )      # pdkgui 放在 ~/bin 也可以
 #
 # 所有傳入的參數會原封不動轉交給 pdkgui.py。
 #==============================================================================
+
+# --- 內建預設安裝路徑(找不到 $PDKGUI_HOME、也不在 script 旁邊時使用)--------
+set DEFAULT_HOME = "/home/willhuang/work/gitwork/python/pdkgui"
 
 # --- 1. 解析本 script 真正所在的目錄(不論從哪裡、用什麼方式呼叫)-----------
 set _src = "$0"
@@ -31,23 +39,35 @@ while ( -l "$_src" )
     set _src = "$_link"
 end
 
-set BINDIR   = "`dirname $_src`"
-set BINDIR   = "`cd $BINDIR && pwd`"
-set PDKGUI_PY = "$BINDIR/pdkgui.py"
+set SELFDIR = "`dirname $_src`"
+set SELFDIR = "`cd $SELFDIR && pwd`"
+
+# --- 2. 決定 PDKGUI_HOME(依 環境變數 > script 旁邊 > 內建預設 的順序)------
+if ( $?PDKGUI_HOME ) then
+    set HOME_DIR = "$PDKGUI_HOME"
+else if ( -f "$SELFDIR/pdkgui.py" ) then
+    set HOME_DIR = "$SELFDIR"
+else
+    set HOME_DIR = "$DEFAULT_HOME"
+endif
+
+set PDKGUI_PY = "$HOME_DIR/pdkgui.py"
 
 if ( ! -f "$PDKGUI_PY" ) then
     echo "pdkgui: 找不到主程式 $PDKGUI_PY" > /dev/stderr
+    echo "        請設定環境變數 PDKGUI_HOME 指向 pdkgui.py 所在目錄," > /dev/stderr
+    echo "        例如:  setenv PDKGUI_HOME /path/to/pdkgui" > /dev/stderr
     exit 1
 endif
 
-# --- 2. 設定 UTF-8 locale(避免舊版 Python 在 locale=C 下中文亂碼)---------
+# --- 3. 設定 UTF-8 locale(避免舊版 Python 在 locale=C 下中文亂碼)---------
 if ( ! $?LANG )   setenv LANG   en_US.UTF-8
 if ( ! $?LC_ALL ) setenv LC_ALL en_US.UTF-8
 
-# --- 3. 找到可用的 python(優先 python3)------------------------------------
+# --- 4. 找到可用的 python(優先 python3)------------------------------------
 set PY = python3
 which python3 >& /dev/null
 if ( $status != 0 ) set PY = python
 
-# --- 4. 執行(把使用者傳入的參數一併轉交)-----------------------------------
+# --- 5. 執行(把使用者傳入的參數一併轉交)-----------------------------------
 exec $PY "$PDKGUI_PY" $argv:q
