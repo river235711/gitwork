@@ -1,0 +1,53 @@
+#!/bin/csh -f
+#==============================================================================
+# pdkgui  ── 啟動包裝 (C shell)
+#
+# 使用者只要把這支 script 放進 PATH(或建立 alias),
+# 直接在終端機輸入:  pdkgui   即可執行 pdkgui.py。
+#
+#   例:  在 ~/.cshrc 加一行
+#         set path = ( /path/to/pdkgui $path )
+#   之後直接 key:  pdkgui
+#
+# 所有傳入的參數會原封不動轉交給 pdkgui.py。
+#==============================================================================
+
+# --- 1. 解析本 script 真正所在的目錄(不論從哪裡、用什麼方式呼叫)-----------
+set _src = "$0"
+
+# 若是透過 PATH 找到(非絕對/相對路徑),用 which 補成完整路徑
+if ( "$_src" !~ */* ) then
+    set _found = "`which $0 |& head -1`"
+    if ( -f "$_found" ) set _src = "$_found"
+endif
+
+# 若仍是相對路徑,補上目前工作目錄
+if ( "$_src" !~ /* ) set _src = "$cwd/$_src"
+
+# 一路展開 symlink,取得實體檔案位置
+while ( -l "$_src" )
+    set _link = "`readlink $_src`"
+    if ( "$_link" !~ /* ) set _link = "`dirname $_src`/$_link"
+    set _src = "$_link"
+end
+
+set BINDIR   = "`dirname $_src`"
+set BINDIR   = "`cd $BINDIR && pwd`"
+set PDKGUI_PY = "$BINDIR/pdkgui.py"
+
+if ( ! -f "$PDKGUI_PY" ) then
+    echo "pdkgui: 找不到主程式 $PDKGUI_PY" > /dev/stderr
+    exit 1
+endif
+
+# --- 2. 設定 UTF-8 locale(避免舊版 Python 在 locale=C 下中文亂碼)---------
+if ( ! $?LANG )   setenv LANG   en_US.UTF-8
+if ( ! $?LC_ALL ) setenv LC_ALL en_US.UTF-8
+
+# --- 3. 找到可用的 python(優先 python3)------------------------------------
+set PY = python3
+which python3 >& /dev/null
+if ( $status != 0 ) set PY = python
+
+# --- 4. 執行(把使用者傳入的參數一併轉交)-----------------------------------
+exec $PY "$PDKGUI_PY" $argv:q
