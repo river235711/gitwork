@@ -1,98 +1,96 @@
-#!/bin/csh -f
+#!/bin/bash
 #==============================================================================
-# pdkgui  ── 啟動包裝 (C shell)
+# pdkgui  ── 啟動包裝 (bash)
 #
 # 這支 script 可以「搬到任何目錄」執行,不一定要放在 pdkgui.py 旁邊。
-# 使用者只要把它放進 PATH(或建立 alias),直接輸入:  pdkgui   即可執行。
+# 把它放進 PATH(或建立 alias),直接輸入:  pdkgui   即可執行。
+#
+# 關鍵:透過 Environment Modules 載入含 tkinter 的 python
+#       (預設 python/3.6.3,就是你原本能 work 的那個)。
 #
 # 定位主程式 pdkgui.py 的順序:
-#   1. 環境變數  $PDKGUI_HOME          (最優先,可在 ~/.cshrc 設定)
-#   2. 本 script 旁邊(若沒被搬走,維持原本就地執行的行為)
+#   1. 環境變數  $PDKGUI_HOME          (最優先,可在 ~/.bashrc 設定)
+#   2. 本 script 旁邊(若沒被搬走)
 #   3. 下方 DEFAULT_HOME 內建的預設安裝路徑
 #
-#   例:  在 ~/.cshrc 設定安裝目錄後,script 放哪都能跑:
-#         setenv PDKGUI_HOME /home/willhuang/work/gitwork/python/pdkgui
-#         set path = ( $HOME/bin $path )      # pdkgui 放在 ~/bin 也可以
+# 可覆蓋的環境變數:
+#   PDKGUI_HOME     pdkgui.py 所在目錄
+#   PDKGUI_MODULE   要 module load 的 python(預設 python/3.6.3)
+#   PDKGUI_PYTHON   直接指定 python 執行檔(設了就略過 module load 的偵測)
 #
-# 所有傳入的參數會原封不動轉交給 pdkgui.py。
+# 所有傳入的參數會原封不動轉交給 pdkgui.py,並在背景執行(&)。
 #==============================================================================
 
 # --- 內建預設安裝路徑(找不到 $PDKGUI_HOME、也不在 script 旁邊時使用)--------
-set DEFAULT_HOME = "/home/willhuang/work/gitwork/python/pdkgui"
+DEFAULT_HOME="/home/willhuang/work/gitwork/python/pdkgui"
 
-# --- 1. 解析本 script 真正所在的目錄(不論從哪裡、用什麼方式呼叫)-----------
-set _src = "$0"
+# --- 1. 解析本 script 真正所在目錄(展開 symlink)---------------------------
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    _dir="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$_dir/$SOURCE"
+done
+SELFDIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
-# 若是透過 PATH 找到(非絕對/相對路徑),用 which 補成完整路徑
-if ( "$_src" !~ */* ) then
-    set _found = "`which $0 |& head -1`"
-    if ( -f "$_found" ) set _src = "$_found"
-endif
-
-# 若仍是相對路徑,補上目前工作目錄
-if ( "$_src" !~ /* ) set _src = "$cwd/$_src"
-
-# 一路展開 symlink,取得實體檔案位置
-while ( -l "$_src" )
-    set _link = "`readlink $_src`"
-    if ( "$_link" !~ /* ) set _link = "`dirname $_src`/$_link"
-    set _src = "$_link"
-end
-
-set SELFDIR = "`dirname $_src`"
-set SELFDIR = "`cd $SELFDIR && pwd`"
-
-# --- 2. 決定 PDKGUI_HOME(依 環境變數 > script 旁邊 > 內建預設 的順序)------
-if ( $?PDKGUI_HOME ) then
-    set HOME_DIR = "$PDKGUI_HOME"
-else if ( -f "$SELFDIR/pdkgui.py" ) then
-    set HOME_DIR = "$SELFDIR"
+# --- 2. 決定 PDKGUI_HOME(環境變數 > script 旁邊 > 內建預設)-----------------
+if [ -n "$PDKGUI_HOME" ]; then
+    HOME_DIR="$PDKGUI_HOME"
+elif [ -f "$SELFDIR/pdkgui.py" ]; then
+    HOME_DIR="$SELFDIR"
 else
-    set HOME_DIR = "$DEFAULT_HOME"
-endif
+    HOME_DIR="$DEFAULT_HOME"
+fi
 
-set PDKGUI_PY = "$HOME_DIR/pdkgui.py"
-
-if ( ! -f "$PDKGUI_PY" ) then
-    echo "pdkgui: 找不到主程式 $PDKGUI_PY" > /dev/stderr
-    echo "        請設定環境變數 PDKGUI_HOME 指向 pdkgui.py 所在目錄," > /dev/stderr
-    echo "        例如:  setenv PDKGUI_HOME /path/to/pdkgui" > /dev/stderr
+PDKGUI_PY="$HOME_DIR/pdkgui.py"
+if [ ! -f "$PDKGUI_PY" ]; then
+    echo "pdkgui: 找不到主程式 $PDKGUI_PY" >&2
+    echo "        請設定 PDKGUI_HOME 指向 pdkgui.py 所在目錄,例如:" >&2
+    echo "          export PDKGUI_HOME=/path/to/pdkgui" >&2
     exit 1
-endif
+fi
 
-# --- 3. 設定 UTF-8 locale(避免舊版 Python 在 locale=C 下中文亂碼)---------
-if ( ! $?LANG )   setenv LANG   en_US.UTF-8
-if ( ! $?LC_ALL ) setenv LC_ALL en_US.UTF-8
+# --- 3. 載入含 tkinter 的 python(Environment Modules)-----------------------
+#   非互動 shell 不會有 `module` function,先自行 source 初始化檔。
+if ! type module >/dev/null 2>&1; then
+    for _init in "$MODULESHOME/init/bash" \
+                 /usr/share/Modules/init/bash \
+                 /etc/profile.d/modules.sh \
+                 /usr/share/lmod/lmod/init/bash; do
+        if [ -f "$_init" ]; then
+            source "$_init"
+            break
+        fi
+    done
+fi
+
+PDKGUI_MODULE="${PDKGUI_MODULE:-python/3.6.3}"
+if type module >/dev/null 2>&1; then
+    module purge          >/dev/null 2>&1
+    module load "$PDKGUI_MODULE" >/dev/null 2>&1
+fi
 
 # --- 4. 找到「真的有 tkinter」的 python -------------------------------------
-#   候選順序:$PDKGUI_PYTHON(使用者指定)> python3 > python
-#   逐個測試能不能 import tkinter,挑第一個成功的。
-set PY = ""
-set _cands = ()
-# 注意:csh 單行 if 會先展開 $PDKGUI_PYTHON,未設定時會報 Undefined variable,
-# 所以這裡一定要用 then/endif 區塊形式。
-if ( $?PDKGUI_PYTHON ) then
-    set _cands = ( "$PDKGUI_PYTHON" )
-endif
-set _cands = ( $_cands python3 python )
-
-foreach _c ( $_cands )
-    "$_c" -c 'import tkinter' >& /dev/null
-    if ( $status == 0 ) then
-        set PY = "$_c"
+#   候選:$PDKGUI_PYTHON(使用者指定)> python3 > python
+PY=""
+for _c in "$PDKGUI_PYTHON" python3 python; do
+    [ -n "$_c" ] || continue
+    if "$_c" -c 'import tkinter' >/dev/null 2>&1; then
+        PY="$_c"
         break
-    endif
-end
+    fi
+done
 
-if ( "$PY" == "" ) then
-    echo "pdkgui: 找不到內建 tkinter 的 python。"                              > /dev/stderr
-    echo "        tkinter 需另外安裝,或指定一個已內建 tkinter 的 python:"     > /dev/stderr
-    echo "          RHEL/CentOS:  sudo yum install python3-tkinter"           > /dev/stderr
-    echo "          Debian/Ubuntu: sudo apt install python3-tk"               > /dev/stderr
-    echo "        或設定環境變數指向可用的 python(需含 tkinter):"            > /dev/stderr
-    echo "          setenv PDKGUI_PYTHON /path/to/python3"                    > /dev/stderr
+if [ -z "$PY" ]; then
+    echo "pdkgui: 找不到內建 tkinter 的 python。" >&2
+    echo "        - 確認 module 名稱正確(目前:$PDKGUI_MODULE),或用" >&2
+    echo "          export PDKGUI_MODULE=python/<版本>  指定別的版本" >&2
+    echo "        - 或直接指定含 tkinter 的 python:" >&2
+    echo "          export PDKGUI_PYTHON=/path/to/python3" >&2
+    echo "        - 或安裝:  sudo yum install python3-tkinter" >&2
     exit 1
-endif
+fi
 
-# --- 5. 執行(把使用者傳入的參數一併轉交)-----------------------------------
-exec $PY "$PDKGUI_PY" $argv:q
+# --- 5. 背景執行(把使用者傳入的參數一併轉交)-------------------------------
+"$PY" "$PDKGUI_PY" "$@" &
+echo "pdkgui 已在背景啟動 (PID $!,python: $PY)"
