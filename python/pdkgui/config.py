@@ -37,7 +37,7 @@ LOGO_FG = "white"
 # 左側選單項目(依照截圖順序)
 MENU_ITEMS = [
     "PROCESS", "ENV", "DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO",
-    "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "SYSTEM",
+    "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "SYSTEM", "SECURE",
 ]
 
 # 使用「驗證流程頁面樣板」的模組

@@ -22,6 +22,7 @@ from .skipper import SkipperPage
 from .klayout import KlayoutPage
 from .doc import DocPage
 from .system import SystemPage
+from .secure import SecurePage
 
 # 有專屬頁面的模組
 _SPECIAL = {
@@ -31,6 +32,7 @@ _SPECIAL = {
     "KLAYOUT": KlayoutPage,
     "DOC": DocPage,
     "SYSTEM": SystemPage,
+    "SECURE": SecurePage,
 }
 
 
