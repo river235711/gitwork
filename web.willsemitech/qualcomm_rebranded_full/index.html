@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>willsemitech</title>
+      <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+      %3Ctext x='50' y='54'
+        font-size='64'
+        font-weight='600'
+        fill='%23007AFF'
+        text-anchor='middle'
+        dominant-baseline='central'
+        font-family='Inter, Segoe UI, Helvetica, Arial, sans-serif'%3EW%3C/text%3E
+      %3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='index.html'">willsemitech</span>
+            <ul class="nav-menu">
+                <!-- IGNORE
+                <li><a href="products/index.html" data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="applications/index.html" data-en="Applications" data-zh-cn="应用" data-zh-tw="應用" data-ja="アプリケーション">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="developer/index.html" data-en="Developer" data-zh-cn="开发者" data-zh-tw="開發者" data-ja="開発者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="support/index.html" data-en="Support" data-zh-cn="支持" data-zh-tw="支持" data-ja="サポート">Support <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="company/index.html" data-en="Company" data-zh-cn="公司" data-zh-tw="公司" data-ja="企業">Company <span class="dropdown-icon">▼</span></a></li>
+                -->
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                <li>
+                    <a href="company/index.html"
+                       data-en="Company"
+                       data-zh-cn="公司"
+                       data-zh-tw="公司"
+                       data-ja="企業">
+                       Company <span class="dropdown-icon">▼</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-tw')" data-lang="zh-tw">繁體中文</a>
+                    <a class="lang-option" onclick="switchLanguage('ja')" data-lang="ja">日本語</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>willsemitech</h1>
+        <div class="tagline"
+            data-en=   "CAD Service Company" 
+            data-zh-cn="CAD 服务公司"
+            data-zh-tw="CAD 服務公司"
+            data-ja=   "CAD サービス会社です">
+            CAD Service Company
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Your Partner -->
+        <div class="content-section">
+            <h2
+                data-en="Your Trusted Design Partner"
+                data-zh-cn="您值得信赖的设计合作伙伴"
+                data-zh-tw="您值得信賴的設計合作夥伴"
+                data-ja="信頼できる設計パートナー">
+                Your Trusted Design Partner
+            </h2>
+
+            <p
+                data-en="Accelerating IC design cycles and reducing tape-out risk through expert CAD engineering services."
+                data-zh-cn="通过专业的 CAD 工程服务，加速 IC 设计周期，并降低 tape-out 风险。"
+                data-zh-tw="透過專業的 CAD 工程服務，加速 IC 設計週期，並降低 tape-out 風險。"
+                data-ja="専門的なCADエンジニアリングサービスにより、IC設計期間を短縮し、tape-outリスクを低減します。">
+                Accelerating IC design cycles and reducing tape-out risk through expert CAD engineering services.
+            </p>
+        </div>
+
+        <!-- Core Services -->
+        <div class="content-section">
+            <h2
+                data-en="Core Services"
+                data-zh-cn="核心服务"
+                data-zh-tw="核心服務"
+                data-ja="主要サービス">
+                Core Services
+            </h2>
+
+            <div class="features-grid">
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3
+                        data-en="CAD Flow Enablement"
+                        data-zh-cn="CAD 流程支持"
+                        data-zh-tw="CAD 流程支援"
+                        data-ja="CADフロー支援">
+                        CAD Flow Enablement
+                    </h3>
+                    <p
+                        data-en="Enable and optimize CAD design flows to improve productivity and reduce design cycle time."
+                        data-zh-cn="构建并优化 CAD 设计流程，以提升生产效率并缩短设计周期。"
+                        data-zh-tw="建構並優化 CAD 設計流程，以提升生產效率並縮短設計週期。"
+                        data-ja="生産性向上と設計期間短縮のため、CAD設計フローを構築・最適化します。">
+                        Enable and optimize CAD design flows to improve productivity and reduce design cycle time.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3
+                        data-en="Design Automation"
+                        data-zh-cn="设计自动化"
+                        data-zh-tw="設計自動化"
+                        data-ja="設計自動化">
+                        Design Automation
+                    </h3>
+                    <p
+                        data-en="Develop automation scripts to reduce manual effort and improve design consistency."
+                        data-zh-cn="开发自动化脚本，减少人工操作并提升设计一致性。"
+                        data-zh-tw="開發自動化腳本，降低人工操作並提升設計一致性。"
+                        data-ja="手作業を削減し、設計の一貫性を向上させる自動化スクリプトを開発します。">
+                        Develop automation scripts to reduce manual effort and improve design consistency.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3
+                        data-en="Physical Verification Support"
+                        data-zh-cn="物理验证支持"
+                        data-zh-tw="實體驗證支援"
+                        data-ja="物理検証サポート">
+                        Physical Verification Support
+                    </h3>
+                    <p
+                        data-en="Support DRC, LVS, and LPE verification flows to ensure tape-out readiness."
+                        data-zh-cn="支持 DRC、LVS 及 LPE 验证流程，确保设计具备流片条件。"
+                        data-zh-tw="支援 DRC、LVS 與 LPE 驗證流程，確保設計符合流片條件。"
+                        data-ja="DRC、LVSおよびLPE検証フローを支援し、テープアウト準備を確実にします。">
+                        Support DRC, LVS, and LPE verification flows to ensure tape-out readiness.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3
+                        data-en="Foundry Interface Support"
+                        data-zh-cn="晶圆代工接口支持"
+                        data-zh-tw="晶圓代工介面支援"
+                        data-ja="ファウンドリーインターフェース支援">
+                        Foundry Interface Support
+                    </h3>
+                    <p
+                        data-en="Manage and integrate foundry deliverables to align design flows with manufacturing requirements."
+                        data-zh-cn="管理并整合晶圆代工厂交付资料，使设计流程符合制造要求。"
+                        data-zh-tw="管理並整合晶圓代工廠交付資料，使設計流程符合製造需求。"
+                        data-ja="ファウンドリー提供データを管理・統合し、設計フローを製造要件に整合させます。">
+                        Manage and integrate foundry deliverables to align design flows with manufacturing requirements.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3
+                        data-en="PCell & Layout Automation"
+                        data-zh-cn="PCell 与版图自动化"
+                        data-zh-tw="PCell 與版圖自動化"
+                        data-ja="PCell・レイアウト自動化">
+                        PCell & Layout Automation
+                    </h3>
+                    <p
+                        data-en="Provide PCell development and layout automation to improve design reuse and efficiency."
+                        data-zh-cn="提供 PCell 开发与版图自动化，提高设计复用率与效率。"
+                        data-zh-tw="提供 PCell 開發與版圖自動化，提高設計重用率與效率。"
+                        data-ja="PCell開発およびレイアウト自動化により、設計の再利用性と効率を向上させます。">
+                        Provide PCell development and layout automation to improve design reuse and efficiency.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h3
+                        data-en="Project-Based CAD Services"
+                        data-zh-cn="项目制 CAD 服务"
+                        data-zh-tw="專案型 CAD 服務"
+                        data-ja="プロジェクト型CADサービス">
+                        Project-Based CAD Services
+                    </h3>
+                    <p
+                        data-en="Provide flexible, project-based CAD support tailored to your design schedules and milestones."
+                        data-zh-cn="根据设计进度与里程碑，提供灵活的项目制 CAD 支持。"
+                        data-zh-tw="依據設計時程與里程碑，提供彈性的專案型 CAD 支援。"
+                        data-ja="設計スケジュールやマイルストーンに合わせた柔軟なプロジェクト型CAD支援を提供します。">
+                        Provide flexible, project-based CAD support tailored to your design schedules and milestones.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Contact Us -->
+        <div class="content-section">
+            <h2
+                data-en="Contact Us"
+                data-zh-cn="联系我们"
+                data-zh-tw="聯繫我們"
+                data-ja="お問い合わせ">
+                Contact Us
+            </h2>
+
+            <div class="col-item">
+                <h3
+                    data-en="📧 Customer Support"
+                    data-zh-cn="📧 客户支持"
+                    data-zh-tw="📧 客戶支援"
+                    data-ja="📧 カスタマーサポート">
+                    📧 Customer Support
+                </h3>
+                <p
+                    data-en="Email: support@willsemitech.com"
+                    data-zh-cn="邮箱：support@willsemitech.com"
+                    data-zh-tw="電子郵件：support@willsemitech.com"
+                    data-ja="メール：support@willsemitech.com">
+                    Email: support@willsemitech.com
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2026 willsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2026 willsemitech 公司。保留所有權利。" data-zh-tw="&copy; 2026 willsemitech 公司。保留所有權利。" data-ja="&copy; 2026 willsemitech Corporation。著作権所有。">&copy; 2026 willsemitech Corporation. All rights reserved.</span></p>
+        <!-- IGNORE
+        <div class="footer-links">
+            <a href="company/index.html" data-en="Privacy Policy" data-zh-cn="隱私政策" data-zh-tw="隱私政策" data-ja="プライバシーポリシー">Privacy Policy</a>
+            <a href="company/index.html" data-en="Terms of Use" data-zh-cn="使用條款" data-zh-tw="使用條款" data-ja="利用規約">Terms of Use</a>
+            <a href="support/index.html" data-en="Contact Us" data-zh-cn="聯繫我們" data-zh-tw="聯繫我們" data-ja="お問い合わせ">Contact Us</a>
+            <a href="company/index.html" data-en="News" data-zh-cn="新聞" data-zh-tw="新聞" data-ja="ニュース">News</a>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.85em; opacity: 0.7;">
+            <span data-en="This is a demo website with rebranded content | Original content from qualcomm.com" data-zh-cn="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-zh-tw="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-ja="これは再ブランド化されたデモウェブサイトです | 元のコンテンツは qualcomm.com から">This is a demo website with rebranded content | Original content from qualcomm.com</span>
+        </p>
+        -->
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中',
+                'zh-tw': '繁中',
+                'ja': '日文'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn][data-zh-tw][data-ja]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    // Handle special cases where we don't want to replace HTML content
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

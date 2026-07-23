@@ -1,0 +1,137 @@
+body{
+  --qualcomm-blue-default: #2A2AEA;
+  --qualcomm-blue-light: #5E83E2;
+  --qualcomm-blue-dark: #2849D2;
+  --qualcomm-blue-dark-accent: #1C38A6;
+  --snapdragon-red-default: var(--snapdragon-red);  /* DEPRECATED: Use --snapdragon-red */
+  --white: #FFFFFF;
+  --light-gray: #F5F6F7;
+  --black: #000000;
+  --medium-dark-gray: #222222;
+  --dark-blue: #020B3F;
+  --gray: #D2D7E1;
+  --purple: #843AFF;
+  --yellow: #F5F032;
+  --bliss-blue: #3500AC;
+  --new-midnight-blue: #180061;
+  --snapdragon-purple: #8E38B9;
+  --power-purple: #6614B9;
+  --gunmetal-1: #677790;
+  --gunmetal: #4A5A75;
+  /* --old colors to handle for existing pages */
+  --midnight: #092643;
+  --nickel: #E9EBEE;
+  --light-blue: #799EFF;
+  --chip-gold: #FFC622;
+  --teal: #4CB8C9;
+  --transparent: rgba(255, 255, 255, 0.08);
+  /* --hover colors to slider arrows for red blue black/gray */
+  --brand-default-light-gray: #BBC0C8;
+  --hover-red: #B8000F;
+  --hover-blue: #00009D;
+  --hover-black: #343436;
+  /* --colors given as per the figma for specific components*/
+  --delicate-gray: #FAFBFC;
+
+  --lifecycle-background-light: rgba(192,200,209,0.65);
+  --lifecycle-background-dark: rgba(0, 0, 0, 0.35);
+  --lifecycle-text-light: rgba(0, 0, 0, 0.55);
+  --lifecycle-text-dark: rgba(255, 255, 255, 1);
+  --lifecycle-sampling: #EEB204;
+  --lifecycle-active: #368637;
+  --lifecycle-not-for-new-design: #FE8A0E;
+  --lifecycle-end-of-life: #E01B32;
+  --lifecycle-obsolete: rgba(0, 0, 0, 0.95);
+  --lifecycle-in-production: #368637;
+/** Dragonwing brand colors - start **/
+  --dragonwing-purple: #31017D;
+  --dragonwing-purple-accent1: #180064;
+  --dragonwing-purple-accent2: #00004A;
+  --dragonwing-violet: #5B0CD9;
+  --dragonwing-violet-accent1: #6712DF;
+  --dragonwing-violet-accent2: #8143E5;
+  --dragonwing-gray-1: var(--pale-blue-gray-100);
+  --dragonwing-gray-2: #C0C8D1;
+  --dragonwing-gray-3: #9BA6B1;
+  --dragonwing-gray-4: #56646F;
+  --dragonwing-gray-5: #2F363D;
+  --dragonwing-orange: #FF5F00;
+  --dragonwing-amber: #FF8F29;
+  --dragonwing-lavender: rgba(184, 149, 239, 1);
+
+/** Dragonwing brand colors - end **/
+
+/** New color set up starts here - Everything above this will be revisited for duplication
+  Please avoid duplicating color definitions in this file **/
+/** Text colors - Start **/
+  --black-95: rgba(0, 0, 0, 0.95);
+  --black-55: rgba(0, 0, 0, 0.55);
+  --black-50: rgba(0, 0, 0, 0.50);
+  --black-40: rgba(0, 0, 0, 0.40);
+
+  --white-95: rgba(255, 255, 255, 0.95);
+  --white-80: rgba(255, 255, 255, 0.80);
+  --white-50: rgba(255, 255, 255, 0.50);
+  --white-55: rgba(255, 255, 255, 0.55);
+  --white-60: rgba(255, 255, 255, 0.60);
+  --white-40: rgba(255, 255, 255, 0.40);
+/** Text colors - End **/
+
+/** Background colors - Start **/
+  --white-100:  rgba(255, 255, 255, 1);
+  --ghost-white-100: rgba(250, 251, 252, 1);
+  --white-smoke-100: rgba(245, 246, 247, 1);
+  --eerie-black-100: rgba(21, 21, 22, 1);
+  --charleston-green-100: rgba(32, 32, 33, 1);
+  --jet-black-100: rgba(42, 42, 43, 1);
+/** Background colors - End **/
+
+/** Foreground colors - Start **/
+  --black-100: rgba(0, 0, 0, 1);
+  --black-25: rgba(0, 0, 0, 0.25);
+/** Foreground colors - End **/
+
+/** Border-colors - Start **/
+  --black-15: rgba(0, 0, 0, 0.15);
+  --white-15: rgba(255, 255, 255, 0.15);
+  --black-8:rgba(0, 0, 0, 0.08);
+/**Border-colors - End **/
+
+/** link blue - Start **/
+  --royal-blue-100: rgba(65, 97, 231, 1);
+  --duke-blue-100: rgba(0, 0, 157, 1);
+  /** link blue - End **/
+
+  --legal-gray-100: rgba(180, 185, 189, 1);
+
+/** Gray variants - Start **/
+  --ultra-light-gray: var(--white-smoke-100);
+  --ultra-dark-gray: var(--charleston-green-100);
+  --dark-gray: var(--eerie-black-100);
+  /**Gray variants- End **/
+
+/** Base Color Palette (Theme-Agnostic) - Start **/
+  /* Reds */
+  --crimson-red-100: rgba(231, 19, 36, 1);
+  --wine-red-100: rgba(146, 0, 29, 1);
+  --deep-maroon-100: rgba(80, 0, 16, 1);
+  
+  /* Grays/Neutrals */
+  --pale-blue-gray-100: rgba(220, 226, 233, 1);
+  
+  /* Accent Colors */
+  --bright-orange-100: rgba(255, 157, 0, 1);
+  --vivid-purple-100: rgba(162, 0, 237, 1);
+  --cyan-blue-100: rgba(0, 176, 242, 1);
+/** Base Color Palette (Theme-Agnostic) - End **/
+
+/** Snapdragon Theme - Start **/
+  --snapdragon-red: var(--crimson-red-100);
+  --snapdragon-dark-red: var(--wine-red-100);
+  --snapdragon-deep-red: var(--deep-maroon-100);
+  --snapdragon-stone: var(--pale-blue-gray-100);
+  --snapdragon-sun: var(--bright-orange-100);
+  --snapdragon-amethyst: var(--vivid-purple-100);
+  --snapdragon-ocean: var(--cyan-blue-100);
+/** Snapdragon Theme - End **/
+}

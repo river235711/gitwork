@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applications - willsemitech</title>
+    <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+      %3Ctext x='50' y='54'
+        font-size='64'
+        font-weight='600'
+        fill='%23007AFF'
+        text-anchor='middle'
+        dominant-baseline='central'
+        font-family='Inter, Segoe UI, Helvetica, Arial, sans-serif'%3EW%3C/text%3E
+      %3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">willsemitech</span>
+        </div>
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                <li><a href="../products/index.html" data-en="Products" data-zh-cn="产品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="index.html" data-en="Applications" data-zh-cn="应用">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../developer/index.html" data-en="Developer" data-zh-cn="开发者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持">Support <span class="dropdown-icon">▼</span></a></li>
+                <li>
+                    <a href="../company/index.html"
+                       data-en="Company"
+                       data-zh-cn="公司">
+                       Company <span class="dropdown-icon">▼</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页">Home</a> / <span data-en="Applications" data-zh-cn="应用">Applications</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+
+        <div class="content-section">
+            <h2
+                data-en="IC Design Segments We Support"
+                data-zh-cn="我们支持的 IC 设计领域">
+                IC Design Segments We Support
+            </h2>
+            <p
+                data-en="Our CAD engineering teams embed directly into your design flow, so our services scale across a wide range of IC segments and process nodes."
+                data-zh-cn="我们的 CAD 工程团队直接融入您的设计流程，因此服务能涵盖广泛的 IC 领域与制程节点。">
+                Our CAD engineering teams embed directly into your design flow, so our services scale across a wide range of IC segments and process nodes.
+            </p>
+        </div>
+
+        <div class="content-section">
+            <h3
+                data-en="Where We Help"
+                data-zh-cn="我们的服务领域">
+                Where We Help
+            </h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Advanced-Node Digital Design" data-zh-cn="先进制程数字设计">Advanced-Node Digital Design</h4>
+                    <p data-en="Flow enablement and automation for high-density digital blocks on leading-edge process nodes." data-zh-cn="为先进制程节点的高密度数位区块提供流程建置与自动化。">Flow enablement and automation for high-density digital blocks on leading-edge process nodes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Analog &amp; Mixed-Signal IC Design" data-zh-cn="模拟与混合信号 IC 设计">Analog &amp; Mixed-Signal IC Design</h4>
+                    <p data-en="PCell development and layout automation tailored to precision analog and mixed-signal blocks." data-zh-cn="针对精密模拟与混合信号区块，提供 PCell 开发与版图自动化。">PCell development and layout automation tailored to precision analog and mixed-signal blocks.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="RF Front-End &amp; Foundry Enablement" data-zh-cn="RF 前端与晶圆代工建置">RF Front-End &amp; Foundry Enablement</h4>
+                    <p data-en="Foundry interface support to align RF and front-end designs with manufacturing requirements." data-zh-cn="提供晶圆代工介面支援，使 RF 与前端设计符合制造要求。">Foundry interface support to align RF and front-end designs with manufacturing requirements.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Automotive &amp; Industrial ICs" data-zh-cn="车用与工业用 IC">Automotive &amp; Industrial ICs</h4>
+                    <p data-en="Physical verification support that helps meet the reliability bar required for automotive and industrial designs." data-zh-cn="提供物理验证支持，协助满足车用与工业设计所需的可靠性标准。">Physical verification support that helps meet the reliability bar required for automotive and industrial designs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="AI &amp; HPC Silicon Programs" data-zh-cn="AI 与高效能运算芯片项目">AI &amp; HPC Silicon Programs</h4>
+                    <p data-en="Design automation scripting that keeps large, complex AI and HPC tapeouts on schedule." data-zh-cn="以设计自动化脚本，协助大型复杂 AI 与 HPC 项目如期流片。">Design automation scripting that keeps large, complex AI and HPC tapeouts on schedule.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Sensor &amp; MEMS Integration" data-zh-cn="传感器与 MEMS 整合">Sensor &amp; MEMS Integration</h4>
+                    <p data-en="Project-based CAD support for sensor and MEMS teams working against tight design milestones." data-zh-cn="为面临紧凑设计里程碑的传感器与 MEMS 团队，提供项目制 CAD 支持。">Project-based CAD support for sensor and MEMS teams working against tight design milestones.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2
+                data-en="See How We Can Support Your Tapeout"
+                data-zh-cn="了解我们如何协助您完成流片">
+                See How We Can Support Your Tapeout
+            </h2>
+            <p
+                data-en="Reach out with your design segment and timeline, and we'll scope the right engagement."
+                data-zh-cn="告诉我们您的设计领域与时程，我们将为您规划合适的合作方式。">
+                Reach out with your design segment and timeline, and we'll scope the right engagement.
+            </p>
+            <button class="cta-button" onclick="window.location.href='../support/index.html'"
+                data-en="Contact Support"
+                data-zh-cn="联系支持">
+                Contact Support
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2026 willsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2026 willsemitech 公司。保留所有权利。">&copy; 2026 willsemitech Corporation. All rights reserved.</span></p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Reflect the active language on <html lang> so CSS can apply
+            // per-script typography (e.g. CJK/Hangul letter-spacing).
+            document.documentElement.setAttribute('lang', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    // Handle special cases where we don't want to replace HTML content
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

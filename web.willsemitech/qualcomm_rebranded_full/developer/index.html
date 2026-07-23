@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer - xxxxsemitech</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Ctext x='50' y='65' font-size='70' font-weight='bold' fill='%23003366' text-anchor='middle' font-family='Arial, sans-serif'%3EX%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">xxxxsemitech</span>
+            <ul class="nav-menu">
+                <li><a href="../products/index.html" data-en="Products" data-zh-cn="产品" data-zh-tw="產品" data-ja="製品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../applications/index.html" data-en="Applications" data-zh-cn="应用" data-zh-tw="應用" data-ja="アプリケーション">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="index.html" data-en="Developer" data-zh-cn="开发者" data-zh-tw="開發者" data-ja="開発者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持" data-zh-tw="支持" data-ja="サポート">Support <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../company/index.html" data-en="Company" data-zh-cn="公司" data-zh-tw="公司" data-ja="企業">Company <span class="dropdown-icon">▼</span></a></li>
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-tw')" data-lang="zh-tw">繁體中文</a>
+                    <a class="lang-option" onclick="switchLanguage('ja')" data-lang="ja">日本語</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页" data-zh-tw="首頁" data-ja="ホーム">Home</a> / <span data-en="Developer" data-zh-cn="开发者" data-zh-tw="開發者" data-ja="開発者">Developer</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="content-section">
+            <h2 data-en="Developer Center" data-zh-cn="开发者中心" data-zh-tw="開発者中心" data-ja="開発者センター">Developer Center</h2>
+            <p data-en="xxxxsemitech Developer Center provides comprehensive resources and tools for application developers, chip designers, and system integrators to build innovative applications based on xxxxsemitech technology." data-zh-cn="xxxxsemitech 開発者中心為應用開発者、晶片設計者和系統整合商提供全面的資源和工具，幫助您構模基於 xxxxsemitech 技術的創新應用。" data-zh-tw="xxxxsemitech 開発者中心為應用開発者、晶片設計者和系統整合商提供全面的資源和工具，幫助您構模基於 xxxxsemitech 技術的創新應用。" data-ja="xxxxsemitech Developer Centerは、アプリケーション開発者、チップ設計者、、およびシステム統合事業者橦提供了全面及所有資源和工具，以帮助您創成基於 xxxxsemitech 技術的创新應用。">xxxxsemitech Developer Center provides comprehensive resources and tools for application developers, chip designers, and system integrators to build innovative applications based on xxxxsemitech technology.</p>
+        </div>
+
+        <div class="content-section">
+            <h3 data-en="Developer Resources" data-zh-cn="開發者資源" data-zh-tw="開發者資源" data-ja="開発者向けリソース">Developer Resources</h3>
+            <div class="products-grid">
+                <div class="product-item">
+                    <h4 data-en="SDK & Tools" data-zh-cn="SDK & Tools" data-zh-tw="SDK & Tools" data-ja="SDK&ツール">SDK & Tools</h4>
+                    <p data-en="Complete software development kit and development environment for rapid application development." data-zh-cn="完整的軟體開發工具包和開發環境，支持快速應用開發。" data-zh-tw="完整的軟體開發工具包和開發環境，支持快速應用開發。" data-ja="高速なアプリケーション開発をサポートする包括的なソフトウェア開発キットと開発環境。">Complete software development kit and development environment for rapid application development.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Documentation & Guides" data-zh-cn="文檔與指南" data-zh-tw="文檔與指南" data-ja="ドキュメントとガイド">Documentation & Guides</h4>
+                    <p data-en="Detailed technical documentation, API references, and development guides." data-zh-cn="詳細的技術文檔、API 參考和開發指南。" data-zh-tw="詳細的技術文檔、API 參考和開發指南。" data-ja="詳細な技術文書、APIリファレンス、および開発ガイド。">Detailed technical documentation, API references, and development guides.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Sample Code" data-zh-cn="示例代碼" data-zh-tw="示例代碼" data-ja="サンプルコード">Sample Code</h4>
+                    <p data-en="Open source examples and reference implementations to accelerate development." data-zh-cn="開源示例和參考實現，加快開發進程。" data-zh-tw="開源示例和參考實現，加快開發進程。" data-ja="オープンソースの例とリファレンス実装により、開発を加速します。">Open source examples and reference implementations to accelerate development.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="API Reference" data-zh-cn="API 參考" data-zh-tw="API 參考" data-ja="APIリファレンス">API Reference</h4>
+                    <p data-en="Complete API documentation and development interface specifications." data-zh-cn="完整的 API 文檔和開發介面規範。" data-zh-tw="完整的 API 文檔和開發介面規範。" data-ja="完全なAPI文書と開発インターフェース仕様。">Complete API documentation and development interface specifications.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Forums & Community" data-zh-cn="論壇與社群" data-zh-tw="論壇與社群" data-ja="フォーラムとコミュニティ">Forums & Community</h4>
+                    <p data-en="Interact with other developers, share knowledge and best practices." data-zh-cn="與其他開發者互動，分享知識和最佳實踐。" data-zh-tw="與其他開發者互動，分享知識和最佳實踐。" data-ja="他の開発者と対話し、知識とベストプラクティスを共有してください。">Interact with other developers, share knowledge and best practices.</p>
+                </div>
+                <div class="product-item">
+                    <h4 data-en="Certification Program" data-zh-cn="認證計劃" data-zh-tw="認證計劃" data-ja="認定プログラム">Certification Program</h4>
+                    <p data-en="Get xxxxsemitech certified and showcase your professional expertise." data-zh-cn="獲得 xxxxsemitech 認證，展示您的專業能力。" data-zh-tw="獲得 xxxxsemitech 認證，展示您的專業能力。" data-ja="xxxxsemitech認定を取得し、専門的な専門知識を示します。">Get xxxxsemitech certified and showcase your professional expertise.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h3 data-en="Technical Training & Certification" data-zh-cn="技術培訓與認證" data-zh-tw="技術培訓與認證" data-ja="技術トレーニングと認定">Technical Training & Certification</h3>
+            <div class="two-col-grid">
+                <div class="col-item">
+                    <h3 data-en="Online Courses" data-zh-cn="在線課程" data-zh-tw="在線課程" data-ja="オンラインコース">Online Courses</h3>
+                    <p data-en="Free and paid online training courses covering all aspects of xxxxsemitech platform development." data-zh-cn="免費和付費的在線培訓課程，涵蓋 xxxxsemitech 平台開發的各個方面。" data-zh-tw="免費和付費的在線培訓課程，涵蓋 xxxxsemitech 平台開發的各個方面。" data-ja="xxxxsemitechプラットフォーム開発のすべての側面をカバーする無料および有料のオンライントレーニングコース。">Free and paid online training courses covering all aspects of xxxxsemitech platform development.</p>
+                </div>
+                <div class="col-item">
+                    <h3 data-en="Workshops & Seminars" data-zh-cn="工作坊與研討會" data-zh-tw="工作坊與研討會" data-ja="ワークショップとセミナー">Workshops & Seminars</h3>
+                    <p data-en="Regular online and offline workshops with direct interaction with experts." data-zh-cn="定期舉辦線上線下工作坊，與專家直接交流。" data-zh-tw="定期舉辦線上線下工作坊，與專家直接交流。" data-ja="専門家との直接的な相互作用を含む定期的なオンラインおよびオフラインワークショップ。">Regular online and offline workshops with direct interaction with experts.</p>
+                </div>
+                <div class="col-item">
+                    <h3 data-en="Certification Exams" data-zh-cn="認證考試" data-zh-tw="認證考試" data-ja="認定試験">Certification Exams</h3>
+                    <p data-en="Validate your skills and earn industry-recognized certifications." data-zh-cn="驗證您的技能，獲得行業認可的認證。" data-zh-tw="驗證您的技能，獲得行業認可的認證。" data-ja="スキルを検証し、業界認定の認定資格を取得します。">Validate your skills and earn industry-recognized certifications.</p>
+                </div>
+                <div class="col-item">
+                    <h3 data-en="Community Contribution" data-zh-cn="社群貢獻" data-zh-tw="社群貢獻" data-ja="コミュニティ貢献">Community Contribution</h3>
+                    <p data-en="Participate in open source projects and contribute to the community." data-zh-cn="參與開源項目，為社群做出貢獻。" data-zh-tw="參與開源項目，為社群做出貢獻。" data-ja="オープンソースプロジェクトに参加し、コミュニティに貢献してください。">Participate in open source projects and contribute to the community.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2 data-en="Start Development" data-zh-cn="開始開發" data-zh-tw="開始開發" data-ja="開発を開始">Start Development</h2>
+            <p data-en="Start using xxxxsemitech developer tools right away" data-zh-cn="立即開始使用 xxxxsemitech 開發者工具" data-zh-tw="立即開始使用 xxxxsemitech 開發者工具" data-ja="xxxxsemitech開発者ツールの使用を今すぐ開始">Start using xxxxsemitech developer tools right away</p>
+            <button class="cta-button" onclick="window.location.href='../support/index.html'" data-en="Get Support" data-zh-cn="獲取支持" data-zh-tw="獲取支持" data-ja="サポートを取得">Get Support</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2025 xxxxsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2025 xxxxsemitech 公司。保留所有權利。" data-zh-tw="&copy; 2025 xxxxsemitech 公司。保留所有權利。" data-ja="&copy; 2025 xxxxsemitech Corporation。著作権所有。">&copy; 2025 xxxxsemitech Corporation. All rights reserved.</span></p>
+        <div class="footer-links">
+            <a href="../company/index.html" data-en="Privacy Policy" data-zh-cn="隱私政策" data-zh-tw="隱私政策" data-ja="プライバシーポリシー">Privacy Policy</a>
+            <a href="../company/index.html" data-en="Terms of Use" data-zh-cn="使用條款" data-zh-tw="使用條款" data-ja="利用規約">Terms of Use</a>
+            <a href="../support/index.html" data-en="Contact Us" data-zh-cn="聯繫我們" data-zh-tw="聯繫我們" data-ja="お問い合わせ">Contact Us</a>
+            <a href="../company/index.html" data-en="News" data-zh-cn="新聞" data-zh-tw="新聞" data-ja="ニュース">News</a>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.85em; opacity: 0.7;">
+            <span data-en="This is a demo website with rebranded content | Original content from qualcomm.com" data-zh-cn="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-zh-tw="此為經過品牌替換的演示網站 | 原始內容來自 qualcomm.com" data-ja="これは再ブランド化されたデモウェブサイトです | 元のコンテンツは qualcomm.com から">This is a demo website with rebranded content | Original content from qualcomm.com</span>
+        </p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中',
+                'zh-tw': '繁中',
+                'ja': '日文'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn][data-zh-tw][data-ja]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

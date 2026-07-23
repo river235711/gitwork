@@ -1,0 +1,570 @@
+/* ==========================================================================
+   Design tokens — adapted from Qualcomm's public design system (colors,
+   spacing) so the site reads consistently with qualcomm.com.
+   ========================================================================== */
+:root {
+    --qc-blue: #2A2AEA;
+    --qc-blue-light: #5E83E2;
+    --qc-blue-dark: #2849D2;
+    --qc-blue-dark-accent: #1C38A6;
+
+    --qc-black-95: rgba(0, 0, 0, 0.95);
+    --qc-black-55: rgba(0, 0, 0, 0.55);
+    --qc-black-40: rgba(0, 0, 0, 0.40);
+    --qc-black-15: rgba(0, 0, 0, 0.15);
+    --qc-black-8: rgba(0, 0, 0, 0.08);
+
+    --qc-white-95: rgba(255, 255, 255, 0.95);
+    --qc-white-80: rgba(255, 255, 255, 0.80);
+    --qc-white-55: rgba(255, 255, 255, 0.55);
+
+    --qc-ghost-white: #FAFBFC;
+    --qc-white-smoke: #F5F6F7;
+    --qc-eerie-black: #151516;
+    --qc-charleston-green: #202021;
+
+    --space-xxs: 4px;
+    --space-xs: 8px;
+    --space-s: 16px;
+    --space-m: 24px;
+    --space-l: 48px;
+    --space-xl: 60px;
+    --space-xxl: 96px;
+
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-hover: 0px 12px 12px -8px rgba(0, 0, 0, 0.24);
+}
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        "PingFang TC", "Microsoft JhengHei", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--qc-white-smoke);
+    color: var(--qc-black-95);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    letter-spacing: -0.1px;
+}
+
+/* CJK typography — the -0.1px/-0.5px/-0.3px Latin letter-spacing above
+   tightens full-width glyphs instead of refining them, so relax tracking
+   and open up line-height once the page switches script. */
+html[lang="zh-cn"] body {
+    letter-spacing: normal;
+    line-height: 1.75;
+}
+
+html[lang="zh-cn"] .hero h1,
+html[lang="zh-cn"] .logo {
+    letter-spacing: normal;
+}
+
+main, .content-wrapper {
+    flex: 1;
+}
+
+/* Navigation Bar */
+.navbar {
+    background: #FFFFFF;
+    padding: var(--space-s) var(--space-l);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--qc-black-15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xl);
+}
+
+.logo {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--qc-black-95);
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: -0.3px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        "PingFang TC", "Microsoft JhengHei", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+.nav-menu {
+    list-style: none;
+    display: flex;
+    gap: var(--space-m);
+}
+
+.nav-menu a {
+    text-decoration: none;
+    color: var(--qc-black-95);
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s var(--ease-standard);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nav-menu a:hover {
+    color: var(--qc-blue);
+}
+
+.dropdown-icon {
+    font-size: 0.7em;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-l);
+}
+
+.language-selector {
+    position: relative;
+}
+
+.lang-button {
+    background: none;
+    border: none;
+    font-size: 0.95em;
+    color: var(--qc-black-95);
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s var(--ease-standard);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lang-button:hover {
+    color: var(--qc-blue);
+}
+
+.lang-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #FFFFFF;
+    border: 1px solid var(--qc-black-15);
+    border-radius: 4px;
+    box-shadow: var(--shadow-hover);
+    min-width: 150px;
+    z-index: 1001;
+    margin-top: 5px;
+}
+
+.lang-dropdown.active {
+    display: block;
+}
+
+.lang-option {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s var(--ease-standard);
+    text-decoration: none;
+    color: var(--qc-black-95);
+    display: block;
+    font-size: 0.9em;
+}
+
+.lang-option:hover {
+    background-color: var(--qc-white-smoke);
+    color: var(--qc-blue);
+}
+
+.lang-option.active {
+    background-color: var(--qc-blue);
+    color: #FFFFFF;
+}
+
+.navbar-icon {
+    cursor: pointer;
+    font-size: 1.2em;
+    color: var(--qc-black-95);
+    transition: color 0.2s var(--ease-standard);
+}
+
+.navbar-icon:hover {
+    color: var(--qc-blue);
+}
+
+/* Hero Section */
+.hero {
+    background: var(--qc-blue);
+    color: #FFFFFF;
+    padding: var(--space-xxl) var(--space-l);
+}
+
+.hero-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.hero h1 {
+    font-size: 3.4em;
+    font-weight: 800;
+    margin-bottom: var(--space-s);
+    letter-spacing: -1px;
+    line-height: 1.05;
+}
+
+.hero .tagline {
+    font-size: 1.4em;
+    font-weight: 400;
+    opacity: 0.95;
+    margin-bottom: var(--space-m);
+    max-width: 640px;
+}
+
+.hero-cta {
+    display: inline-block;
+    padding: 12px 28px;
+    border: 1px solid #FFFFFF;
+    border-radius: 4px;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95em;
+    transition: background-color 0.2s var(--ease-standard), color 0.2s var(--ease-standard);
+}
+
+.hero-cta:hover {
+    background: #FFFFFF;
+    color: var(--qc-blue);
+}
+
+/* Hero value pillars — short bullet-separated caption row, in the vein of
+   Synopsys's "Supercharge Productivity  •  Conquer Complexity  •..." line. */
+.hero-pillars {
+    font-size: 0.95em;
+    color: var(--qc-white-80);
+    margin-bottom: var(--space-l);
+}
+
+.hero-pillars span:not(:last-child)::after {
+    content: "\2022";
+    margin: 0 var(--space-xs);
+    opacity: 0.6;
+}
+
+.badge {
+    display: inline-block;
+    background: #4caf50;
+    color: #FFFFFF;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.9em;
+}
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    width: 100%;
+}
+
+/* Content Sections */
+.content-section {
+    background: #FFFFFF;
+    padding: var(--space-xl) var(--space-l);
+    margin: var(--space-l) 0;
+    border-radius: 12px;
+    border: 1px solid var(--qc-black-8);
+    text-align: center;
+}
+
+.content-section h1 {
+    font-size: 3em;
+    color: var(--qc-black-95);
+    margin-bottom: var(--space-m);
+    text-align: center;
+}
+
+.content-section h2 {
+    font-size: 2em;
+    color: var(--qc-black-95);
+    margin-bottom: var(--space-m);
+    text-align: center;
+    font-weight: 700;
+}
+
+.content-section h3 {
+    font-size: 1.5em;
+    color: var(--qc-black-95);
+    margin: var(--space-m) 0 var(--space-s) 0;
+}
+
+.content-section p {
+    font-size: 1.2em;
+    line-height: 1.7;
+    color: var(--qc-black-55);
+    margin-bottom: var(--space-s);
+}
+
+.breadcrumb {
+    background: var(--qc-ghost-white);
+    padding: 12px var(--space-l);
+    color: var(--qc-black-55);
+    font-size: 0.9em;
+    border-bottom: 1px solid var(--qc-black-15);
+}
+
+.breadcrumb a {
+    color: var(--qc-blue);
+    text-decoration: none;
+    margin: 0 5px;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+/* Features Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-l) var(--space-m);
+    margin-top: var(--space-l);
+}
+
+.feature-card {
+    text-align: left;
+}
+
+.feature-line {
+    width: 32px;
+    height: 3px;
+    background: var(--qc-blue);
+    margin-bottom: var(--space-s);
+}
+
+.feature-card h3,
+.feature-card h4 {
+    color: var(--qc-black-95);
+    font-size: 1.15em;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.feature-card p {
+    color: var(--qc-black-55);
+    line-height: 1.6;
+    font-size: 0.95em;
+}
+
+/* Tab switcher — Cadence-style Technologies/Industries toggle: plain
+   text tab labels with a thin underline accent on the active tab. */
+.tab-switcher-nav {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-l);
+    border-bottom: 1px solid var(--qc-black-15);
+    margin-bottom: var(--space-l);
+}
+
+.tab-switcher-nav button {
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--qc-black-40);
+    padding: 0 var(--space-xxs) var(--space-s);
+    margin-bottom: -1px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s var(--ease-standard), border-color 0.2s var(--ease-standard);
+}
+
+.tab-switcher-nav button:hover {
+    color: var(--qc-black-95);
+}
+
+.tab-switcher-nav button.active {
+    color: var(--qc-black-95);
+    border-bottom-color: var(--qc-blue);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* CTA Section */
+.cta-section {
+    background: var(--qc-blue);
+    color: #FFFFFF;
+    padding: var(--space-xl) var(--space-l);
+    text-align: center;
+    border-radius: 12px;
+    margin: var(--space-l) 0;
+}
+
+.cta-section h2 {
+    font-size: 2em;
+    margin-bottom: var(--space-s);
+    color: #FFFFFF;
+}
+
+.cta-section p {
+    color: rgba(255,255,255,0.9);
+    font-size: 1.1em;
+}
+
+.cta-button {
+    display: inline-block;
+    background: #FFFFFF;
+    color: var(--qc-blue);
+    padding: 12px 32px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-size: 1em;
+    margin-top: var(--space-s);
+    transition: box-shadow 0.3s var(--ease-standard);
+}
+
+.cta-button:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+/* Footer */
+footer {
+    background: var(--qc-white-smoke);
+    color: var(--qc-black-55);
+    padding: var(--space-l) var(--space-l);
+    text-align: center;
+    margin-top: auto;
+    border-top: 1px solid var(--qc-black-15);
+}
+
+footer p {
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+.footer-links {
+    margin: var(--space-s) 0;
+}
+
+.footer-links a {
+    color: var(--qc-black-55);
+    text-decoration: none;
+    margin: 0 15px;
+    transition: color 0.2s var(--ease-standard);
+    font-size: 0.9em;
+}
+
+.footer-links a:hover {
+    color: var(--qc-blue);
+}
+
+/* Two Column Layout */
+.two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-l);
+    margin-top: var(--space-m);
+}
+
+.col-item h3 {
+    color: var(--qc-black-95);
+    margin: var(--space-s) 0 10px 0;
+    font-size: 1.2em;
+    font-weight: 700;
+}
+
+.col-item p {
+    color: var(--qc-black-55);
+    line-height: 1.7;
+    margin-bottom: var(--space-s);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .navbar-left {
+        gap: 20px;
+    }
+
+    .nav-menu {
+        gap: 15px;
+    }
+
+    .hero h1 {
+        font-size: 2em;
+    }
+
+    .container {
+        padding: 0 20px;
+    }
+
+    .content-section {
+        padding: 40px 20px;
+    }
+
+    .two-col-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+}
+
+.about-social {
+    margin-top: 16px;
+}
+
+.about-social a {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.linkedin-icon {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #0a66c2;
+    border: 1px solid #0a66c2;
+    border-radius: 4px;
+    padding: 6px 8px;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.about-social a:hover .linkedin-icon {
+    background-color: #0a66c2;
+    color: #ffffff;
+}

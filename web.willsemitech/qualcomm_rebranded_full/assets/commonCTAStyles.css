@@ -1,0 +1,152 @@
+.content-driven-cta{
+  --cta-neutral-000: hsl(0 0% 100%);
+  --cta-neutral-000-80: hsl(0 0% 100%/0.8);
+  --cta-neutral-300: #BBBBBB;
+  --cta-neutral-600: #717171;
+  --cta-neutral-800: rgba(21, 21, 21, 1);
+  --cta-neutral-800-80: rgba(21, 21, 21, 0.8);
+  --cta-neutral-1000: hsl(0 0% 0%);
+
+  --cta-box-shadow-hover-default: 0 0 #0000, 0 0 #0000, 0px 12px 12px -8px rgba(0,0,0,.24);
+  display: inline-flex; 
+  cursor: pointer; 
+  align-items: center; 
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter; 
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); 
+  transition-duration: 700ms;
+  column-gap: 4px;
+}
+
+.dark .content-driven-cta{
+  --cta-neutral-000: hsl(0 0% 0%);
+  --cta-neutral-000-80: hsl(0 0% 0%/0.8);
+  --cta-neutral-300: #565656;
+  --cta-neutral-600: #8E8E8E;
+  --cta-neutral-800: rgba(255,255,255,1);
+  --cta-neutral-800-80: rgba(255,255,255,0.8);
+  --cta-neutral-1000: hsl(0 0% 100%);
+}
+
+.dark .light .content-driven-cta{
+  --cta-neutral-000: hsl(0 0% 100%);
+  --cta-neutral-000-80: hsl(0 0% 100%/0.8);
+  --cta-neutral-300: #BBBBBB;
+  --cta-neutral-600: #717171;
+  --cta-neutral-800: rgba(21, 21, 21, 1);
+  --cta-neutral-800-80: rgba(21, 21, 21, 0.8);
+  --cta-neutral-1000: hsl(0 0% 0%);
+}
+
+.content-driven-cta.group-fill{
+  border-radius: 0.25rem;
+  background-color: var(--cta-base-color);
+  color: var(--cta-contrast-color);
+  fill: var(--cta-contrast-color);
+  stroke: var(--cta-contrast-color);
+}
+
+.content-driven-cta.group-fill:hover{
+  box-shadow: var(--cta-box-shadow-hover-default);
+  background-color: var(--cta-hover-base-color, var(--cta-base-color));
+  color: var(--cta-hover-contrast-color, var(--cta-contrast-color));
+  fill: var(--cta-hover-contrast-color, var(--cta-contrast-color));
+  stroke: var(--cta-hover-contrast-color, var(--cta-contrast-color));
+}
+
+.content-driven-cta.group-outline{
+  border-radius: 0.25rem;
+  border-width: 1px;
+  border-color: var(--cta-border-color, var(--cta-base-color));
+  color: var(--cta-base-color);
+  fill: var(--cta-base-color);
+  stroke: var(--cta-base-color);
+}
+
+.content-driven-cta.group-outline:hover{
+  box-shadow: var(--cta-box-shadow-hover-default);
+  background-color: rgba(0,0,0,.05);
+  border-color: var(--cta-hover-border-color
+  , var(--cta-border-color
+    ,var(--cta-hover-base-color
+      ,var(--cta-base-color))));
+  color: var(--cta-hover-base-color, var(--cta-base-color));
+  fill: var(--cta-hover-base-color, var(--cta-base-color));
+  stroke: var(--cta-hover-base-color, var(--cta-base-color));
+}
+
+.content-driven-cta.group-text{
+  color: var(--cta-base-color);
+  fill: var(--cta-base-color);
+  stroke: var(--cta-base-color);
+}
+
+.content-driven-cta.group-text:hover{
+  color: var(--cta-hover-base-color, var(--cta-base-color));
+  fill: var(--cta-hover-base-color, var(--cta-base-color));
+  stroke: var(--cta-hover-base-color, var(--cta-base-color));
+}
+
+/**TODO : Consider cleaning up **/
+.content-driven-cta.group-disabled{
+  border-radius: 0.25rem;
+  border-width: 1px;
+  border-color: #BBBBBB;
+  color: #717171;
+  fill: #717171;
+  stroke: #717171;
+  pointer-events: none;
+}
+
+.content-driven-cta.group-disabled:hover{
+  color: var(--qualcomm-blue-dark-accent);
+	fill: var(--qualcomm-blue-dark-accent);
+	stroke: var(--qualcomm-blue-dark-accent);
+}
+
+.content-driven-cta.group-disabled.variant-white{
+	border-radius: 0.25rem;
+	border-width: 1px;  
+	border-color: hsl(0 0% 100%);
+	color: hsl(0 0% 100%);
+	fill: hsl(0 0% 100%);
+	stroke: hsl(0 0% 100%);
+	pointer-events: none;
+}
+
+.content-driven-cta.group-disabled.variant-white:hover {
+	color: hsla(0 0% 100%, 0.8);
+	fill: hsla(0 0% 100%, 0.8);
+	stroke: hsla(0 0% 100%, 0.8);
+}
+
+.content-driven-cta.group-fill-hover-shadow-disabled{
+  border-radius: 0.25rem;
+  background-color: var(--cta-base-color);
+  color: var(--cta-contrast-color);
+  fill: var(--cta-contrast-color);
+  stroke: var(--cta-contrast-color);
+}
+
+.content-driven-cta.variant-blue-light-gray{
+  border-color: #0000004d;
+}
+
+/**Dark mode specific styles - Revisit**/
+
+.dark .content-driven-cta.group-fill.variant-blue{
+  --cta-base-color: var(--qualcomm-blue-secondary) !important;
+  --cta-contrast-color: var(--cta-neutral-1000) !important;
+  --cta-hover-base-color: var(--qualcomm-blue-tertiary) !important;
+}
+
+.dark .light .content-driven-cta.group-fill.variant-blue{
+  --cta-base-color: var(--cta-authored-base-color) !important;
+  --cta-contrast-color: var(--cta-authored-contrast-color) !important;
+  --cta-hover-base-color: var(--cta-authored-hover-base-color) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .content-driven-cta.variant-blue-light-gray{
+    border-color: #0000004d;
+  }
+}

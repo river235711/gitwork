@@ -1,0 +1,81 @@
+.brand-theme.qualcomm.light-mode,
+.brand-theme.qualcomm .light{
+  --theme-brand-default: var(--qualcomm-blue-default);
+  --theme-text-100: var(--black-100);
+  --theme-text-primary: var(--black-95);
+  --theme-text-secondary: var(--black-55);
+  --theme-text-disabled: var(--black-40);
+
+  --theme-background-1: var(--white-100);
+  --theme-background-2: var(--ghost-white-100);
+  --theme-background-3: var(--white-smoke-100);
+  --theme-background-5: var(--light-gray);
+  --theme-breadcrumb-dropdown-background-1: var(--white);
+  --theme-breadcrumb-border-accent-1-subtle: var(--black-8);
+
+  --rte-link-hover: var(--duke-blue-100);
+
+  --theme-border-15: var(--black-15)
+}
+
+.brand-theme.qualcomm.dark-mode,
+.brand-theme.qualcomm .dark{
+  --theme-brand-default: var(--qualcomm-blue-dark);
+  --theme-text-100: var(--white-100);
+  --theme-text-primary: var(--white-95);
+  --theme-text-secondary: var(--white-80);
+  --theme-text-secondary-accent-1: var(--white-55);
+  --theme-text-secondary-accent-2: var(--white-60);
+  --theme-text-disabled: var(--white-40);
+
+  --theme-background-1: var(--eerie-black-100);
+  --theme-background-2: var(--charleston-green-100);
+  --theme-background-3: var(--jet-black-100);
+  --theme-background-5: var(--jet-black-100);
+  --theme-breadcrumb-dropdown-background-1: var(--jet-black-100);
+  --theme-breadcrumb-border-accent-1-subtle: var(--transparent);
+
+  --rte-link-hover: var(--royal-blue-100);
+  
+  --theme-border-15: var(--white-15)
+}
+
+.brand-theme.snapdragon.light-mode,
+.brand-theme.snapdragon .light{
+  --theme-brand-default: var(--snapdragon-red-default);
+  --theme-text-100: var(--black-100);
+  --theme-text-primary: var(--black-95);
+  --theme-text-secondary: var(--black-55);
+  --theme-text-disabled: var(--black-40);
+  
+  --theme-background-1: var(--white-100);
+  --theme-background-2: var(--ghost-white-100);
+  --theme-background-3: var(--white-smoke-100);
+  --theme-background-5: var(--light-gray);
+  --theme-breadcrumb-dropdown-background-1: var(--white);
+  --theme-breadcrumb-border-accent-1-subtle: var(--black-8);
+
+  --rte-link-hover: var(--duke-blue-100);
+
+  --theme-border-15: var(--black-15)
+}
+
+.brand-theme.dragonwing.light-mode,
+.brand-theme.dragonwing .light{
+  --theme-brand-default: var(--dragonwing-purple);
+  --theme-text-100: var(--black-100);
+  --theme-text-primary: var(--black-95);
+  --theme-text-secondary: var(--black-55);
+  --theme-text-disabled: var(--black-40);
+
+  --theme-background-1: var(--white-100);
+  --theme-background-2: var(--ghost-white-100);
+  --theme-background-3: var(--white-smoke-100);
+  --theme-background-5: var(--light-gray);
+  --theme-breadcrumb-dropdown-background-1: var(--white);
+  --theme-breadcrumb-border-accent-1-subtle: var(--black-8);
+
+  --rte-link-hover: var(--duke-blue-100);
+
+  --theme-border-15: var(--black-15)
+}

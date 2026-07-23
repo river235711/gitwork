@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - willsemitech</title>
+    <link rel="icon" type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+      %3Ctext x='50' y='54'
+        font-size='64'
+        font-weight='600'
+        fill='%23007AFF'
+        text-anchor='middle'
+        dominant-baseline='central'
+        font-family='Inter, Segoe UI, Helvetica, Arial, sans-serif'%3EW%3C/text%3E
+      %3C/svg%3E">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <span class="logo" onclick="window.location.href='../index.html'">willsemitech</span>
+        </div>
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                <li><a href="index.html" data-en="Products" data-zh-cn="产品">Products <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../applications/index.html" data-en="Applications" data-zh-cn="应用">Applications <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../developer/index.html" data-en="Developer" data-zh-cn="开发者">Developer <span class="dropdown-icon">▼</span></a></li>
+                <li><a href="../support/index.html" data-en="Support" data-zh-cn="支持">Support <span class="dropdown-icon">▼</span></a></li>
+                <li>
+                    <a href="../company/index.html"
+                       data-en="Company"
+                       data-zh-cn="公司">
+                       Company <span class="dropdown-icon">▼</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="language-selector">
+                <button class="lang-button" onclick="toggleLangDropdown()">
+                    <svg class="lang-flag" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    <span class="lang-text">EN</span>
+                    <span style="font-size: 0.7em;">▼</span>
+                </button>
+                <div class="lang-dropdown" id="langDropdown">
+                    <a class="lang-option active" onclick="switchLanguage('en')" data-lang="en">English</a>
+                    <a class="lang-option" onclick="switchLanguage('zh-cn')" data-lang="zh-cn">简体中文</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="../index.html" data-en="Home" data-zh-cn="首页">Home</a> / <span data-en="Products" data-zh-cn="产品">Products</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+
+        <div class="content-section">
+            <h2
+                data-en="CAD Tooling &amp; Deliverables"
+                data-zh-cn="CAD 工具与交付项">
+                CAD Tooling &amp; Deliverables
+            </h2>
+            <p
+                data-en="Alongside our engineering services, willsemitech maintains a set of internal CAD utilities that we deploy directly into your design flow to shorten ramp-up time and keep results consistent across projects."
+                data-zh-cn="除工程服務外，willsemitech 也維護一套內部 CAD 工具，直接導入您的設計流程，縮短導入時間並確保各專案結果一致。">
+                Alongside our engineering services, willsemitech maintains a set of internal CAD utilities that we deploy directly into your design flow to shorten ramp-up time and keep results consistent across projects.
+            </p>
+        </div>
+
+        <div class="content-section">
+            <h3
+                data-en="Tooling Portfolio"
+                data-zh-cn="工具產品組合">
+                Tooling Portfolio
+            </h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="PCell Library Suite" data-zh-cn="PCell 元件庫套件">PCell Library Suite</h4>
+                    <p data-en="Parameterized cell libraries that speed up schematic and layout reuse across process nodes." data-zh-cn="參數化元件庫，加速跨製程節點的電路圖與版圖重用。">Parameterized cell libraries that speed up schematic and layout reuse across process nodes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Design Rule Automation Kit" data-zh-cn="設計規則自動化套件">Design Rule Automation Kit</h4>
+                    <p data-en="Configurable DRC, LVS, and LPE rule-deck utilities that speed up sign-off iterations." data-zh-cn="可配置的 DRC、LVS 與 LPE 規則檔工具，加速簽核迭代。">Configurable DRC, LVS, and LPE rule-deck utilities that speed up sign-off iterations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Flow Orchestration Framework" data-zh-cn="流程協調框架">Flow Orchestration Framework</h4>
+                    <p data-en="A Python and Tcl based pipeline that stitches together synthesis, place-and-route, and verification stages." data-zh-cn="以 Python 與 Tcl 打造的流程框架，串接合成、佈局繞線與驗證各階段。">A Python and Tcl based pipeline that stitches together synthesis, place-and-route, and verification stages.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Foundry Interface Toolkit" data-zh-cn="晶圓代工介面工具組">Foundry Interface Toolkit</h4>
+                    <p data-en="Deliverable-management utilities that translate foundry PDKs into flow-ready formats." data-zh-cn="交付物管理工具，將晶圓代工 PDK 轉換為可直接導入流程的格式。">Deliverable-management utilities that translate foundry PDKs into flow-ready formats.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Verification Dashboard" data-zh-cn="驗證儀表板">Verification Dashboard</h4>
+                    <p data-en="A lightweight reporting layer that tracks DRC, LVS, and LPE status across a tapeout." data-zh-cn="輕量化報告工具，追蹤整個流片過程中的 DRC、LVS 與 LPE 狀態。">A lightweight reporting layer that tracks DRC, LVS, and LPE status across a tapeout.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-line"></div>
+                    <h4 data-en="Legacy Node Migration Kit" data-zh-cn="舊製程節點移植套件">Legacy Node Migration Kit</h4>
+                    <p data-en="Scripts and methodology for porting design flows between process nodes." data-zh-cn="用於跨製程節點移植設計流程的腳本與方法論。">Scripts and methodology for porting design flows between process nodes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2
+                data-en="Talk to Our CAD Team"
+                data-zh-cn="與我們的 CAD 團隊聯繫">
+                Talk to Our CAD Team
+            </h2>
+            <p
+                data-en="Tell us about your flow, and we will help you find the right tooling and engineering support."
+                data-zh-cn="告訴我們您的設計流程，我們將協助您找到合適的工具與工程支援。">
+                Tell us about your flow, and we will help you find the right tooling and engineering support.
+            </p>
+            <button class="cta-button" onclick="window.location.href='../support/index.html'"
+                data-en="Contact Support"
+                data-zh-cn="聯繫支援">
+                Contact Support
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><span data-en="&copy; 2026 willsemitech Corporation. All rights reserved." data-zh-cn="&copy; 2026 willsemitech 公司。保留所有权利。">&copy; 2026 willsemitech Corporation. All rights reserved.</span></p>
+    </footer>
+
+    <script>
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('selectedLanguage') || 'en';
+            switchLanguage(savedLang);
+        });
+
+        function toggleLangDropdown() {
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function switchLanguage(lang) {
+            // Save language preference
+            localStorage.setItem('selectedLanguage', lang);
+
+            // Reflect the active language on <html lang> so CSS can apply
+            // per-script typography (e.g. CJK/Hangul letter-spacing).
+            document.documentElement.setAttribute('lang', lang);
+
+            // Update all elements with data-lang attributes
+            const langOptions = document.querySelectorAll('.lang-option');
+            langOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.getAttribute('data-lang') === lang) {
+                    option.classList.add('active');
+                }
+            });
+
+            // Update language button display
+            const langText = document.querySelector('.lang-text');
+            const langMap = {
+                'en': 'EN',
+                'zh-cn': '简中'
+            };
+            if (langText) {
+                langText.textContent = langMap[lang];
+            }
+
+            // Update all translatable elements
+            const translatableElements = document.querySelectorAll('[data-en][data-zh-cn]');
+            translatableElements.forEach(element => {
+                const text = element.getAttribute(`data-${lang.replace('-', '-')}`);
+                if (text) {
+                    // Handle special cases where we don't want to replace HTML content
+                    if (element.tagName === 'A' || element.tagName === 'BUTTON') {
+                        element.textContent = text;
+                    } else if (element.tagName === 'SPAN' && element.innerHTML.includes('©')) {
+                        element.innerHTML = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+
+            // Close dropdown after selection
+            const dropdown = document.getElementById('langDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.querySelector('.language-selector');
+            if (langSelector && !langSelector.contains(e.target)) {
+                const dropdown = document.getElementById('langDropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

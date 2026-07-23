@@ -1,0 +1,9 @@
+body{
+    --padding-xxs: 4px;
+    --padding-xs: 8px;
+    --padding-s: 16px;
+    --padding-m: 24px;
+    --padding-l: 48px;
+    --padding-xl: 60px;
+    --padding-xxl: 96px;
+}
