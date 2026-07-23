@@ -58,6 +58,12 @@ def build(dist_name="dist"):
         os.makedirs(os.path.dirname(d), exist_ok=True)
         shutil.copy2(s, d)
 
+    # 2b. 若有金鑰檔,複製進 dist/,讓執行時自動讀到與打包相同的金鑰
+    key_file = os.path.join(SRC, pdkcrypt.KEY_FILENAME)
+    shipped_key = os.path.isfile(key_file)
+    if shipped_key:
+        shutil.copy2(key_file, os.path.join(dist, pdkcrypt.KEY_FILENAME))
+
     # 3. 加密邏輯模組
     encrypted = []
     for rel in ENCRYPT_TOP:
@@ -65,14 +71,23 @@ def build(dist_name="dist"):
     for py in sorted(glob.glob(os.path.join(SRC, "pages", "*.py"))):
         encrypted.append(_encrypt_to(os.path.relpath(py, SRC), dist))
 
-    key_src = "PDKGUI_KEY" if os.environ.get("PDKGUI_KEY") else "內建預設金鑰(請改用 PDKGUI_KEY)"
+    if os.environ.get("PDKGUI_KEY"):
+        key_src = "PDKGUI_KEY 環境變數"
+    elif shipped_key:
+        key_src = "金鑰檔 %s(已一併複製進 dist/)" % pdkcrypt.KEY_FILENAME
+    else:
+        key_src = "內建預設金鑰(建議建立 %s 金鑰檔或用 PDKGUI_KEY)" % pdkcrypt.KEY_FILENAME
+
     print("部署版已建立: %s" % dist)
     print("  金鑰來源  : %s" % key_src)
     print("  明文檔    : %s" % ", ".join(PLAINTEXT))
     print("  加密模組  : %d 個 .pdkc" % len(encrypted))
     print("\n部署後在目標機器:")
     print("  export PDKGUI_HOME=%s" % dist)
-    print("  export PDKGUI_KEY='<同一把金鑰>'")
+    if not shipped_key and not os.environ.get("PDKGUI_KEY"):
+        pass  # 用內建預設,不需額外設定
+    elif not shipped_key:
+        print("  export PDKGUI_KEY='<與打包相同的金鑰>'")
     print("  %s/pdkgui" % dist)
     return dist
 

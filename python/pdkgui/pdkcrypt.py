@@ -34,9 +34,43 @@ _HEADER_LEN = len(MAGIC) + 1 + _SALT_LEN + _NONCE_LEN   # = 37
 DEFAULT_PASSPHRASE = "pdkgui-default-key-change-me"
 
 
+# 金鑰檔名(放在 pdkcrypt.py 同目錄;打包版會被複製進 dist/)
+KEY_FILENAME = "pdkgui.key"
+
+
+def _read_key_file(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            key = f.read().strip()
+            return key or None
+    except OSError:
+        return None
+
+
 def get_passphrase():
-    """取得通關密語:優先環境變數 PDKGUI_KEY,否則用內建預設值。"""
-    return os.environ.get("PDKGUI_KEY", DEFAULT_PASSPHRASE)
+    """取得通關密語,依序:
+
+      1. 環境變數 PDKGUI_KEY
+      2. 金鑰檔:環境變數 PDKGUI_KEY_FILE 指定的檔,或本模組同目錄的 pdkgui.key
+      3. 內建預設 DEFAULT_PASSPHRASE
+
+    用金鑰檔的好處:打包(pdk_build)與執行讀到同一把,不必兩邊手動 export,
+    避免「build 有 key、run 沒 key」導致的完整性驗證失敗。
+    """
+    if os.environ.get("PDKGUI_KEY"):
+        return os.environ["PDKGUI_KEY"]
+
+    candidates = []
+    if os.environ.get("PDKGUI_KEY_FILE"):
+        candidates.append(os.environ["PDKGUI_KEY_FILE"])
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   KEY_FILENAME))
+    for path in candidates:
+        key = _read_key_file(path)
+        if key:
+            return key
+
+    return DEFAULT_PASSPHRASE
 
 
 def _derive_keys(passphrase, salt):
