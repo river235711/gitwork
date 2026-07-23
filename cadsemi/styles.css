@@ -81,24 +81,13 @@ svg {
   margin-right: auto;
 }
 
-.logo-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.015em;
+  color: var(--accent);
 }
-
-.logo-mark-svg {
-  width: 18px;
-  height: 18px;
-  stroke: #ffffff;
-}
-
-.logo-text { font-size: 1.15rem; color: var(--text); }
 .accent { color: var(--accent); }
 
 .main-nav {
