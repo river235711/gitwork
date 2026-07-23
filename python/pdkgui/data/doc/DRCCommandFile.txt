@@ -1,0 +1,5 @@
+TSMC 22 NM CMOS LOGIC ULTRA LOW LEAKAGE DRC COMMAND FILE (CALIBRE)
+
+此檔為 DOC tab 讀取的範例文件內容。
+把你實際的文件文字放進 data/doc/<文件名稱>.txt 即可,
+左欄清單會自動列出 data/doc/ 下所有 .txt 檔。
