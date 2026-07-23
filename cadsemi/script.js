@@ -17,6 +17,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
+  // Language switch (CN / EN)
+  const langOpts = Array.from(document.querySelectorAll(".lang-opt"));
+  langOpts.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      langOpts.forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-pressed", String(active));
+      });
+      document.documentElement.lang = btn.dataset.lang === "en" ? "en" : "zh-Hant";
+    });
+  });
+
   // Hero carousel
   const carousel = document.getElementById("carousel");
   const slides = carousel ? Array.from(carousel.querySelectorAll(".slide")) : [];

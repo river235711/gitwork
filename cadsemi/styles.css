@@ -110,7 +110,29 @@ svg {
 .main-nav a:hover { color: var(--text); }
 .main-nav a:hover::after { transform: scaleX(1); }
 
-.nav-cta { display: inline-flex; }
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border, rgba(0,0,0,0.15));
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lang-opt {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lang-opt:hover { color: var(--text); }
+.lang-opt.is-active {
+  background: var(--accent);
+  color: #fff;
+}
 
 .nav-toggle {
   display: none;
@@ -578,8 +600,9 @@ svg {
 }
 
 @media (max-width: 720px) {
-  .main-nav, .nav-cta { display: none; }
+  .main-nav { display: none; }
   .nav-toggle { display: flex; }
+  .lang-switch { margin-left: auto; }
 
   .main-nav.open {
     display: flex;
