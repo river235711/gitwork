@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hans">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CADSEMI | 半導體設計自動化顧問服務</title>
-<meta name="description" content="CADSEMI 提供 PDK 開發、電路驗證(DRC/LVS/RC/EMIR)、IC 設計佈局與自動化腳本顧問服務，橫跨 3nm 至 250nm 製程節點。">
+<title>CADSEMI | 半导体设计自动化顾问服务</title>
+<meta name="description" content="CADSEMI 提供 PDK 开发、电路验证(DRC/LVS/RC/EMIR)、IC 设计布局与自动化脚本顾问服务，横跨 3nm 至 250nm 制程节点。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%22100%22 y2=%22100%22><stop offset=%220%22 stop-color=%22%232947d1%22/><stop offset=%221%22 stop-color=%22%236366f1%22/></linearGradient></defs><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22url(%23g)%22/><text x=%2250%22 y=%2270%22 font-family=%22Arial,Helvetica,sans-serif%22 font-size=%2264%22 font-weight=%22700%22 font-style=%22italic%22 fill=%22white%22 text-anchor=%22middle%22>C</text></svg>">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,16 +16,23 @@
       <span class="logo-text">Cadsemi</span>
     </a>
     <nav class="main-nav" id="mainNav">
-      <a href="#services">服務項目</a>
-      <a href="#node-coverage">製程涵蓋</a>
-      <a href="#about">關於我們</a>
-      <a href="#contact">聯絡我們</a>
+      <a href="#services" data-i18n="nav.services">服务项目</a>
+      <a href="#node-coverage" data-i18n="nav.node">制程涵盖</a>
+      <a href="#about" data-i18n="nav.about">关于我们</a>
+      <a href="#contact" data-i18n="nav.contact">联络我们</a>
     </nav>
-    <div class="lang-switch" role="group" aria-label="語言 / Language">
-      <button type="button" class="lang-opt is-active" data-lang="zh" aria-pressed="true">CN</button>
-      <button type="button" class="lang-opt" data-lang="en" aria-pressed="false">EN</button>
+    <div class="lang-switch" id="langSwitch">
+      <button type="button" class="lang-trigger" id="langTrigger" aria-haspopup="true" aria-expanded="false" aria-label="选择语言 / Select language">
+        <svg class="lang-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/></svg>
+        <span class="lang-current" id="langCurrent">简体中文</span>
+        <svg class="lang-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <ul class="lang-menu" id="langMenu" role="menu">
+        <li><button type="button" role="menuitem" class="lang-item is-active" data-lang="zh">简体中文</button></li>
+        <li><button type="button" role="menuitem" class="lang-item" data-lang="en">English</button></li>
+      </ul>
     </div>
-    <button class="nav-toggle" id="navToggle" aria-label="開啟選單" aria-expanded="false">
+    <button class="nav-toggle" id="navToggle" aria-label="开启选单" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -33,16 +40,16 @@
 
 <main>
   <!-- Hero carousel -->
-  <section class="hero-carousel" aria-label="精選重點">
+  <section class="hero-carousel" aria-label="精选重点">
     <div class="container">
       <div class="carousel" id="carousel">
 
         <article class="slide slide-blue is-active">
           <div class="slide-text">
-            <p class="eyebrow">半導體設計自動化顧問服務</p>
-            <h1>從 PDK 到全晶片驗證<br>您值得信賴的矽智財夥伴</h1>
-            <p class="slide-sub">PDK 開發移植、電路驗證、客製化佈局與自動化腳本開發，一站式技術顧問服務。</p>
-            <a href="#services" class="chevron-link chevron-link-light">查看服務項目 <span aria-hidden="true">&rsaquo;</span></a>
+            <p class="eyebrow" data-i18n="hero1.eyebrow">半导体设计自动化顾问服务</p>
+            <h1 data-i18n="hero1.title">从 PDK 到全晶片验证<br>您值得信赖的硅智财伙伴</h1>
+            <p class="slide-sub" data-i18n="hero1.sub">PDK 开发移植、电路验证、客制化布局与自动化脚本开发，一站式技术顾问服务。</p>
+            <a href="#services" class="chevron-link chevron-link-light"><span data-i18n="hero1.cta">查看服务项目</span> <span aria-hidden="true">&rsaquo;</span></a>
           </div>
           <div class="slide-art" aria-hidden="true"><div class="circuit-pattern"></div></div>
         </article>
@@ -50,9 +57,9 @@
         <article class="slide slide-navy">
           <div class="slide-text">
             <p class="eyebrow">Foundry Node Coverage</p>
-            <h1>橫跨 3nm 至 250nm<br>全製程節點實戰經驗</h1>
-            <p class="slide-sub">從先進製程到成熟製程，協助客戶完成設計轉移與跨節點驗證。</p>
-            <a href="#node-coverage" class="chevron-link chevron-link-light">了解製程涵蓋 <span aria-hidden="true">&rsaquo;</span></a>
+            <h1 data-i18n="hero2.title">横跨 3nm 至 250nm<br>全制程节点实战经验</h1>
+            <p class="slide-sub" data-i18n="hero2.sub">从先进制程到成熟制程，协助客户完成设计转移与跨节点验证。</p>
+            <a href="#node-coverage" class="chevron-link chevron-link-light"><span data-i18n="hero2.cta">了解制程涵盖</span> <span aria-hidden="true">&rsaquo;</span></a>
           </div>
           <div class="slide-art" aria-hidden="true"><div class="particle-pattern"></div></div>
         </article>
@@ -60,9 +67,9 @@
         <article class="slide slide-teal">
           <div class="slide-text">
             <p class="eyebrow">Tooling &amp; Automation</p>
-            <h1>整合業界標準工具鏈<br>加速您的設計流程</h1>
-            <p class="slide-sub">Calibre・Virtuoso・StarRC・Voltus 與自動化腳本開發，提升團隊交付效率。</p>
-            <a href="#contact" class="chevron-link chevron-link-light">立即諮詢 <span aria-hidden="true">&rsaquo;</span></a>
+            <h1 data-i18n="hero3.title">整合业界标准工具链<br>加速您的设计流程</h1>
+            <p class="slide-sub" data-i18n="hero3.sub">Calibre・Virtuoso・StarRC・Voltus 与自动化脚本开发，提升团队交付效率。</p>
+            <a href="#contact" class="chevron-link chevron-link-light"><span data-i18n="hero3.cta">立即咨询</span> <span aria-hidden="true">&rsaquo;</span></a>
           </div>
           <div class="slide-art" aria-hidden="true"><div class="grid-pattern"></div></div>
         </article>
@@ -75,7 +82,7 @@
           <button class="dot" data-slide="1" aria-label="投影片 2"></button>
           <button class="dot" data-slide="2" aria-label="投影片 3"></button>
         </div>
-        <button class="carousel-toggle" id="carouselToggle" aria-label="暫停輪播">
+        <button class="carousel-toggle" id="carouselToggle" aria-label="暂停轮播">
           <svg class="icon-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
           <svg class="icon-play" viewBox="0 0 24 24" hidden><path d="M7 4l13 8-13 8V4z"/></svg>
         </button>
@@ -86,31 +93,31 @@
   <!-- Explore row list -->
   <section class="section-tight">
     <div class="container">
-      <h2 class="explore-title">探索服務項目</h2>
+      <h2 class="explore-title" data-i18n="explore.title">探索服务项目</h2>
       <div class="explore-grid">
         <a class="explore-row" href="#pdk">
           <span class="explore-icon"><svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg></span>
-          <span class="explore-label">PDK 開發與移植</span>
+          <span class="explore-label" data-i18n="explore.pdk">PDK 开发与移植</span>
           <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
         </a>
         <a class="explore-row" href="#verification">
           <span class="explore-icon"><svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg></span>
-          <span class="explore-label">驗證服務</span>
+          <span class="explore-label" data-i18n="explore.verification">验证服务</span>
           <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
         </a>
         <a class="explore-row" href="#layout">
           <span class="explore-icon"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg></span>
-          <span class="explore-label">設計與佈局</span>
+          <span class="explore-label" data-i18n="explore.layout">设计与布局</span>
           <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
         </a>
         <a class="explore-row" href="#scripting">
           <span class="explore-icon"><svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h32M8 36h20"/><path d="M34 30l8 6-8 6"/></svg></span>
-          <span class="explore-label">自動化腳本開發</span>
+          <span class="explore-label" data-i18n="explore.scripting">自动化脚本开发</span>
           <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
         </a>
         <a class="explore-row" href="#node-coverage">
           <span class="explore-icon"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><circle cx="24" cy="24" r="10"/><circle cx="24" cy="24" r="3"/></svg></span>
-          <span class="explore-label">全製程節點涵蓋</span>
+          <span class="explore-label" data-i18n="explore.node">全制程节点涵盖</span>
           <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
         </a>
       </div>
@@ -119,8 +126,8 @@
 
   <section class="section" id="services">
     <div class="container">
-      <h2 class="section-title">服務項目 <span class="section-title-en">Services</span></h2>
-      <p class="section-sub">涵蓋 IC 設計流程中每一個關鍵環節，從前段開發到後段驗證，提供一站式技術顧問服務。</p>
+      <h2 class="section-title"><span data-i18n="services.title">服务项目</span> <span class="section-title-en" data-i18n="services.titleEn">Services</span></h2>
+      <p class="section-sub" data-i18n="services.sub">涵盖 IC 设计流程中每一个关键环节，从前段开发到后段验证，提供一站式技术顾问服务。</p>
 
       <div class="service-grid">
 
@@ -128,9 +135,9 @@
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg>
           </div>
-          <h3>PDK 開發與移植</h3>
-          <p class="service-en">PDK Development &amp; Porting</p>
-          <p class="service-desc">提供 CDF 建置、製程移植（Porting）、SKILL 語言開發與 PCELL 客製化，加速 PDK 導入與跨製程移轉。</p>
+          <h3 data-i18n="pdk.title">PDK 开发与移植</h3>
+          <p class="service-en" data-i18n="pdk.en">PDK Development &amp; Porting</p>
+          <p class="service-desc" data-i18n="pdk.desc">提供 CDF 建置、制程移植（Porting）、SKILL 语言开发与 PCELL 客制化，加速 PDK 导入与跨制程移转。</p>
           <ul class="tag-list">
             <li>CDF</li><li>Porting</li><li>SKILL Coding</li><li>PCELL Coding</li>
           </ul>
@@ -140,22 +147,22 @@
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg>
           </div>
-          <h3>驗證服務</h3>
-          <p class="service-en">Verification</p>
-          <p class="service-desc">提供 DRC、LVS、RC 萃取與 EMIR 分析等全方位驗證服務，確保設計符合製程規範與電源完整性要求。</p>
+          <h3 data-i18n="verification.title">验证服务</h3>
+          <p class="service-en" data-i18n="verification.en">Verification</p>
+          <p class="service-desc" data-i18n="verification.desc">提供 DRC、LVS、RC 萃取与 EMIR 分析等全方位验证服务，确保设计符合制程规范与电源完整性要求。</p>
           <ul class="tag-list">
             <li>DRC</li><li>LVS</li><li>RC</li><li>EMIR</li>
           </ul>
-          <p class="service-tools">工具：Calibre・PVS・StarRC・QRC・Voltus</p>
+          <p class="service-tools" data-i18n="verification.tools">工具：Calibre・PVS・StarRC・QRC・Voltus</p>
         </article>
 
         <article class="service-card" id="layout">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg>
           </div>
-          <h3>設計與佈局</h3>
-          <p class="service-en">Design &amp; Layout</p>
-          <p class="service-desc">支援電路設計、客製化佈局與版圖檢查流程整合，涵蓋業界主流 EDA 平台。</p>
+          <h3 data-i18n="layout.title">设计与布局</h3>
+          <p class="service-en" data-i18n="layout.en">Design &amp; Layout</p>
+          <p class="service-desc" data-i18n="layout.desc">支援电路设计、客制化布局与版图检查流程整合，涵盖业界主流 EDA 平台。</p>
           <ul class="tag-list">
             <li>ADE</li><li>Virtuoso</li><li>Laker</li><li>CC</li>
           </ul>
@@ -165,9 +172,9 @@
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h32M8 36h20"/><path d="M34 30l8 6-8 6"/></svg>
           </div>
-          <h3>自動化腳本開發</h3>
-          <p class="service-en">Automation &amp; Scripting</p>
-          <p class="service-desc">建立自動化流程與版本控管機制，提升團隊開發效率並降低重複性作業成本。</p>
+          <h3 data-i18n="scripting.title">自动化脚本开发</h3>
+          <p class="service-en" data-i18n="scripting.en">Automation &amp; Scripting</p>
+          <p class="service-desc" data-i18n="scripting.desc">建立自动化流程与版本控管机制，提升团队开发效率并降低重复性作业成本。</p>
           <ul class="tag-list">
             <li>Perl</li><li>Tcl</li><li>Python / TK</li><li>SVN</li><li>GIT</li><li>LSF</li>
           </ul>
@@ -184,30 +191,30 @@
         <div class="feature-bg" aria-hidden="true"></div>
         <div class="feature-text">
           <p class="eyebrow eyebrow-light">Foundry Node Coverage</p>
-          <h2>全製程節點涵蓋</h2>
+          <h2 data-i18n="node.title">全制程节点涵盖</h2>
           <p class="node-range">3nm <span>—</span> 250nm</p>
-          <p class="feature-sub">具備從先進製程到成熟製程的專案經驗，協助新舊製程節點間的設計轉移與驗證。</p>
-          <a href="#contact" class="chevron-link chevron-link-light">討論您的製程需求 <span aria-hidden="true">&rsaquo;</span></a>
+          <p class="feature-sub" data-i18n="node.sub">具备从先进制程到成熟制程的专案经验，协助新旧制程节点间的设计转移与验证。</p>
+          <a href="#contact" class="chevron-link chevron-link-light"><span data-i18n="node.cta">讨论您的制程需求</span> <span aria-hidden="true">&rsaquo;</span></a>
         </div>
         <div class="feature-list">
           <a class="feature-row" href="#verification">
             <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="8" width="32" height="32" rx="4"/><path d="M16 24h16M24 16v16"/></svg></span>
-            <span class="feature-row-label">Calibre 驗證整合</span>
+            <span class="feature-row-label" data-i18n="node.row1">Calibre 验证整合</span>
             <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
           </a>
           <a class="feature-row" href="#layout">
             <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg></span>
-            <span class="feature-row-label">Virtuoso 設計平台</span>
+            <span class="feature-row-label" data-i18n="node.row2">Virtuoso 设计平台</span>
             <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
           </a>
           <a class="feature-row" href="#verification">
             <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 24h10l4-14 8 28 4-14h6"/></svg></span>
-            <span class="feature-row-label">StarRC / QRC 萃取</span>
+            <span class="feature-row-label" data-i18n="node.row3">StarRC / QRC 萃取</span>
             <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
           </a>
           <a class="feature-row" href="#verification">
             <span class="feature-row-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 6l16 8v12c0 9-6.5 15-16 16-9.5-1-16-7-16-16V14z"/></svg></span>
-            <span class="feature-row-label">Voltus 電源完整性</span>
+            <span class="feature-row-label" data-i18n="node.row4">Voltus 电源完整性</span>
             <span class="explore-chevron" aria-hidden="true">&rsaquo;</span>
           </a>
         </div>
@@ -218,24 +225,24 @@
   <section class="section section-alt" id="about">
     <div class="container about-grid">
       <div>
-        <h2 class="section-title">關於我們 <span class="section-title-en">About</span></h2>
-        <p class="about-text">
-          CADSEMI 是一家專注於半導體設計自動化（EDA）與客製化 IC 設計服務的技術顧問公司。
-          我們的團隊具備橫跨先進製程與成熟製程節點的實戰經驗，服務範圍涵蓋 PDK 開發、
-          電路驗證、版圖設計，以及流程自動化，協助客戶加速產品開發時程，並確保每一項交付
-          都符合最高的設計品質與製程規範。
+        <h2 class="section-title"><span data-i18n="about.title">关于我们</span> <span class="section-title-en" data-i18n="about.titleEn">About</span></h2>
+        <p class="about-text" data-i18n="about.p1">
+          CADSEMI 是一家专注于半导体设计自动化（EDA）与客制化 IC 设计服务的技术顾问公司。
+          我们的团队具备横跨先进制程与成熟制程节点的实战经验，服务范围涵盖 PDK 开发、
+          电路验证、版图设计，以及流程自动化，协助客户加速产品开发时程，并确保每一项交付
+          都符合最高的设计品质与制程规范。
         </p>
-        <p class="about-text">
-          我們相信專業的顧問服務來自對工具鏈與製程細節的深刻理解——這正是 CADSEMI 存在的價值。
+        <p class="about-text" data-i18n="about.p2">
+          我们相信专业的顾问服务来自对工具链与制程细节的深刻理解——这正是 CADSEMI 存在的价值。
         </p>
       </div>
       <div class="about-card">
-        <h3>核心優勢</h3>
+        <h3 data-i18n="about.cardTitle">核心优势</h3>
         <ul class="check-list">
-          <li>橫跨 3nm 至 250nm 製程節點的實務經驗</li>
-          <li>熟悉業界主流 EDA 工具鏈與驗證流程</li>
-          <li>具備 SKILL / PCELL 客製化開發能力</li>
-          <li>提供自動化腳本與流程整合，提升交付效率</li>
+          <li data-i18n="about.li1">横跨 3nm 至 250nm 制程节点的实务经验</li>
+          <li data-i18n="about.li2">熟悉业界主流 EDA 工具链与验证流程</li>
+          <li data-i18n="about.li3">具备 SKILL / PCELL 客制化开发能力</li>
+          <li data-i18n="about.li4">提供自动化脚本与流程整合，提升交付效率</li>
         </ul>
       </div>
     </div>
@@ -243,16 +250,16 @@
 
   <section class="section" id="contact">
     <div class="container">
-      <h2 class="section-title">聯絡我們 <span class="section-title-en">Contact</span></h2>
-      <p class="section-sub">歡迎透過以下方式與我們聯繫，討論您的專案需求或加入我們的團隊。</p>
+      <h2 class="section-title"><span data-i18n="contact.title">联络我们</span> <span class="section-title-en" data-i18n="contact.titleEn">Contact</span></h2>
+      <p class="section-sub" data-i18n="contact.sub">欢迎透过以下方式与我们联系，讨论您的专案需求或加入我们的团队。</p>
 
       <div class="contact-grid">
         <a class="contact-card" href="mailto:support@cadsemi.com">
           <div class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="4" y="10" width="40" height="28" rx="4"/><path d="M6 14l18 14 18-14"/></svg>
           </div>
-          <h3>客戶服務與專案洽詢</h3>
-          <p class="contact-en">Client Inquiries</p>
+          <h3 data-i18n="contact.card1">客户服务与专案洽询</h3>
+          <p class="contact-en" data-i18n="contact.card1En">Client Inquiries</p>
           <p class="contact-email">support@cadsemi.com</p>
         </a>
 
@@ -260,13 +267,13 @@
           <div class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="8"/><path d="M8 42c0-9 7-16 16-16s16 7 16 16"/></svg>
           </div>
-          <h3>人才招募</h3>
-          <p class="contact-en">Careers / HR</p>
+          <h3 data-i18n="contact.card2">人才招募</h3>
+          <p class="contact-en" data-i18n="contact.card2En">Careers / HR</p>
           <p class="contact-email">hr@cadsemi.com</p>
         </a>
       </div>
 
-      <p class="domain-note">官方網域 <strong>cadsemi.com</strong> 籌備中，敬請期待正式上線。</p>
+      <p class="domain-note" data-i18n="contact.domain">官方网域 <strong>cadsemi.com</strong> 筹备中，敬请期待正式上线。</p>
     </div>
   </section>
 </main>

@@ -110,29 +110,75 @@ svg {
 .main-nav a:hover { color: var(--text); }
 .main-nav a:hover::after { transform: scaleX(1); }
 
-.lang-switch {
+.lang-switch { position: relative; }
+.lang-trigger {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border, rgba(0,0,0,0.15));
-  border-radius: 999px;
-  overflow: hidden;
-}
-.lang-opt {
+  gap: 6px;
   border: none;
   background: none;
   cursor: pointer;
-  padding: 5px 12px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  padding: 6px 4px;
+  font-size: 0.9rem;
   color: var(--text-muted);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease;
 }
-.lang-opt:hover { color: var(--text); }
-.lang-opt.is-active {
-  background: var(--accent);
-  color: #fff;
+.lang-trigger:hover { color: var(--text); }
+.lang-globe {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
 }
+.lang-caret {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: transform 0.15s ease;
+}
+.lang-switch.open .lang-caret { transform: rotate(180deg); }
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 148px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  z-index: 60;
+}
+.lang-switch.open .lang-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.lang-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: background 0.12s ease;
+}
+.lang-item:hover { background: rgba(41,71,209,0.08); }
+.lang-item.is-active { color: var(--accent); font-weight: 600; }
 
 .nav-toggle {
   display: none;
