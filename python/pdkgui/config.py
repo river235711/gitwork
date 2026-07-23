@@ -66,6 +66,15 @@ PAGE_FILES = {
 # DOC 頁面的文件內容資料夾(每個文件一個 .txt 檔,檔名即文件名稱)
 DOC_DIR = os.path.join(DATA_DIR, "doc")
 
+# XRC 執行時 hcell / xcell 的 symbolic link 來源目錄(依 PDK / 製程調整)。
+# run script 會做:  ln -sf <此目錄>/hcell   與   ln -sf <此目錄>/xcell
+# 可用環境變數 PDKGUI_XRC_HCELL_DIR 覆蓋。
+XRC_HCELL_DIR = os.environ.get(
+    "PDKGUI_XRC_HCELL_DIR",
+    "/datacenter/techLibs/tsmc/T22N/tools/pdk_sirius/T22N/calibre_layout/"
+    "tsmc/T22/T22ULL_1P7M_4X1Z1U/layout_run/xrc",
+)
+
 # 若想用環境變數覆蓋某個 tab 的檔案,在這裡列出對應關係即可。
 # 例:export PDKGUI_SYSTEM_FILE=/path/to/xxx.txt
 _ENV_OVERRIDES = {
