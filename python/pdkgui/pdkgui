@@ -64,10 +64,35 @@ endif
 if ( ! $?LANG )   setenv LANG   en_US.UTF-8
 if ( ! $?LC_ALL ) setenv LC_ALL en_US.UTF-8
 
-# --- 4. 找到可用的 python(優先 python3)------------------------------------
-set PY = python3
-which python3 >& /dev/null
-if ( $status != 0 ) set PY = python
+# --- 4. 找到「真的有 tkinter」的 python -------------------------------------
+#   候選順序:$PDKGUI_PYTHON(使用者指定)> python3 > python
+#   逐個測試能不能 import tkinter,挑第一個成功的。
+set PY = ""
+set _cands = ()
+# 注意:csh 單行 if 會先展開 $PDKGUI_PYTHON,未設定時會報 Undefined variable,
+# 所以這裡一定要用 then/endif 區塊形式。
+if ( $?PDKGUI_PYTHON ) then
+    set _cands = ( "$PDKGUI_PYTHON" )
+endif
+set _cands = ( $_cands python3 python )
+
+foreach _c ( $_cands )
+    "$_c" -c 'import tkinter' >& /dev/null
+    if ( $status == 0 ) then
+        set PY = "$_c"
+        break
+    endif
+end
+
+if ( "$PY" == "" ) then
+    echo "pdkgui: 找不到內建 tkinter 的 python。"                              > /dev/stderr
+    echo "        tkinter 需另外安裝,或指定一個已內建 tkinter 的 python:"     > /dev/stderr
+    echo "          RHEL/CentOS:  sudo yum install python3-tkinter"           > /dev/stderr
+    echo "          Debian/Ubuntu: sudo apt install python3-tk"               > /dev/stderr
+    echo "        或設定環境變數指向可用的 python(需含 tkinter):"            > /dev/stderr
+    echo "          setenv PDKGUI_PYTHON /path/to/python3"                    > /dev/stderr
+    exit 1
+endif
 
 # --- 5. 執行(把使用者傳入的參數一併轉交)-----------------------------------
 exec $PY "$PDKGUI_PY" $argv:q
