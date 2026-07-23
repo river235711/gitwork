@@ -14,6 +14,7 @@ import tkinter as tk
 
 import config
 from pages import build_page
+from pages.env import env_defaults
 
 
 class PdkGui(tk.Tk):
@@ -24,7 +25,8 @@ class PdkGui(tk.Tk):
         self.configure(bg="#d9d9d9")
 
         self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
-        self.env = {}   # ENV tab 選到的工具 / 編輯器,供其他 tab 取用
+        # ENV tab 選到的工具 / 編輯器(啟動先載入預設),供其他 tab 取用
+        self.env = env_defaults()
 
         self._build_sidebar()
         self._build_content_area()

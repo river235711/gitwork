@@ -33,6 +33,14 @@ _FALLBACK = {
 }
 
 
+def env_defaults():
+    """回傳 {tool: 預設值};供其他 tab(如 verify 的 module load)在啟動時取用。"""
+    tools = EnvPage._parse(config.page_file("ENV"))
+    if not tools:
+        tools = {k: {"values": v, "default": v[0]} for k, v in _FALLBACK.items()}
+    return {k: info["default"] for k, info in tools.items()}
+
+
 class EnvPage(BasePage):
     module = "ENV"
 
