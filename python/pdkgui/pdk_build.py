@@ -50,11 +50,6 @@ def build(dist_name="dist"):
 
     # 1. data/(原樣複製)
     shutil.copytree(os.path.join(SRC, "data"), os.path.join(dist, "data"))
-    # 用目前金鑰重新產生示範加密頁
-    pdk_pack.pack_file(
-        os.path.join(SRC, "secure_src", "secure_page.py"),
-        os.path.join(dist, "data", "secure", "secure_page.pdkc"),
-    )
 
     # 2. 明文檔照抄
     for rel in PLAINTEXT:

@@ -25,8 +25,15 @@ class ProcessPage(BasePage):
                  font=("Arial", 11)).pack(pady=(20, 10))
 
         values = config.read_lines(config.page_file(self.module)) or [config.DESIGN_NAME]
+        # 目前 design 若在清單中就選它,否則預設第一個
+        current = config.DESIGN_NAME if config.DESIGN_NAME in values else values[0]
+
         combo = ttk.Combobox(self, values=values, state="readonly", width=40)
-        combo.set(values[0])
+        combo.set(current)
         combo.pack()
+
+        # 選擇後更新視窗標題 "pdkgui - <名稱>"(其他 tab 也會跟著使用)
+        combo.bind("<<ComboboxSelected>>",
+                   lambda e: self.app.set_design(combo.get()))
 
         LogoPanel(self, height=110).pack(side="bottom", fill="x")

@@ -29,6 +29,11 @@ class PdkGui(tk.Tk):
         self._build_content_area()
         self.show_module(config.MENU_ITEMS[0])
 
+    def set_design(self, name):
+        """切換目前 design:更新視窗標題,並讓其他 tab 也跟著使用。"""
+        config.DESIGN_NAME = name
+        self.title("pdkgui - %s" % name)
+
     # ------------------------------------------------------------------
     # 左側選單
     # ------------------------------------------------------------------
