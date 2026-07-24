@@ -97,8 +97,20 @@ def open_gds(app, gds):
         messagebox.showerror("pdkgui", "Failed to write skipper script:\n%s" % e)
         return
 
+    # Launch detached so skipper survives independently of pdkgui / the terminal:
+    #   - start_new_session=True (setsid): own session, immune to the parent's SIGHUP
+    #     (which is what made skipper flash then exit)
+    #   - stdin from /dev/null, stdout/stderr to a log
+    #   - close_fds so it does not inherit pdkgui's file descriptors
     try:
-        log = open(os.path.join(config.USER_DIR, "skipper_view.log"), "w")
-        subprocess.Popen([sh_path], stdout=log, stderr=subprocess.STDOUT)
+        logf = open(os.path.join(config.USER_DIR, "skipper_view.log"), "w")
+        devnull = open(os.devnull, "rb")
+        subprocess.Popen(
+            ["bash", "-l", sh_path],
+            stdin=devnull, stdout=logf, stderr=subprocess.STDOUT,
+            start_new_session=True, close_fds=True,
+        )
+        logf.close()
+        devnull.close()
     except Exception as e:
         messagebox.showerror("pdkgui", "Failed to launch skipper:\n%s" % e)
