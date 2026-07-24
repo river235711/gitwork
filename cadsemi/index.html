@@ -17,7 +17,6 @@
     </a>
     <nav class="main-nav" id="mainNav">
       <a href="#services" data-i18n="nav.services">服务项目</a>
-      <a href="#about" data-i18n="nav.about">关于我们</a>
       <a href="#contact" data-i18n="nav.contact">联络我们</a>
     </nav>
     <div class="lang-switch" id="langSwitch">
@@ -61,10 +60,11 @@
     </div>
   </section>
 
-  <section class="section" id="services">
+  <section class="section section-alt" id="services">
     <div class="container">
       <h2 class="section-title"><span data-i18n="services.title">服务项目</span> <span class="section-title-en" data-i18n="services.titleEn">Services</span></h2>
       <p class="section-sub" data-i18n="services.sub">涵盖 IC 设计流程中每一个关键环节，从前段开发到后段验证，提供一站式技术顾问服务。</p>
+      <p class="section-credit" data-i18n="services.credit">由曾任职 TSMC、MediaTek、Cadence、Qualcomm 与 Phison 的资深 CAD/PDK 工程师提供服务，15+ 年一线大厂实战经验。</p>
 
       <div class="service-grid">
 
@@ -130,75 +130,6 @@
         </article>
 
       </div>
-    </div>
-  </section>
-
-  <section class="section section-alt" id="about">
-    <div class="container about-grid">
-      <div>
-        <h2 class="section-title"><span data-i18n="about.title">关于创办人</span> <span class="section-title-en" data-i18n="about.titleEn">About the Founder</span></h2>
-        <p class="about-text" data-i18n="about.p1">
-          CADSEMI 由 Will Huang 创立——一位在半导体设计自动化领域拥有超过 15 年经验的资深 CAD/PDK 工程师。
-          他曾任职于 TSMC、MediaTek、Cadence、Qualcomm 与 Phison，横跨从 0.25µm 到 3nm 的全制程节点，
-          负责建立与维护数十个内部与晶圆厂 PDK、开发验证环境，并主导多项 EDA 工具认证与导入专案。
-        </p>
-        <p class="about-text" data-i18n="about.p2">
-          这些一线大厂的实战经验，正是 CADSEMI 交付品质的基础——我们相信专业的顾问服务来自对工具链与制程细节的深刻理解。
-        </p>
-        <p class="credentials" data-i18n="about.credentials">
-          🎓 台湾大学电机工程硕士（IC 与系统）・台湾大学数学硕士　📄 IEEE VLSI-DAT 论文发表
-        </p>
-      </div>
-      <div class="about-card">
-        <h3 data-i18n="about.cardTitle">核心优势</h3>
-        <ul class="check-list">
-          <li data-i18n="about.li1">横跨 3nm 至 250nm（0.25µm）制程节点的实务经验</li>
-          <li data-i18n="about.li2">曾任职 TSMC、MediaTek、Cadence、Qualcomm、Phison 等一线大厂</li>
-          <li data-i18n="about.li3">具备 SKILL / PCELL 客制化开发与 EDA 工具认证能力</li>
-          <li data-i18n="about.li4">提供自动化脚本与流程整合，提升交付效率</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="container">
-      <h3 class="timeline-title" data-i18n="timeline.title">职业历程</h3>
-      <ul class="timeline">
-        <li>
-          <span class="timeline-year">2021 – <span data-i18n="timeline.present">至今</span></span>
-          <div class="timeline-body">
-            <h4>Phison ・ <span data-i18n="timeline.phison.role">资深工程师 CAD/PDK</span></h4>
-            <p data-i18n="timeline.phison.desc">建立公司内部 PDK、EMIR 分析与 PGV library flow，整合多家晶圆厂 PDK 格式。</p>
-          </div>
-        </li>
-        <li>
-          <span class="timeline-year">2020 – 2021</span>
-          <div class="timeline-body">
-            <h4>Qualcomm ・ <span data-i18n="timeline.qualcomm.role">资深工程师 CAD/PDK</span></h4>
-            <p data-i18n="timeline.qualcomm.desc">建立模拟设计环境与 Virtuoso/Calibre 验证流程，开发内部 PDK 与初始 Simulator。</p>
-          </div>
-        </li>
-        <li>
-          <span class="timeline-year">2019 – 2020</span>
-          <div class="timeline-body">
-            <h4>Cadence ・ <span data-i18n="timeline.cadence.role">首席产品工程师 Simulator</span></h4>
-            <p data-i18n="timeline.cadence.desc">主导 3nm、5nm、6nm、7nm、16nm 制程模型认证，以及 ADE / Spectre 工具认证与发布排程规划。</p>
-          </div>
-        </li>
-        <li>
-          <span class="timeline-year">2017 – 2019</span>
-          <div class="timeline-body">
-            <h4>MediaTek ・ <span data-i18n="timeline.mediatek.role">资深工程师 PDK Owner</span></h4>
-            <p data-i18n="timeline.mediatek.desc">建立橫跨 150nm 至 6nm 的内部 PDK，熟悉 TSMC/UMC/GF/HLMC 晶圆厂格式，负责 PDK 发布排程。</p>
-          </div>
-        </li>
-        <li>
-          <span class="timeline-year">2008 – 2011</span>
-          <div class="timeline-body">
-            <h4>TSMC ・ <span data-i18n="timeline.tsmc.role">研发工程师 Device/Modeling/PDK</span></h4>
-            <p data-i18n="timeline.tsmc.desc">设计 28nm、40nm、65nm、90nm 先进制程 MOM 电容版图，并完成 SPICE 模型开发与先进制程 PDK QA。</p>
-          </div>
-        </li>
-      </ul>
     </div>
   </section>
 
