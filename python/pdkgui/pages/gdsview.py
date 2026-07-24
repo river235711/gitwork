@@ -21,11 +21,18 @@ the file exists, otherwise it is omitted.
 """
 
 import os
+import shutil
 import subprocess
 
 from tkinter import messagebox
 
 import config
+
+_TERMINALS = (
+    ["xterm", "-fg", "white", "-bg", "black", "-e"],
+    ["gnome-terminal", "--"], ["konsole", "-e"],
+    ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
+)
 
 
 def _skipper_conf():
@@ -97,11 +104,41 @@ def open_gds(app, gds):
         messagebox.showerror("pdkgui", "Failed to write skipper script:\n%s" % e)
         return
 
-    # Launch detached so skipper survives independently of pdkgui / the terminal:
-    #   - start_new_session=True (setsid): own session, immune to the parent's SIGHUP
-    #     (which is what made skipper flash then exit)
-    #   - stdin from /dev/null, stdout/stderr to a log
-    #   - close_fds so it does not inherit pdkgui's file descriptors
+    # Preferred: run it in a real terminal (same as running the shell by hand --
+    # gives a controlling terminal and keeps skipper's output/errors visible).
+    # Fall back to a detached background launch when no terminal is available.
+    if not _launch_in_terminal(sh_path):
+        _launch_background(sh_path)
+
+
+def _launch_in_terminal(sh_path):
+    """Open a terminal that runs the skipper shell and stays open afterwards so
+    any error is visible. Returns False if no terminal emulator is found."""
+    wrapper = sh_path[:-len(".sh")] + ".term.sh"    # ~/.pdkgui/skipper_view.term.sh
+    try:
+        with open(wrapper, "w", encoding="utf-8") as f:
+            f.write('#!/bin/bash -l\n'
+                    "printf '\\033]10;white\\007\\033]11;black\\007'\n"
+                    'bash -l "%s"\n'
+                    'echo\n'
+                    'echo "===== skipper exited. Press Enter to close ====="\n'
+                    'read\n' % sh_path)
+        os.chmod(wrapper, 0o755)
+    except OSError:
+        return False
+    for term in _TERMINALS:
+        if shutil.which(term[0]):
+            try:
+                subprocess.Popen(term + [wrapper], start_new_session=True, close_fds=True)
+                return True
+            except Exception:
+                continue
+    return False
+
+
+def _launch_background(sh_path):
+    """Detached background launch (own session, immune to the parent's SIGHUP;
+    output goes to ~/.pdkgui/skipper_view.log)."""
     try:
         logf = open(os.path.join(config.USER_DIR, "skipper_view.log"), "w")
         devnull = open(os.devnull, "rb")

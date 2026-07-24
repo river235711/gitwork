@@ -32,7 +32,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # --------------------------------------------------------------------------
 DEFAULT_COM_DIR = os.environ.get(
     "PDKGUI_DEFAULT_DIR",
-    "/home/willhuang/work/gitwork/python/default",   # <- change to your central dir
+    "/datacenter/users/will.huang/work/tmp2/pdkgui/central_example",   # <- change to your central dir
 )
 
 
