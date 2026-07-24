@@ -1,0 +1,6 @@
+# PROCESS / design 清單(一行一個),PROCESS tab 的下拉選單會讀這裡。
+# 選擇後視窗標題 "pdkgui - <名稱>" 會跟著改變。
+t22_1p7m_4x1z1u
+t22_1p8m_5x1z1u
+t40lp_1p6m_4x1u
+t40lp_1p7m_4x1z1u

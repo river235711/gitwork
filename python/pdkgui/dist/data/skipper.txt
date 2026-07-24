@@ -1,0 +1,2 @@
+# 最近開過的 GDS(一行一個絕對路徑),SKIPPER tab 會讀這裡
+/datacenter/users/example/project/design_top.gds
