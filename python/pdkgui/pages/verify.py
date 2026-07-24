@@ -3,19 +3,23 @@
 """
 pages/verify.py
 ---------------
-驗證流程頁面:
-  - DRC 類(DRC/ANT/WB/BUMP/DMDV/DPDO):calibre -drc,跑法相同。
-  - LVS:calibre -lvs(有無 LvsHier 決定 -hier -turbo -turbo_all)。
-  - XRC:calibre -lvs/-xrc + jivaro(LvsHier 同 LVS;XrcReduction 決定 jivaro 步驟)。
-  - JIVARO:沿用既有簡易版面。
+Verification-flow pages:
+  - DRC class (DRC/ANT/WB/BUMP/DMDV/DPDO): calibre -drc, same run flow.
+  - LVS: calibre -lvs (LvsHier toggles -hier -turbo -turbo_all).
+  - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
+    jivaro step).
+  - JIVARO: reuses the existing simple layout.
 
-共通:
-  - 下方 command file 文字框(右+下滾輪),初始讀 data/verify/<模組>.com。
-  - 從文字框(略過開頭 '//' 的行)解析 LAYOUT/SOURCE PATH(->realpath)與 PRIMARY 填欄。
-  - Run:建立 RunFolder,寫 calibre_<DESIGN>_<模組小寫>.com 與 run,另開終端機執行。
-  - Rve:把 run 覆寫成 calibre -rve <db>,另開終端機執行。
-  - LoadDefault:讀 ~/.pdkgui/.pdkgui.<模組小寫><DESIGN>.commandfile。
-  - Load/Save:*.com / * 檔案對話框。
+Common:
+  - Bottom command-file text box (right + bottom scrollbars); initially loads
+    data/verify/<MODULE>.com.
+  - Parses LAYOUT/SOURCE PATH (-> realpath) and PRIMARY from the text (ignoring
+    lines starting with '//') into the fields.
+  - Run: create RunFolder, write calibre_<DESIGN>_<module>.com and run, open a
+    terminal to execute run.
+  - Rve: rewrite run as calibre -rve <db>, open a terminal.
+  - LoadDefault: load the central default command file.
+  - Load/Save: *.com / * file dialogs.
 """
 
 import os
@@ -39,9 +43,10 @@ _RE_SOURCE_PATH = re.compile(r'SOURCE\s+PATH\s+"([^"]+)"', re.IGNORECASE)
 _RE_SOURCE_PRIMARY = re.compile(r'SOURCE\s+PRIMARY\s+"([^"]+)"', re.IGNORECASE)
 _RE_RESULTS_DB = re.compile(r'RESULTS\s+DATABASE\s+"([^"]+)"', re.IGNORECASE)
 _RE_SUMMARY_REP = re.compile(r'SUMMARY\s+REPORT\s+"([^"]+)"', re.IGNORECASE)
-_RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include 指令
+_RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include directive
 
-# 欄位 <-> 文字框對應:欄位改動時要更新文字框中的哪一行(keyword, regex, 是否 realpath)
+# Field <-> text mapping: which text line to update when a field changes
+# (keyword, regex, realpath?)
 _FIELD_KEYWORDS = {
     "LayoutPath": ("LAYOUT PATH", _RE_LAYOUT_PATH, True),
     "LayoutPrimary": ("LAYOUT PRIMARY", _RE_LAYOUT_PRIMARY, False),
@@ -59,7 +64,7 @@ _VIEWERS = ("calibredrv", "klayout")
 
 
 def _strip_comment_lines(text):
-    """移除開頭為 '//' 的整行,回傳合併後的內容。"""
+    """Drop whole lines starting with '//', return the joined remainder."""
     return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("//"))
 
 
@@ -70,8 +75,8 @@ class VerifyPage(BasePage):
 
     def build(self):
         self.entries = {}
-        self._syncing = False      # 防止 欄位<->文字 互相觸發
-        self._save_job = None       # 延遲存檔的 after id
+        self._syncing = False      # prevent field<->text feedback loops
+        self._save_job = None       # after() id for the debounced save
         if self.module == "LVS":
             self._build_lvs()
         elif self.module == "XRC":
@@ -82,7 +87,7 @@ class VerifyPage(BasePage):
             self._build_generic()
 
     # ==================================================================
-    # 版面建構小工具
+    # Layout builder helpers
     # ==================================================================
     def _title(self):
         tk.Label(self, text=config.DESIGN_NAME, bg=self.bg,
@@ -136,29 +141,31 @@ class VerifyPage(BasePage):
         self._finalize()
 
     def _finalize(self):
-        # RunFolder 預設 = 開啟 pdkgui 的目錄
+        # RunFolder default = the directory pdkgui was launched from
         rf = self.entries.get("RunFolder")
         if rf is not None and not rf.get().strip():
             rf.insert(0, self.app.launch_dir)
 
-        # 讀取順序:1) 上次 session  2) 沒有就讀 default(必要時由內建範本種入)
+        # Read order: 1) last session  2) else the default (seeded from the
+        # built-in template if needed)
         if not self._load_state():
             self._load_default()
 
-        # 開 tab:把 include 行刷新成 central .inc 的最新 fab deck 路徑
+        # On open: refresh the include line to the latest fab deck from central .inc
         self._refresh_include()
 
         self._bind_changes()
 
     def _central_deck_path(self):
-        """讀 <CENTRAL>/<DESIGN>/<MODULE>.inc 的第一個有效行(最新 deck 路徑);沒有回 None。"""
+        """First valid line of <CENTRAL>/<DESIGN>/<MODULE>.inc (latest deck path);
+        None when absent."""
         for line in config.read_lines(config.central_include_file(self.module, config.DESIGN_NAME)):
             return line
         return None
 
     def _refresh_include(self):
-        """把 command 文字框裡的 include 行換成 central .inc 的最新 deck 路徑。
-        .inc 不存在(deck 路徑取不到)則完全不動,維持 command 原值。"""
+        """Rewrite the command-text include line to the latest deck path from
+        central .inc. If .inc is absent (no deck path), leave the command as-is."""
         deck = self._central_deck_path()
         if not deck:
             return
@@ -172,7 +179,7 @@ class VerifyPage(BasePage):
                 if lines[i] != new_line:
                     lines[i] = new_line
                 replaced = True
-                break   # 只換第一個(fab deck 通常只有一個 include)
+                break   # only the first (the fab deck usually has one include)
         if not replaced:
             if lines and lines[-1].strip() != "":
                 lines.append("")
@@ -184,19 +191,19 @@ class VerifyPage(BasePage):
             self._syncing = False
 
     def _bind_changes(self):
-        # 文字框改動 -> 更新上面欄位 + 存檔
+        # text change -> update the fields above + save
         self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
-        # 欄位改動 -> 往下傳到文字框(Layout/Source)+ 存檔
+        # field change -> push down to the text (Layout/Source) + save
         for key, w in self.entries.items():
             if isinstance(w, tk.BooleanVar):
-                continue  # checkbutton 已在 _check_row 綁 command
+                continue  # checkbutton already bound in _check_row
             if isinstance(w, ttk.Combobox):
                 w.bind("<<ComboboxSelected>>", lambda e: self._schedule_save())
             else:
                 w.bind("<KeyRelease>", lambda e, k=key: self._on_field_change(k))
 
     # ==================================================================
-    # 各家版面
+    # Per-family layouts
     # ==================================================================
     def _build_drc_class(self):
         self._title()
@@ -246,7 +253,7 @@ class VerifyPage(BasePage):
         self._command_box(r)
 
     # ==================================================================
-    # 從文字框解析欄位(略過 '//' 開頭行)
+    # Parse fields from the text (ignoring lines starting with '//')
     # ==================================================================
     def _sync_fields_from_text(self):
         if self._syncing:
@@ -273,7 +280,8 @@ class VerifyPage(BasePage):
             self._syncing = False
 
     def _sync_text_from_field(self, key):
-        """欄位改動時,把值寫回文字框對應那一行(略過 '//' 行)。"""
+        """When a field changes, write its value back to the matching text line
+        (ignoring '//' lines)."""
         if self._syncing or key not in _FIELD_KEYWORDS:
             return
         _kw, regex, real = _FIELD_KEYWORDS[key]
@@ -312,7 +320,7 @@ class VerifyPage(BasePage):
         self._schedule_save()
 
     # ==================================================================
-    # 狀態存檔 / 還原(~/.pdkgui/state/<DESIGN>/<MODULE>.json)
+    # State save / restore (~/.pdkgui/session/<DESIGN>/<MODULE>.json)
     # ==================================================================
     def _state_path(self):
         return config.user_session_file(self.module, config.DESIGN_NAME)
@@ -366,7 +374,7 @@ class VerifyPage(BasePage):
             pass
 
     def _schedule_save(self):
-        """延遲存檔(避免每個按鍵都寫檔,對 NFS home 友善)。"""
+        """Debounced save (avoids writing on every keystroke; NFS-home friendly)."""
         if self._save_job is not None:
             try:
                 self.after_cancel(self._save_job)
@@ -375,7 +383,7 @@ class VerifyPage(BasePage):
         self._save_job = self.after(500, self._save_state)
 
     def flush(self):
-        """離開頁面 / 關視窗前立即存檔(把待寫的狀態寫出)。"""
+        """Save immediately before leaving the page / closing the window."""
         if self._save_job is not None:
             try:
                 self.after_cancel(self._save_job)
@@ -385,7 +393,7 @@ class VerifyPage(BasePage):
         self._save_state()
 
     # ==================================================================
-    # run / com 內容
+    # run / com content
     # ==================================================================
     def _calibre_env(self):
         return self.app.env.get("calibre") or "calibre/2024.1_36.20"
@@ -413,7 +421,7 @@ class VerifyPage(BasePage):
             return m.group(1)
         return "svdb" if self.module in ("LVS", "XRC") else "%s_RES.db" % self.module
 
-    # --- DRC 類 ---
+    # --- DRC class ---
     def _run_script_drc(self):
         tab = self.module.lower()
         return (
@@ -474,18 +482,18 @@ class VerifyPage(BasePage):
         ) % (self._calibre_env(), self._results_db())
 
     # ==================================================================
-    # 動作按鈕
+    # Action buttons
     # ==================================================================
     def _prepare_folder(self):
         folder = self.entries["RunFolder"].get().strip()
         if not folder:
-            messagebox.showerror("pdkgui", "請先填 RunFolder")
+            messagebox.showerror("pdkgui", "Please fill in RunFolder first")
             return None
         folder = os.path.expanduser(folder)
         try:
             os.makedirs(folder, exist_ok=True)
         except OSError as e:
-            messagebox.showerror("pdkgui", "建立 RunFolder 失敗:\n%s" % e)
+            messagebox.showerror("pdkgui", "Failed to create RunFolder:\n%s" % e)
             return None
         return folder
 
@@ -499,14 +507,14 @@ class VerifyPage(BasePage):
         folder = self._prepare_folder()
         if not folder:
             return
-        self._refresh_include()   # Run 前確保 include = central 最新 deck
+        self._refresh_include()   # before Run, ensure include = latest central deck
         try:
             com_path = os.path.join(folder, self._com_filename())
             with open(com_path, "w", encoding="utf-8") as f:
                 f.write(self.cmd_text.get_text())
             self._write_run(folder, self._run_script())
         except OSError as e:
-            messagebox.showerror("pdkgui", "寫入檔案失敗:\n%s" % e)
+            messagebox.showerror("pdkgui", "Failed to write files:\n%s" % e)
             return
         self._launch_terminal(folder)
 
@@ -517,12 +525,13 @@ class VerifyPage(BasePage):
         try:
             self._write_run(folder, self._run_script_rve())
         except OSError as e:
-            messagebox.showerror("pdkgui", "寫入 run 失敗:\n%s" % e)
+            messagebox.showerror("pdkgui", "Failed to write run:\n%s" % e)
             return
         self._launch_terminal(folder)
 
     def _load_default(self):
-        """從中央 default 目錄載入 command file;讀不到就退回內建範本。"""
+        """Load the command file from the central default dir; fall back to the
+        built-in template if not found."""
         path = config.central_default_file(self.module, config.DESIGN_NAME)
         if os.path.isfile(path):
             self.cmd_text.load_file(path)
@@ -551,29 +560,30 @@ class VerifyPage(BasePage):
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(self.cmd_text.get_text())
             except OSError as e:
-                messagebox.showerror("pdkgui", "儲存失敗:\n%s" % e)
+                messagebox.showerror("pdkgui", "Save failed:\n%s" % e)
 
     # ==================================================================
-    # 外部程式
+    # External programs
     # ==================================================================
     def _launch_terminal(self, folder):
         if not os.environ.get("DISPLAY"):
-            messagebox.showerror("pdkgui", "沒有 DISPLAY,無法開啟終端機。\n請手動執行:\n%s/run" % folder)
+            messagebox.showerror("pdkgui", "No DISPLAY, cannot open a terminal.\n"
+                                           "Run it manually:\n%s/run" % folder)
             return
         wrapper = os.path.join(folder, ".pdkgui_run.sh")
         try:
             with open(wrapper, "w", encoding="utf-8") as f:
                 f.write('#!/bin/bash -l\n'
-                        # 終端機前景設白、背景設黑(OSC 10/11;非 xterm 也適用)
+                        # set terminal foreground white / background black (OSC 10/11)
                         "printf '\\033]10;white\\007\\033]11;black\\007'\n"
                         'cd "$(dirname "$0")"\n'
                         './run\n'
                         'echo\n'
-                        'echo "===== 執行結束,按 Enter 關閉 ====="\n'
+                        'echo "===== Done. Press Enter to close ====="\n'
                         'read\n')
             os.chmod(wrapper, 0o755)
         except OSError as e:
-            messagebox.showerror("pdkgui", "建立執行包裝失敗:\n%s" % e)
+            messagebox.showerror("pdkgui", "Failed to create run wrapper:\n%s" % e)
             return
         for term in _TERMINALS:
             if shutil.which(term[0]):
@@ -583,27 +593,27 @@ class VerifyPage(BasePage):
                 except Exception:
                     continue
         messagebox.showerror("pdkgui",
-                             "找不到可用的終端機。請手動執行:\n%s/run" % folder)
+                             "No usable terminal found. Run it manually:\n%s/run" % folder)
 
     def _on_view(self):
         path = self.entries["LayoutPath"].get().strip()
         if not path:
-            messagebox.showwarning("pdkgui", "LayoutPath 是空的")
+            messagebox.showwarning("pdkgui", "LayoutPath is empty")
             return
-        self._spawn(_VIEWERS, path, "找不到 calibredrv / klayout 檢視器")
+        self._spawn(_VIEWERS, path, "calibredrv / klayout viewer not found")
 
     def _on_edit_source(self):
         path = self.entries["SourcePath"].get().strip()
         if not path:
-            messagebox.showwarning("pdkgui", "SourcePath 是空的")
+            messagebox.showwarning("pdkgui", "SourcePath is empty")
             return
         editor = self.app.env.get("editor") or "gvim"
-        self._spawn([editor], path, "找不到編輯器: %s" % editor)
+        self._spawn([editor], path, "editor not found: %s" % editor)
 
     def _on_filemanager(self):
         folder = self.entries["RunFolder"].get().strip()
         folder = os.path.expanduser(folder) if folder else "."
-        self._spawn(_FILE_MANAGERS, folder, "找不到檔案管理員")
+        self._spawn(_FILE_MANAGERS, folder, "no file manager found")
 
     def _spawn(self, candidates, arg, not_found_msg):
         for prog in candidates:
@@ -629,7 +639,7 @@ class VerifyPage(BasePage):
             entry_widget.insert(0, path)
 
     # ==================================================================
-    # JIVARO 等:既有簡易版面
+    # JIVARO etc.: existing simple layout
     # ==================================================================
     def _build_generic(self):
         self._title()

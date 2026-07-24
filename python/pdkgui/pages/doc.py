@@ -3,10 +3,11 @@
 """
 pages/doc.py
 ------------
-DOC 頁面:三欄式文件瀏覽。
+DOC page: three-column document browser.
 
-左欄的文件清單來自 config.DOC_DIR(預設 data/doc/)裡的檔案,
-點選後把該檔內容讀進中間的文字框(右側 + 下方滾輪)。
+The document list in the left column comes from the files under config.DOC_DIR
+(default data/doc/); clicking one loads its content into the middle text box
+(with right + bottom scrollbars).
 """
 
 import os
@@ -35,7 +36,7 @@ class DocPage(BasePage):
 
         self.viewer = ScrolledText(col2, wrap="word", readonly=True, bg="white", bd=1)
         self.viewer.pack(fill="both", expand=True)
-        self.viewer.set_text("Title\n\n(點選左方文件名稱以載入內容)")
+        self.viewer.set_text("Title\n\n(click a document name on the left to load it)")
 
         for name in self._doc_names():
             lbl = tk.Label(col1, text=name, fg="blue", bg=self.bg, cursor="hand2")
@@ -56,5 +57,5 @@ class DocPage(BasePage):
 
     def _load_doc(self, name):
         path = os.path.join(config.DOC_DIR, name + ".txt")
-        content = config.read_text(path, default="(找不到文件內容: %s)" % path)
+        content = config.read_text(path, default="(document content not found: %s)" % path)
         self.viewer.set_text("Title\n\n%s\n\n%s" % (name, content))

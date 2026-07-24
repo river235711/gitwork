@@ -1,3 +1,3 @@
 TSMC 22 NM CMOS LOGIC ULTRA LOW LEAKAGE LVS COMMAND FILE (QCI)
 
-這是另一個範例文件。
+This is another example document.

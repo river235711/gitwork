@@ -3,23 +3,22 @@
 """
 pages/base.py
 -------------
-所有頁面的共用基底類別。
+Common base class for all pages.
 
-每個頁面繼承 BasePage,並實作 build();
-需要讀取的檔案一律透過 config.page_file(self.module) 取得,
-不把路徑寫死在頁面裡。
+Each page subclasses BasePage and implements build(); any file it needs is
+obtained via config.page_file(self.module) rather than hard-coded in the page.
 """
 
 import tkinter as tk
 
 
 class BasePage(tk.Frame):
-    module = ""          # 對應 config.PAGE_FILES 的 key(子類別覆寫)
+    module = ""          # key into config.PAGE_FILES (overridden by subclasses)
     bg = "#d9d9d9"
 
     def __init__(self, master, app):
         super().__init__(master, bg=self.bg)
-        self.app = app   # 指向主視窗 PdkGui,方便存取共用狀態
+        self.app = app   # the main PdkGui window, for shared state
         self.build()
 
     def build(self):

@@ -3,11 +3,12 @@
 """
 pdkgui_app.py
 -------------
-pdkgui 的主程式邏輯(主視窗 + 左側選單 + 頁面路由)。
+Main program logic for pdkgui (main window + left menu + page routing).
 
-★ 這支檔案(以及 config / widgets / pages/*)在「部署版」會被加密成 .pdkc,
-  由 pdkgui.py bootstrap 透過 import hook 於執行期解密載入。
-  在原始碼開發環境則直接以明文執行(沒有 .pdkc 時 import hook 不作用)。
+* In a deployed build this file (and config / widgets / pages/*) is encrypted
+  into a .pdkc and loaded at runtime via the import hook installed by the
+  pdkgui.py bootstrap. In a source checkout it simply runs as plaintext (the
+  import hook does nothing when no .pdkc are present).
 """
 
 import os
@@ -25,10 +26,11 @@ class PdkGui(tk.Tk):
         self.geometry("980x560")
         self.configure(bg="#d9d9d9")
 
-        # 開啟 pdkgui 的工作目錄(供 verify 頁的 RunFolder 預設值)
+        # Working directory pdkgui was launched from (default for verify RunFolder)
         self.launch_dir = os.getcwd()
         self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
-        # ENV tab 選到的工具 / 編輯器(啟動先載入預設),供其他 tab 取用
+        # Tool / editor picked on the ENV tab (defaults loaded at startup),
+        # shared with other tabs
         self.env = env_defaults()
         self._page = None
 
@@ -38,12 +40,12 @@ class PdkGui(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def set_design(self, name):
-        """切換目前 design:更新視窗標題,並讓其他 tab 也跟著使用。"""
+        """Switch the current design: update the window title so other tabs follow."""
         config.DESIGN_NAME = name
         self.title("pdkgui - %s" % name)
 
     # ------------------------------------------------------------------
-    # 左側選單
+    # Left-hand menu
     # ------------------------------------------------------------------
     def _build_sidebar(self):
         sidebar = tk.Frame(self, bg="#d9d9d9", width=190)
@@ -66,7 +68,7 @@ class PdkGui(tk.Tk):
             btn.configure(bg="#e0e0e0" if n == name else "#bcdff0")
 
     # ------------------------------------------------------------------
-    # 右側內容區(依模組切換)
+    # Right-hand content area (switches by module)
     # ------------------------------------------------------------------
     def _build_content_area(self):
         self.content = tk.Frame(self, bg="#d9d9d9")
@@ -76,7 +78,7 @@ class PdkGui(tk.Tk):
         self.current_module.set(name)
         self._highlight_selected(name)
 
-        # 離開目前頁面前,先把它的狀態存起來
+        # Save the current page's state before leaving it
         self._flush_page()
         for w in self.content.winfo_children():
             w.destroy()

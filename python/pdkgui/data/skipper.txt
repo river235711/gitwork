@@ -1,2 +1,2 @@
-# 最近開過的 GDS(一行一個絕對路徑),SKIPPER tab 會讀這裡
+# Recently opened GDS (one absolute path per line); the SKIPPER tab reads this
 /datacenter/users/example/project/design_top.gds

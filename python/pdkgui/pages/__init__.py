@@ -3,12 +3,13 @@
 """
 pages
 -----
-頁面註冊表:module 名稱 → 頁面類別。
+Page registry: module name -> page class.
 
-新增一個 tab 的步驟:
-  1. 在此資料夾新增 xxx_page.py,繼承 BasePage。
-  2. 在 _SPECIAL 註冊,或(若屬驗證流程)加入 config.VERIFY_MODULES。
-  3. 在 config.PAGE_FILES 指定它要讀的檔案。
+To add a tab:
+  1. Add xxx.py in this folder, subclassing BasePage.
+  2. Register it in _SPECIAL, or (if it is a verification flow) add it to
+     config.VERIFY_MODULES.
+  3. Point config.PAGE_FILES at the file it reads.
 """
 
 import tkinter as tk
@@ -23,7 +24,7 @@ from .klayout import KlayoutPage
 from .doc import DocPage
 from .system import SystemPage
 
-# 有專屬頁面的模組
+# Modules with a dedicated page
 _SPECIAL = {
     "PROCESS": ProcessPage,
     "ENV": EnvPage,
@@ -35,19 +36,19 @@ _SPECIAL = {
 
 
 class _PlaceholderPage(BasePage):
-    """尚未實作的模組:顯示佔位文字。"""
+    """Not-yet-implemented module: shows placeholder text."""
 
     def __init__(self, master, app, name):
         self.module = name
         super().__init__(master, app)
 
     def build(self):
-        tk.Label(self, text="*** %s ***\n(尚未實作)" % self.module,
+        tk.Label(self, text="*** %s ***\n(not implemented)" % self.module,
                  bg=self.bg, font=("Arial", 11)).pack(pady=20)
 
 
 def build_page(name, master, app):
-    """依模組名稱建立對應頁面。"""
+    """Build the page for the given module name."""
     if name in _SPECIAL:
         return _SPECIAL[name](master, app)
     if name in config.VERIFY_MODULES:

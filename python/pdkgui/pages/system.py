@@ -3,10 +3,10 @@
 """
 pages/system.py
 ---------------
-SYSTEM 頁面:顯示版本更新紀錄。
+SYSTEM page: shows the revision history.
 
-內容從 config.page_file("SYSTEM")(預設 data/system.txt)讀入,
-文字框右側 + 下方都有滾輪,並設為唯讀。
+Content is read from config.page_file("SYSTEM") (default data/system.txt); the
+text box has right + bottom scrollbars and is read-only.
 """
 
 from .base import BasePage

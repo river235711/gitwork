@@ -3,10 +3,11 @@
 """
 widgets.py
 ----------
-pdkgui 共用的 Tkinter 元件。
+Shared Tkinter widgets for pdkgui.
 
-- ScrolledText : 文字框 + 右側(直向)+ 下方(橫向)滾輪,並可直接讀檔。
-- LogoPanel    : 右下角公司 Logo 展示區。
+- ScrolledText : text box + vertical (right) + horizontal (bottom) scrollbars,
+                 with a built-in file loader.
+- LogoPanel    : bottom-right company logo area.
 """
 
 import os
@@ -16,11 +17,11 @@ import config
 
 
 class ScrolledText(tk.Frame):
-    """帶「右側 + 下方」雙滾輪的文字框。
+    """Text box with both right (vertical) and bottom (horizontal) scrollbars.
 
-    用法:
+    Usage:
         st = ScrolledText(parent, readonly=True)
-        st.load_file("/path/to/file.txt")   # 讀不到檔會顯示提示,不會崩潰
+        st.load_file("/path/to/file.txt")   # shows a hint (does not crash) if unreadable
         st.pack(fill="both", expand=True)
     """
 
@@ -33,10 +34,10 @@ class ScrolledText(tk.Frame):
         xscroll = tk.Scrollbar(self, orient="horizontal", command=self.text.xview)
         self.text.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
 
-        # grid 讓右側直滾輪與下方橫滾輪都固定在邊緣
+        # grid keeps the vertical scrollbar on the right and horizontal at the bottom
         self.text.grid(row=0, column=0, sticky="nsew")
-        yscroll.grid(row=0, column=1, sticky="ns")   # 右側
-        xscroll.grid(row=1, column=0, sticky="we")   # 下方
+        yscroll.grid(row=0, column=1, sticky="ns")   # right
+        xscroll.grid(row=1, column=0, sticky="we")   # bottom
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -51,27 +52,27 @@ class ScrolledText(tk.Frame):
         return self.text.get("1.0", "end-1c")
 
     def load_file(self, path, encoding="utf-8"):
-        """讀取檔案內容並顯示;失敗時顯示提示文字。"""
+        """Load and show a file's content; show a hint on failure."""
         if not path:
-            self.set_text("(未設定要讀取的檔案)")
+            self.set_text("(no file configured to read)")
             return
         try:
             with open(path, encoding=encoding) as f:
                 self.set_text(f.read())
         except OSError as e:
-            self.set_text("(無法讀取檔案)\n%s\n%s" % (path, e))
+            self.set_text("(cannot read file)\n%s\n%s" % (path, e))
 
 
 class LogoPanel(tk.Frame):
-    """右下角公司 Logo 展示區。
+    """Bottom-right company logo area.
 
-    把 config.LOGO_PATH 改成自己的圖檔路徑(png/gif/jpg)即可替換;
-    找不到圖檔時退回顯示 config.LOGO_TEXT。
+    Point config.LOGO_PATH at your own image (png/gif/jpg) to replace it;
+    falls back to config.LOGO_TEXT when the image is not found.
     """
 
     def __init__(self, master, path=None, text=None, **kwargs):
         super().__init__(master, bg=config.LOGO_BG, **kwargs)
-        self._photo = None  # 保留參照,避免被 GC 回收
+        self._photo = None  # keep a reference so it is not garbage-collected
         self._build(path or config.LOGO_PATH, text or config.LOGO_TEXT)
 
     def _build(self, path, text):
@@ -81,11 +82,11 @@ class LogoPanel(tk.Frame):
                 try:
                     self._photo = tk.PhotoImage(file=path)
                 except tk.TclError:
-                    from PIL import Image, ImageTk  # 需要 pip install pillow
+                    from PIL import Image, ImageTk  # needs: pip install pillow
                     self._photo = ImageTk.PhotoImage(Image.open(path))
                 img_label = tk.Label(self, image=self._photo, bg=config.LOGO_BG)
             except Exception as e:
-                print("Logo 圖片載入失敗,改用文字顯示: %s" % e)
+                print("Failed to load logo image, showing text instead: %s" % e)
 
         if img_label is not None:
             img_label.pack(expand=True, fill="both")

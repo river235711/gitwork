@@ -3,10 +3,11 @@
 """
 pages/process.py
 ----------------
-PROCESS 頁面:選擇 process / design。
+PROCESS page: choose the process / design.
 
-可選的清單從 config.page_file("PROCESS")(預設 data/process.txt,
-一行一個)讀入;讀不到檔時退回使用 config.DESIGN_NAME。
+The selectable list is read from config.page_file("PROCESS") (default
+data/process.txt, one per line); falls back to config.DESIGN_NAME when the file
+cannot be read.
 """
 
 import tkinter as tk
@@ -25,14 +26,14 @@ class ProcessPage(BasePage):
                  font=("Arial", 11)).pack(pady=(20, 10))
 
         values = config.read_lines(config.page_file(self.module)) or [config.DESIGN_NAME]
-        # 目前 design 若在清單中就選它,否則預設第一個
+        # select the current design if it is in the list, else the first entry
         current = config.DESIGN_NAME if config.DESIGN_NAME in values else values[0]
 
         combo = ttk.Combobox(self, values=values, state="readonly", width=40)
         combo.set(current)
         combo.pack()
 
-        # 選擇後更新視窗標題 "pdkgui - <名稱>"(其他 tab 也會跟著使用)
+        # on selection, update the window title "pdkgui - <name>" (other tabs follow)
         combo.bind("<<ComboboxSelected>>",
                    lambda e: self.app.set_design(combo.get()))
 

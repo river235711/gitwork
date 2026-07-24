@@ -3,91 +3,93 @@
 """
 config.py
 ---------
-pdkgui 的集中設定檔。
+Central configuration for pdkgui.
 
-★ 你只需要在這裡指定「每個 tab 要讀哪個檔案」★
-所有頁面(pages/*.py)都透過 page_file(<模組名稱>) 取得檔案路徑,
-不會把路徑寫死在頁面邏輯裡。換檔時只要改 PAGE_FILES 即可。
+* You mainly specify here "which file each tab reads". *
+Every page (pages/*.py) obtains its file path via page_file(<module>), so paths
+are not hard-coded in the page logic. To swap a file, just edit PAGE_FILES.
 
-支援三種指定方式:
-  1. 相對 data/ 的檔名(預設)         例: "system.txt"
-  2. 絕對路徑                         例: "/datacenter/proj/system.txt"
-  3. 環境變數覆蓋(執行前 export)     例: PDKGUI_SYSTEM_FILE=/path/xxx.txt
+Three ways to specify a file:
+  1. filename relative to data/ (default)   e.g. "system.txt"
+  2. absolute path                           e.g. "/datacenter/proj/system.txt"
+  3. environment-variable override           e.g. PDKGUI_SYSTEM_FILE=/path/xxx.txt
 """
 
 import os
 
 # --------------------------------------------------------------------------
-# 路徑
+# Paths
 # --------------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # --------------------------------------------------------------------------
-# 預設 command file:放在「中央(golden)目錄」,每個 design 一個子目錄
-#   <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com
-# ★ 把下面預設值改成你的 central 路徑;或用環境變數 PDKGUI_DEFAULT_DIR 覆蓋。
+# Default command files: kept in a central (golden) directory, one subdir per
+# design:   <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com
+# Change the default below to your central path, or override via env
+# PDKGUI_DEFAULT_DIR.
 # --------------------------------------------------------------------------
 DEFAULT_COM_DIR = os.environ.get(
     "PDKGUI_DEFAULT_DIR",
-    "/home/willhuang/work/gitwork/python/default",   # ← 改成你的 central 目錄
+    "/home/willhuang/work/gitwork/python/default",   # <- change to your central dir
 )
 
 
 def central_default_file(module, design):
-    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com — 中央預設 command file。"""
+    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com -- central default command file."""
     return os.path.join(DEFAULT_COM_DIR, design, "%s.com" % module)
 
 
 def central_include_file(module, design):
-    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc — 最新 fab deck 路徑(一行)。
+    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc -- latest fab deck path (one line).
 
-    pdkgui 開 tab / 按 Run 時,會把 command file 的 include 行換成這裡的路徑。
-    deck 更新時只要改這個一行檔即可。"""
+    On tab open / on Run, pdkgui rewrites the command file's include line to the
+    path stored here. To update the deck, just edit this one-line file."""
     return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
 
 
 # --------------------------------------------------------------------------
-# 使用者狀態目錄(各人「上次」的工作狀態;可用環境變數 PDKGUI_USER_DIR 覆蓋)。
-#   <USER_DIR>/session/<DESIGN>/<MODULE>.json   每個 tab 的欄位 + command 文字
+# Per-user state directory (each user's "last time" working state; override via
+# env PDKGUI_USER_DIR).
+#   <USER_DIR>/session/<DESIGN>/<MODULE>.json   per-tab fields + command text
 # --------------------------------------------------------------------------
 USER_DIR = os.path.expanduser(os.environ.get("PDKGUI_USER_DIR", "~/.pdkgui"))
 SESSION_SUBDIR = "session"
 
 
 def user_session_file(module, design):
-    """<USER_DIR>/session/<DESIGN>/<MODULE>.json — 各人上次的工作狀態。"""
+    """<USER_DIR>/session/<DESIGN>/<MODULE>.json -- each user's last state."""
     return os.path.join(USER_DIR, SESSION_SUBDIR, design, "%s.json" % module)
 
 # --------------------------------------------------------------------------
-# 一般設定
+# General settings
 # --------------------------------------------------------------------------
-DESIGN_NAME = "t22_1p7m_4x1z1u"     # 視窗標題會顯示 "pdkgui - <DESIGN_NAME>"
+DESIGN_NAME = "t22_1p7m_4x1z1u"     # window title shows "pdkgui - <DESIGN_NAME>"
 
-# --- Logo 設定:把這裡換成你自己的圖檔路徑即可 ---
+# --- Logo settings: point this at your own image ---
 LOGO_PATH = os.path.join(BASE_DIR, "company_logo.png")
-LOGO_TEXT = "YOUR COMPANY LOGO"     # 找不到圖檔時,退回顯示的文字
+LOGO_TEXT = "YOUR COMPANY LOGO"     # fallback text when the image is not found
 LOGO_BG = "#0b5fa5"
 LOGO_FG = "white"
 
-# 左側選單項目(依照截圖順序)
+# Left-hand menu items (screenshot order)
 MENU_ITEMS = [
     "PROCESS", "ENV", "DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO",
     "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "SYSTEM",
 ]
 
-# 使用「驗證流程頁面樣板」的模組
+# Modules that use the "verification flow" page template
 VERIFY_MODULES = ["DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO", "LVS", "XRC", "JIVARO"]
 
 # --------------------------------------------------------------------------
-# ★ 每個 tab → 要讀取的檔案(相對 data/ 的路徑)★
+# * Each tab -> the file it reads (path relative to data/) *
 # --------------------------------------------------------------------------
 PAGE_FILES = {
-    "SYSTEM":  "system.txt",     # 版本更新紀錄
-    "PROCESS": "process.txt",    # 可選的 process / design 清單(一行一個)
-    "ENV":     "env.txt",        # 工具版本設定
-    "SKIPPER": "skipper.txt",    # 最近開過的 GDS 清單(一行一個)
-    # 驗證模組的 command file:
+    "SYSTEM":  "system.txt",     # revision history
+    "PROCESS": "process.txt",    # selectable process / design list (one per line)
+    "ENV":     "env.txt",        # tool version settings
+    "SKIPPER": "skipper.txt",    # recently opened GDS list (one per line)
+    # command files for the verify modules:
     "DRC":     "verify/DRC.com",
     "ANT":     "verify/ANT.com",
     "WB":      "verify/WB.com",
@@ -99,20 +101,20 @@ PAGE_FILES = {
     "JIVARO":  "verify/JIVARO.com",
 }
 
-# DOC 頁面的文件內容資料夾(每個文件一個 .txt 檔,檔名即文件名稱)
+# DOC page content directory (one .txt per document; filename == document name)
 DOC_DIR = os.path.join(DATA_DIR, "doc")
 
-# XRC 執行時 hcell / xcell 的 symbolic link 來源目錄(依 PDK / 製程調整)。
-# run script 會做:  ln -sf <此目錄>/hcell   與   ln -sf <此目錄>/xcell
-# 可用環境變數 PDKGUI_XRC_HCELL_DIR 覆蓋。
+# Source directory for the XRC hcell / xcell symbolic links (per PDK / process).
+# The run script does:  ln -sf <this dir>/hcell   and   ln -sf <this dir>/xcell
+# Override via env PDKGUI_XRC_HCELL_DIR.
 XRC_HCELL_DIR = os.environ.get(
     "PDKGUI_XRC_HCELL_DIR",
     "/datacenter/techLibs/tsmc/T22N/tools/pdk_sirius/T22N/calibre_layout/"
     "tsmc/T22/T22ULL_1P7M_4X1Z1U/layout_run/xrc",
 )
 
-# 若想用環境變數覆蓋某個 tab 的檔案,在這裡列出對應關係即可。
-# 例:export PDKGUI_SYSTEM_FILE=/path/to/xxx.txt
+# To override a tab's file via an environment variable, list the mapping here.
+# e.g. export PDKGUI_SYSTEM_FILE=/path/to/xxx.txt
 _ENV_OVERRIDES = {
     "SYSTEM":  "PDKGUI_SYSTEM_FILE",
     "PROCESS": "PDKGUI_PROCESS_FILE",
@@ -122,10 +124,10 @@ _ENV_OVERRIDES = {
 
 
 def page_file(module_name):
-    """回傳某個 tab 要讀取檔案的「絕對路徑」。
+    """Return the absolute path of the file a tab should read.
 
-    優先順序:環境變數覆蓋 > PAGE_FILES 設定。
-    找不到設定時回傳 None。
+    Priority: environment-variable override > PAGE_FILES.
+    Returns None when there is no setting.
     """
     env_var = _ENV_OVERRIDES.get(module_name)
     if env_var and os.environ.get(env_var):
@@ -140,7 +142,7 @@ def page_file(module_name):
 
 
 def read_text(path, default=""):
-    """讀取純文字檔;讀不到就回傳 default(不丟例外)。"""
+    """Read a plain text file; return default on failure (no exception)."""
     if not path:
         return default
     try:
@@ -151,7 +153,7 @@ def read_text(path, default=""):
 
 
 def read_lines(path):
-    """讀取檔案並回傳非空、非註解(#)的行清單。"""
+    """Read a file and return non-empty, non-comment (#) lines."""
     lines = []
     for raw in read_text(path).splitlines():
         s = raw.strip()

@@ -1,4 +1,4 @@
-// ==== XRC command file (golden 範本) ====
+// ==== XRC command file (golden template) ====
 LAYOUT PRIMARY "CELL_NAME"
 LAYOUT PATH "./CELL_NAME.gds"
 LAYOUT SYSTEM GDSII

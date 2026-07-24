@@ -3,18 +3,20 @@
 """
 pdkcrypt.py
 -----------
-pdkgui 程式碼加密的核心(純標準函式庫,免安裝任何套件)。
+Core of the pdkgui code encryption (standard library only, no packages needed).
 
-做的是「認證加密」(encrypt-then-MAC):
-  - 金鑰派生:PBKDF2-HMAC-SHA256(salt + 多次迭代)
-  - 對稱加密:HMAC-SHA256 計數器模式(CTR)當作 keystream 做 XOR
-  - 完整性 :HMAC-SHA256 標籤(先加密再 MAC),可偵測「金鑰錯誤/被竄改」
+It performs authenticated encryption (encrypt-then-MAC):
+  - Key derivation: PBKDF2-HMAC-SHA256 (salt + many iterations)
+  - Symmetric cipher: HMAC-SHA256 counter mode (CTR) as keystream, XORed in
+  - Integrity: HMAC-SHA256 tag (encrypt-then-MAC), detects wrong key / tampering
 
-檔案格式(bytes):
+File format (bytes):
   MAGIC(4) | VERSION(1) | SALT(16) | NONCE(16) | CIPHERTEXT(n) | TAG(32)
 
-★ 安全性說明:解密金鑰最終需與程式一起發佈,因此這屬於「靜態加密 + 混淆」,
-  可防止一般使用者直接讀原始碼;若要防反編譯,請改用 Cython/.so 或商用工具。
+* Security note: the decryption key must ship together with the program, so this
+  is "encryption at rest + obfuscation" -- it stops casual users from reading the
+  source, but does not defeat decompilation. For that, use Cython/.so or a
+  commercial tool.
 """
 
 import os
@@ -24,22 +26,23 @@ import hashlib
 
 MAGIC = b"PDKC"
 VERSION = 1
-KDF_ITERS = 200000            # PBKDF2 迭代次數
+KDF_ITERS = 200000            # PBKDF2 iteration count
 _SALT_LEN = 16
 _NONCE_LEN = 16
 _TAG_LEN = 32
 _HEADER_LEN = len(MAGIC) + 1 + _SALT_LEN + _NONCE_LEN   # = 37
 
-# 預設通關密語。
+# Default passphrase.
 DEFAULT_PASSPHRASE = "pdkgui-default-key-change-me"
 
-# 「釘住」的金鑰:部署版由 pdk_build.py 於此寫入打包當下使用的金鑰。
-# 一旦釘住,執行時一律用它、忽略環境變數與金鑰檔 —— 因此 dist 搬到哪、
-# 環境有沒有殘留 PDKGUI_KEY 都不影響,不必手動 unset。
-# None 表示「未釘住」(原始碼開發環境),此時才走 env / 檔案 / 預設。
+# "Pinned" key: for a deployed build, pdk_build.py writes here the key used at
+# pack time. Once pinned, runtime always uses it and ignores env vars and key
+# files -- so dist runs anywhere regardless of a leftover PDKGUI_KEY, with no
+# need to unset it. None means "not pinned" (source checkout), where env / file /
+# default are consulted instead.
 PINNED_KEY = None
 
-# 金鑰檔名(放在 pdkcrypt.py 同目錄)
+# Key filename (kept next to pdkcrypt.py)
 KEY_FILENAME = "pdkgui.key"
 
 
@@ -53,15 +56,17 @@ def _read_key_file(path):
 
 
 def get_passphrase():
-    """取得通關密語,依序:
+    """Return the passphrase, in order:
 
-      0. 已釘住的金鑰 PINNED_KEY(部署版)—— 有就直接用,忽略以下所有來源
-      1. 環境變數 PDKGUI_KEY
-      2. 金鑰檔:環境變數 PDKGUI_KEY_FILE 指定的檔,或本模組同目錄的 pdkgui.key
-      3. 內建預設 DEFAULT_PASSPHRASE
+      0. Pinned key PINNED_KEY (deployed build) -- if set, used directly,
+         ignoring every source below
+      1. Environment variable PDKGUI_KEY
+      2. Key file: env PDKGUI_KEY_FILE, or pdkgui.key next to this module
+      3. Built-in DEFAULT_PASSPHRASE
 
-    部署版(dist)一定是走 (0),所以執行環境有沒有 PDKGUI_KEY 都不影響,
-    不必手動 unset;原始碼開發環境 PINNED_KEY 為 None,才走 (1)~(3)。
+    A deployed build (dist) always takes path (0), so a stray PDKGUI_KEY in the
+    run environment does not matter and need not be unset; in a source checkout
+    PINNED_KEY is None, so paths (1)-(3) apply.
     """
     if PINNED_KEY is not None:
         return PINNED_KEY
@@ -83,7 +88,7 @@ def get_passphrase():
 
 
 def _derive_keys(passphrase, salt):
-    """由通關密語派生 64 bytes:前 32 給加密、後 32 給 MAC。"""
+    """Derive 64 bytes from the passphrase: first 32 for cipher, last 32 for MAC."""
     if isinstance(passphrase, str):
         passphrase = passphrase.encode("utf-8")
     dk = hashlib.pbkdf2_hmac("sha256", passphrase, salt, KDF_ITERS, dklen=64)
@@ -91,7 +96,7 @@ def _derive_keys(passphrase, salt):
 
 
 def _keystream(key, nonce, length):
-    """HMAC-SHA256 計數器模式產生 keystream。"""
+    """Generate a keystream with HMAC-SHA256 in counter mode."""
     out = bytearray()
     counter = 0
     while len(out) < length:
@@ -107,7 +112,7 @@ def _xor(data, keystream):
 
 
 def encrypt(plaintext, passphrase=None):
-    """加密 bytes,回傳完整密文檔內容(bytes)。"""
+    """Encrypt bytes, returning the full ciphertext file content (bytes)."""
     if passphrase is None:
         passphrase = get_passphrase()
     if isinstance(plaintext, str):
@@ -124,15 +129,16 @@ def encrypt(plaintext, passphrase=None):
 
 
 def decrypt(blob, passphrase=None):
-    """解密密文檔內容,回傳原始 bytes;金鑰錯誤或被竄改會丟 ValueError。"""
+    """Decrypt a ciphertext file, returning the original bytes; raises ValueError
+    on a wrong key or tampering."""
     if passphrase is None:
         passphrase = get_passphrase()
 
     if len(blob) < _HEADER_LEN + _TAG_LEN or blob[:len(MAGIC)] != MAGIC:
-        raise ValueError("不是有效的 PDKC 加密檔")
+        raise ValueError("not a valid PDKC encrypted file")
     version = blob[len(MAGIC)]
     if version != VERSION:
-        raise ValueError("不支援的 PDKC 版本: %d" % version)
+        raise ValueError("unsupported PDKC version: %d" % version)
 
     salt = blob[5:5 + _SALT_LEN]
     nonce = blob[5 + _SALT_LEN:_HEADER_LEN]
@@ -143,6 +149,6 @@ def decrypt(blob, passphrase=None):
     enc_key, mac_key = _derive_keys(passphrase, salt)
     expected = hmac.new(mac_key, header + ciphertext, hashlib.sha256).digest()
     if not hmac.compare_digest(expected, tag):
-        raise ValueError("完整性驗證失敗(金鑰錯誤或檔案被竄改)")
+        raise ValueError("integrity check failed (wrong key or tampered file)")
 
     return _xor(ciphertext, _keystream(enc_key, nonce, len(ciphertext)))

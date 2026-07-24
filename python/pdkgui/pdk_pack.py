@@ -3,18 +3,20 @@
 """
 pdk_pack.py
 -----------
-把一支 .py 原始碼「加密打包」成 .pdkc 檔。
+Encrypt and pack a single .py source file into a .pdkc file.
 
-用法:
-    python3 pdk_pack.py <來源.py> [輸出.pdkc]      # 例:python3 pdk_pack.py config.py config.pdkc
+Usage:
+    python3 pdk_pack.py <src.py> [out.pdkc]       # e.g. python3 pdk_pack.py config.py config.pdkc
 
-    # 用自訂金鑰(選用):
+    # with a custom key (optional):
     PDKGUI_KEY=my-secret python3 pdk_pack.py config.py config.pdkc
 
-一般不需要單獨用這支;整包加密部署版請用 pdk_build.py。
+You normally do not need this directly; for a full encrypted deploy build use
+pdk_build.py.
 
-流程:讀原始碼 → 語法檢查(compile)→ zlib 壓縮 → 加密 → 寫檔。
-(加密的是「原始碼文字」而非特定版本的 bytecode,因此跨 Python 版本可用。)
+Flow: read source -> syntax check (compile) -> zlib compress -> encrypt -> write.
+(It encrypts the source text, not version-specific bytecode, so it is portable
+across Python versions.)
 """
 
 import io
@@ -22,7 +24,7 @@ import os
 import sys
 import zlib
 
-# locale=C 下 print 中文的保險(stdout/stderr 轉 UTF-8)
+# Safety net for printing under locale=C (wrap stdout/stderr as UTF-8)
 for _name in ("stdout", "stderr"):
     _stream = getattr(sys, _name, None)
     try:
@@ -36,8 +38,8 @@ import pdkcrypt
 
 
 def pack_source(src_text, filename="<pdkc>"):
-    """壓縮 + 加密原始碼文字,回傳 .pdkc 檔內容(bytes)。"""
-    compile(src_text, filename, "exec")           # 先確認語法正確
+    """Compress + encrypt source text, returning the .pdkc file content (bytes)."""
+    compile(src_text, filename, "exec")           # verify syntax first
     compressed = zlib.compress(src_text.encode("utf-8"), 9)
     return pdkcrypt.encrypt(compressed)
 
@@ -63,8 +65,8 @@ def main(argv):
     src = argv[1]
     out = argv[2] if len(argv) > 2 else None
     out_path = pack_file(src, out)
-    key_src = "PDKGUI_KEY 環境變數" if os.environ.get("PDKGUI_KEY") else "內建預設金鑰"
-    print("已加密: %s -> %s  (金鑰來源: %s)" % (src, out_path, key_src))
+    key_src = "PDKGUI_KEY env var" if os.environ.get("PDKGUI_KEY") else "built-in default key"
+    print("encrypted: %s -> %s  (key source: %s)" % (src, out_path, key_src))
     return 0
 
 

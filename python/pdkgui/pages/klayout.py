@@ -3,7 +3,7 @@
 """
 pages/klayout.py
 ----------------
-KLAYOUT 頁面(簡易版本,可視需要擴充)。
+KLAYOUT page (minimal; extend as needed).
 """
 
 import tkinter as tk
@@ -19,4 +19,4 @@ class KlayoutPage(BasePage):
         tk.Label(self, text="*** KLayout ***", bg=self.bg,
                  font=("Arial", 11)).pack(pady=10)
         tk.Button(self, text="Open with KLayout",
-                  command=lambda: messagebox.showinfo("pdkgui", "呼叫 klayout 開啟 GDS")).pack()
+                  command=lambda: messagebox.showinfo("pdkgui", "launch klayout to open GDS")).pack()

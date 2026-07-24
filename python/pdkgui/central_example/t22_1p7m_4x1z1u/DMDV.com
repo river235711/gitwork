@@ -1,5 +1,6 @@
-// ==== DMDV command file (golden 範本) ====
-// 使用者可改 DEFINE / EXCLUDE 等;最下面的 include 由 pdkgui 依 DMDV.inc 自動更新。
+// ==== DMDV command file (golden template) ====
+// Users may edit DEFINE / EXCLUDE etc.; pdkgui auto-updates the bottom
+// include line from DMDV.inc.
 LAYOUT PRIMARY "CELL_NAME"
 LAYOUT PATH "./CELL_NAME.gds"
 LAYOUT SYSTEM GDSII

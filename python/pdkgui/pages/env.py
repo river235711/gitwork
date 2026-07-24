@@ -3,16 +3,18 @@
 """
 pages/env.py
 ------------
-ENV 頁面:各工具的版本 / 編輯器選單。
+ENV page: version / editor menus for each tool.
 
-設定從 config.page_file("ENV")(預設 data/env.txt)讀入,格式:
-    <tool>: <選項1>, <選項2>, ...
-一行一個工具;'#' 開頭為註解;值前加 '*' 表示預設選項。
+Settings are read from config.page_file("ENV") (default data/env.txt), format:
+    <tool>: <option1>, <option2>, ...
+one tool per line; '#' starts a comment; a leading '*' marks the default option.
 
-前三個工具(calibre / jivaro / skipper)的選值即 `module load` 參數
-(例:module load calibre/2024.1_36.20);第四個 editor 為文字編輯器指令。
+The first three tools (calibre / jivaro / skipper) provide the `module load`
+argument (e.g. module load calibre/2024.1_36.20); the fourth, editor, is the
+text-editor command.
 
-選到的值會存到 self.app.env[tool],讓其他 tab 之後能取用(module load / 開編輯器)。
+The selected value is stored in self.app.env[tool] so other tabs can use it
+later (module load / launching the editor).
 """
 
 import tkinter as tk
@@ -22,7 +24,7 @@ from .base import BasePage
 from widgets import LogoPanel
 import config
 
-# editor 之外的工具都視為「module load 工具」
+# Tools other than editor are treated as "module load tools"
 EDITOR_KEY = "editor"
 
 _FALLBACK = {
@@ -34,7 +36,7 @@ _FALLBACK = {
 
 
 def env_defaults():
-    """回傳 {tool: 預設值};供其他 tab(如 verify 的 module load)在啟動時取用。"""
+    """Return {tool: default}; used by other tabs (e.g. verify's module load) at startup."""
     tools = EnvPage._parse(config.page_file("ENV"))
     if not tools:
         tools = {k: {"values": v, "default": v[0]} for k, v in _FALLBACK.items()}
@@ -57,7 +59,7 @@ class EnvPage(BasePage):
             values = info["values"]
             if not values:
                 continue
-            # 已選過的沿用;否則用檔案預設
+            # reuse a previously selected value, else the file default
             default = self.app.env.get(key, info["default"])
             if default not in values:
                 default = info["default"]
@@ -77,7 +79,7 @@ class EnvPage(BasePage):
 
     @staticmethod
     def _parse(path):
-        """解析 env.txt,回傳 {tool: {"values": [...], "default": x}}(保留順序)。"""
+        """Parse env.txt into {tool: {"values": [...], "default": x}} (order kept)."""
         tools = {}
         for line in config.read_lines(path):
             if ":" not in line:

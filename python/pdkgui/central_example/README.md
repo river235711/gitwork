@@ -1,55 +1,59 @@
-# central 範例(golden command file + fab deck pointer)
+# central example (golden command file + fab deck pointer)
 
-這是 `config.DEFAULT_COM_DIR`(中央 golden 目錄)的**範例**。實際使用時把它放到你的
-central 路徑,或用環境變數 `PDKGUI_DEFAULT_DIR` 指過來。
+An **example** of `config.DEFAULT_COM_DIR` (the central golden directory). To use
+it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
 
-## 結構
+## Structure
 
 ```
 <CENTRAL>/
-└── <DESIGN>/                     例:t22_1p7m_4x1z1u/
-    ├── <MODULE>.com              golden 命令檔範本(LoadDefault 讀這個)
-    └── <MODULE>.inc              最新 fab deck 路徑(一行)
+└── <DESIGN>/                     e.g. t22_1p7m_4x1z1u/
+    ├── <MODULE>.com              golden command-file template (LoadDefault reads this)
+    └── <MODULE>.inc              latest fab deck path (one line)
 ```
 
-本範例含一個 design `t22_1p7m_4x1z1u`,模組 DRC / ANT / WB / BUMP / DMDV / DPDO / LVS / XRC
-各一組 `.com` + `.inc`。
+This example contains one design `t22_1p7m_4x1z1u`, with a `.com` + `.inc` pair
+for DRC / ANT / WB / BUMP / DMDV / DPDO / LVS / XRC.
 
-## pdkgui 怎麼用它
+## How pdkgui uses it
 
-- 開 tab 時(且無 session)→ 讀 `<DESIGN>/<MODULE>.com` 進文字框。
-- 開 tab **與** 按 Run → 把文字框裡的 `include <...>` 行換成 `<DESIGN>/<MODULE>.inc` 的值。
-- `.inc` 是 fab deck 路徑的唯一真實來源:deck 更新時**只改 `.inc` 一行**,所有人下次開/跑就吃到。
+- On tab open (and with no session) -> load `<DESIGN>/<MODULE>.com` into the text box.
+- On tab open **and** on Run -> rewrite the `include <...>` line in the text to
+  the value of `<DESIGN>/<MODULE>.inc`.
+- `.inc` is the single source of truth for the fab deck path: to update the deck,
+  **edit just the one line in `.inc`** and everyone picks it up on their next open/run.
 
-## 怎麼套用
+## How to apply
 
-擇一:
+Either:
 
-1. 複製到你的 central 目錄(即 `config.DEFAULT_COM_DIR`):
+1. Copy it into your central directory (i.e. `config.DEFAULT_COM_DIR`):
    ```bash
-   cp -r central_example/* <你的 CENTRAL>/
+   cp -r central_example/* <YOUR_CENTRAL>/
    ```
-2. 或直接把 central 指到這個範例(測試用):
+2. Or point central at this example (for testing):
    ```bash
    export PDKGUI_DEFAULT_DIR=/home/willhuang/work/gitwork/python/pdkgui/central_example
    ```
 
-## 新增其他 design
+## Adding another design
 
-複製 `t22_1p7m_4x1z1u/` 成新 design 名(對應 PROCESS 選項,如 `t22_1p8m_5x1z1u/`),
-再改各 `.com` / `.inc` 內容即可:
+Copy `t22_1p7m_4x1z1u/` to a new design name (matching a PROCESS option, e.g.
+`t22_1p8m_5x1z1u/`), then edit the `.com` / `.inc` contents:
 
 ```bash
 cp -r central_example/t22_1p7m_4x1z1u central_example/t22_1p8m_5x1z1u
-# 編輯 central_example/t22_1p8m_5x1z1u/*.inc 填該 design 的 deck 路徑
+# edit central_example/t22_1p8m_5x1z1u/*.inc with that design's deck paths
 ```
 
-## deck 更新(日常維運)
+## Updating a deck (day-to-day)
 
 ```bash
-echo /datacenter/.../CLN22ULP_7M_4X1Z1U_<新版>.encrypt \
+echo /datacenter/.../CLN22ULP_7M_4X1Z1U_<new>.encrypt \
     > <CENTRAL>/t22_1p7m_4x1z1u/DRC.inc
 ```
 
-> `.com` 裡的 `CELL_NAME` / `./CELL_NAME.gds` 是佔位;實際會由使用者填欄位或載入版圖後帶入。
-> `.inc` 內的 deck 路徑為範例格式,請換成你 PDK 的實際路徑。
+> `CELL_NAME` / `./CELL_NAME.gds` in the `.com` files are placeholders; the real
+> values come from the user filling in fields or loading a layout.
+> The deck paths in `.inc` are example formats -- replace them with your PDK's
+> actual paths.

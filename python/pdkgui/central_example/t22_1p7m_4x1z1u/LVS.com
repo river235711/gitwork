@@ -1,4 +1,4 @@
-// ==== LVS command file (golden 範本) ====
+// ==== LVS command file (golden template) ====
 //LAYOUT RENAME TEXT "/PAD_DB_AVSS_ISO/PAD_DB_AVSS_ISO:/g"
 LAYOUT PRIMARY "CELL_NAME"
 LAYOUT PATH "./CELL_NAME.gds"

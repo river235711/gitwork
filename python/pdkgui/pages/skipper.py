@@ -3,10 +3,10 @@
 """
 pages/skipper.py
 ----------------
-SKIPPER 頁面:最近開過的 GDS 清單。
+SKIPPER page: list of recently opened GDS files.
 
-清單從 config.page_file("SKIPPER")(預設 data/skipper.txt,一行一個路徑)
-讀入,最多顯示 10 列。
+The list is read from config.page_file("SKIPPER") (default data/skipper.txt, one
+path per line), showing up to 10 rows.
 """
 
 import tkinter as tk
