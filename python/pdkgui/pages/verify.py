@@ -49,7 +49,8 @@ _FIELD_KEYWORDS = {
 }
 
 _TERMINALS = (
-    ["xterm", "-e"], ["gnome-terminal", "--"], ["konsole", "-e"],
+    ["xterm", "-fg", "white", "-bg", "black", "-e"],
+    ["gnome-terminal", "--"], ["konsole", "-e"],
     ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
 )
 _FILE_MANAGERS = ("xdg-open", "nautilus", "thunar", "pcmanfm", "dolphin")
@@ -525,6 +526,8 @@ class VerifyPage(BasePage):
         try:
             with open(wrapper, "w", encoding="utf-8") as f:
                 f.write('#!/bin/bash -l\n'
+                        # 終端機前景設白、背景設黑(OSC 10/11;非 xterm 也適用)
+                        "printf '\\033]10;white\\007\\033]11;black\\007'\n"
                         'cd "$(dirname "$0")"\n'
                         './run\n'
                         'echo\n'
