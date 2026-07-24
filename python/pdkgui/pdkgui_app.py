@@ -10,6 +10,7 @@ pdkgui 的主程式邏輯(主視窗 + 左側選單 + 頁面路由)。
   在原始碼開發環境則直接以明文執行(沒有 .pdkc 時 import hook 不作用)。
 """
 
+import os
 import tkinter as tk
 
 import config
@@ -24,13 +25,17 @@ class PdkGui(tk.Tk):
         self.geometry("980x560")
         self.configure(bg="#d9d9d9")
 
+        # 開啟 pdkgui 的工作目錄(供 verify 頁的 RunFolder 預設值)
+        self.launch_dir = os.getcwd()
         self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
         # ENV tab 選到的工具 / 編輯器(啟動先載入預設),供其他 tab 取用
         self.env = env_defaults()
+        self._page = None
 
         self._build_sidebar()
         self._build_content_area()
         self.show_module(config.MENU_ITEMS[0])
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def set_design(self, name):
         """切換目前 design:更新視窗標題,並讓其他 tab 也跟著使用。"""
@@ -70,11 +75,26 @@ class PdkGui(tk.Tk):
     def show_module(self, name):
         self.current_module.set(name)
         self._highlight_selected(name)
+
+        # 離開目前頁面前,先把它的狀態存起來
+        self._flush_page()
         for w in self.content.winfo_children():
             w.destroy()
 
-        page = build_page(name, self.content, self)
-        page.pack(fill="both", expand=True, padx=10, pady=10)
+        self._page = build_page(name, self.content, self)
+        self._page.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def _flush_page(self):
+        page = getattr(self, "_page", None)
+        if page is not None and hasattr(page, "flush"):
+            try:
+                page.flush()
+            except Exception:
+                pass
+
+    def _on_close(self):
+        self._flush_page()
+        self.destroy()
 
 
 def main():

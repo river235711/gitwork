@@ -20,6 +20,7 @@ pages/verify.py
 
 import os
 import re
+import json
 import shutil
 import subprocess
 
@@ -38,6 +39,14 @@ _RE_SOURCE_PATH = re.compile(r'SOURCE\s+PATH\s+"([^"]+)"', re.IGNORECASE)
 _RE_SOURCE_PRIMARY = re.compile(r'SOURCE\s+PRIMARY\s+"([^"]+)"', re.IGNORECASE)
 _RE_RESULTS_DB = re.compile(r'RESULTS\s+DATABASE\s+"([^"]+)"', re.IGNORECASE)
 _RE_SUMMARY_REP = re.compile(r'SUMMARY\s+REPORT\s+"([^"]+)"', re.IGNORECASE)
+
+# 欄位 <-> 文字框對應:欄位改動時要更新文字框中的哪一行(keyword, regex, 是否 realpath)
+_FIELD_KEYWORDS = {
+    "LayoutPath": ("LAYOUT PATH", _RE_LAYOUT_PATH, True),
+    "LayoutPrimary": ("LAYOUT PRIMARY", _RE_LAYOUT_PRIMARY, False),
+    "SourcePath": ("SOURCE PATH", _RE_SOURCE_PATH, True),
+    "SourcePrimary": ("SOURCE PRIMARY", _RE_SOURCE_PRIMARY, False),
+}
 
 _TERMINALS = (
     ["xterm", "-e"], ["gnome-terminal", "--"], ["konsole", "-e"],
@@ -59,6 +68,8 @@ class VerifyPage(BasePage):
 
     def build(self):
         self.entries = {}
+        self._syncing = False      # 防止 欄位<->文字 互相觸發
+        self._save_job = None       # 延遲存檔的 after id
         if self.module == "LVS":
             self._build_lvs()
         elif self.module == "XRC":
@@ -97,7 +108,8 @@ class VerifyPage(BasePage):
     def _check_row(self, row, key, text=""):
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
         var = tk.BooleanVar()
-        tk.Checkbutton(self, variable=var, text=text, bg=self.bg).grid(row=row, column=1, sticky="w")
+        tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
+                       command=self._schedule_save).grid(row=row, column=1, sticky="w")
         self.entries[key] = var
 
     def _open_btn(self, key):
@@ -119,9 +131,32 @@ class VerifyPage(BasePage):
         self.cmd_text.grid(row=row, column=0, columnspan=4, sticky="nsew", pady=(10, 0))
         self.grid_rowconfigure(row, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        self.cmd_text.load_file(config.page_file(self.module))
-        self.cmd_text.text.bind("<KeyRelease>", lambda e: self._sync_fields_from_text())
-        self._sync_fields_from_text()
+        self._finalize()
+
+    def _finalize(self):
+        # RunFolder 預設 = 開啟 pdkgui 的目錄
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+
+        # 還原上次存檔的狀態;沒有就載入 .com 範本並解析欄位
+        if not self._load_state():
+            self.cmd_text.load_file(config.page_file(self.module))
+            self._sync_fields_from_text()
+
+        self._bind_changes()
+
+    def _bind_changes(self):
+        # 文字框改動 -> 更新上面欄位 + 存檔
+        self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
+        # 欄位改動 -> 往下傳到文字框(Layout/Source)+ 存檔
+        for key, w in self.entries.items():
+            if isinstance(w, tk.BooleanVar):
+                continue  # checkbutton 已在 _check_row 綁 command
+            if isinstance(w, ttk.Combobox):
+                w.bind("<<ComboboxSelected>>", lambda e: self._schedule_save())
+            else:
+                w.bind("<KeyRelease>", lambda e, k=key: self._on_field_change(k))
 
     # ==================================================================
     # 各家版面
@@ -177,22 +212,141 @@ class VerifyPage(BasePage):
     # 從文字框解析欄位(略過 '//' 開頭行)
     # ==================================================================
     def _sync_fields_from_text(self):
-        body = _strip_comment_lines(self.cmd_text.get_text())
+        if self._syncing:
+            return
+        self._syncing = True
+        try:
+            body = _strip_comment_lines(self.cmd_text.get_text())
 
-        def fill(regex, key, real=False):
-            w = self.entries.get(key)
-            if w is None or not hasattr(w, "delete"):
-                return
-            m = regex.search(body)
-            if m:
-                val = os.path.realpath(m.group(1)) if real else m.group(1)
+            def fill(regex, key, real=False):
+                w = self.entries.get(key)
+                if w is None or not hasattr(w, "delete"):
+                    return
+                m = regex.search(body)
+                if m:
+                    val = os.path.realpath(m.group(1)) if real else m.group(1)
+                    w.delete(0, tk.END)
+                    w.insert(0, val)
+
+            fill(_RE_LAYOUT_PATH, "LayoutPath", real=True)
+            fill(_RE_LAYOUT_PRIMARY, "LayoutPrimary")
+            fill(_RE_SOURCE_PATH, "SourcePath", real=True)
+            fill(_RE_SOURCE_PRIMARY, "SourcePrimary")
+        finally:
+            self._syncing = False
+
+    def _sync_text_from_field(self, key):
+        """欄位改動時,把值寫回文字框對應那一行(略過 '//' 行)。"""
+        if self._syncing or key not in _FIELD_KEYWORDS:
+            return
+        _kw, regex, real = _FIELD_KEYWORDS[key]
+        val = self.entries[key].get()
+        if real and val:
+            val = os.path.realpath(val)
+
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            if regex.search(ln):
+                lines[i] = regex.sub(
+                    lambda m: m.group(0)[:m.start(1) - m.start()] + val + '"', ln, count=1)
+                changed = True
+                break
+        if changed:
+            self._syncing = True
+            try:
+                pos = self.cmd_text.text.index("insert")
+                self.cmd_text.set_text("\n".join(lines))
+                try:
+                    self.cmd_text.text.mark_set("insert", pos)
+                except Exception:
+                    pass
+            finally:
+                self._syncing = False
+
+    def _on_field_change(self, key):
+        self._sync_text_from_field(key)
+        self._schedule_save()
+
+    def _on_text_change(self):
+        self._sync_fields_from_text()
+        self._schedule_save()
+
+    # ==================================================================
+    # 狀態存檔 / 還原(~/.pdkgui/state/<DESIGN>/<MODULE>.json)
+    # ==================================================================
+    def _state_path(self):
+        d = os.path.join(os.path.expanduser("~/.pdkgui"), "state", config.DESIGN_NAME)
+        return os.path.join(d, "%s.json" % self.module)
+
+    def _collect_state(self):
+        st = {}
+        for key, w in self.entries.items():
+            st[key] = bool(w.get()) if isinstance(w, tk.BooleanVar) else w.get()
+        st["__command__"] = self.cmd_text.get_text()
+        return st
+
+    def _apply_state(self, st):
+        for key, w in self.entries.items():
+            if key not in st:
+                continue
+            val = st[key]
+            if isinstance(w, tk.BooleanVar):
+                w.set(bool(val))
+            elif isinstance(w, ttk.Combobox):
+                w.set(val)
+            elif hasattr(w, "delete"):
                 w.delete(0, tk.END)
                 w.insert(0, val)
+        if "__command__" in st:
+            self.cmd_text.set_text(st["__command__"])
 
-        fill(_RE_LAYOUT_PATH, "LayoutPath", real=True)
-        fill(_RE_LAYOUT_PRIMARY, "LayoutPrimary")
-        fill(_RE_SOURCE_PATH, "SourcePath", real=True)
-        fill(_RE_SOURCE_PRIMARY, "SourcePrimary")
+    def _load_state(self):
+        path = self._state_path()
+        if not os.path.isfile(path):
+            return False
+        try:
+            with open(path, encoding="utf-8") as f:
+                st = json.load(f)
+        except (OSError, ValueError):
+            return False
+        self._syncing = True
+        try:
+            self._apply_state(st)
+        finally:
+            self._syncing = False
+        return True
+
+    def _save_state(self):
+        self._save_job = None
+        path = self._state_path()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(self._collect_state(), f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
+
+    def _schedule_save(self):
+        """延遲存檔(避免每個按鍵都寫檔,對 NFS home 友善)。"""
+        if self._save_job is not None:
+            try:
+                self.after_cancel(self._save_job)
+            except Exception:
+                pass
+        self._save_job = self.after(500, self._save_state)
+
+    def flush(self):
+        """離開頁面 / 關視窗前立即存檔(把待寫的狀態寫出)。"""
+        if self._save_job is not None:
+            try:
+                self.after_cancel(self._save_job)
+            except Exception:
+                pass
+            self._save_job = None
+        self._save_state()
 
     # ==================================================================
     # run / com 內容
@@ -339,6 +493,7 @@ class VerifyPage(BasePage):
         if os.path.isfile(path):
             self.cmd_text.load_file(path)
             self._sync_fields_from_text()
+            self._schedule_save()
         else:
             messagebox.showwarning("pdkgui", "找不到預設檔:\n%s" % path)
 
@@ -348,6 +503,7 @@ class VerifyPage(BasePage):
         if path:
             self.cmd_text.load_file(path)
             self._sync_fields_from_text()
+            self._schedule_save()
 
     def _on_save(self):
         path = filedialog.asksaveasfilename(
