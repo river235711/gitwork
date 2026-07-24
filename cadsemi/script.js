@@ -21,25 +21,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const i18n = {
     zh: {
       "nav.services": "服务项目",
-      "nav.node": "制程涵盖",
       "nav.about": "关于我们",
       "nav.contact": "联络我们",
-      "hero1.eyebrow": "半导体设计自动化顾问服务",
-      "hero1.title": "从 PDK 到全晶片验证<br>您值得信赖的硅智财伙伴",
-      "hero1.sub": "PDK 开发移植、电路验证、客制化布局与自动化脚本开发，一站式技术顾问服务。",
-      "hero1.cta": "查看服务项目",
-      "hero2.title": "横跨 3nm 至 250nm<br>全制程节点实战经验",
-      "hero2.sub": "从先进制程到成熟制程，协助客户完成设计转移与跨节点验证。",
-      "hero2.cta": "了解制程涵盖",
-      "hero3.title": "整合业界标准工具链<br>加速您的设计流程",
-      "hero3.sub": "Calibre・Virtuoso・StarRC・Voltus 与自动化脚本开发，提升团队交付效率。",
-      "hero3.cta": "立即咨询",
-      "explore.title": "探索服务项目",
-      "explore.pdk": "PDK 开发与移植",
-      "explore.verification": "验证服务",
-      "explore.layout": "设计与布局",
-      "explore.scripting": "自动化脚本开发",
-      "explore.node": "全制程节点涵盖",
+      "hero.eyebrow": "半导体设计自动化顾问服务",
+      "hero.title": "从 PDK 到全晶片验证<br>您值得信赖的硅智财伙伴",
+      "hero.sub": "PDK 开发移植、电路验证、客制化布局与自动化脚本开发，一站式技术顾问服务。",
+      "hero.cta": "查看服务项目",
+      "hero.ctaContact": "联络我们",
+      "hero.stat1": "制程节点涵盖",
+      "hero.stat2": "核心服务领域",
+      "hero.stat3": "业界标准工具链",
       "services.title": "服务项目",
       "services.titleEn": "Services",
       "services.sub": "涵盖 IC 设计流程中每一个关键环节，从前段开发到后段验证，提供一站式技术顾问服务。",
@@ -56,13 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
       "scripting.title": "自动化脚本开发",
       "scripting.en": "Automation &amp; Scripting",
       "scripting.desc": "建立自动化流程与版本控管机制，提升团队开发效率并降低重复性作业成本。",
-      "node.title": "全制程节点涵盖",
-      "node.sub": "具备从先进制程到成熟制程的专案经验，协助新旧制程节点间的设计转移与验证。",
-      "node.cta": "讨论您的制程需求",
-      "node.row1": "Calibre 验证整合",
-      "node.row2": "Virtuoso 设计平台",
-      "node.row3": "StarRC / QRC 萃取",
-      "node.row4": "Voltus 电源完整性",
       "about.title": "关于我们",
       "about.titleEn": "About",
       "about.p1": "CADSEMI 是一家专注于半导体设计自动化（EDA）与客制化 IC 设计服务的技术顾问公司。我们的团队具备横跨先进制程与成熟制程节点的实战经验，服务范围涵盖 PDK 开发、电路验证、版图设计，以及流程自动化，协助客户加速产品开发时程，并确保每一项交付都符合最高的设计品质与制程规范。",
@@ -84,25 +68,16 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     en: {
       "nav.services": "Services",
-      "nav.node": "Process Nodes",
       "nav.about": "About",
       "nav.contact": "Contact",
-      "hero1.eyebrow": "Semiconductor Design Automation Consulting",
-      "hero1.title": "From PDK to Full-Chip Signoff<br>Your Trusted Silicon IP Partner",
-      "hero1.sub": "PDK development &amp; porting, circuit verification, custom layout, and automation scripting — one-stop technical consulting.",
-      "hero1.cta": "View Services",
-      "hero2.title": "From 3nm to 250nm<br>Proven Across Every Process Node",
-      "hero2.sub": "From advanced to mature nodes, we help clients with design migration and cross-node verification.",
-      "hero2.cta": "Explore Node Coverage",
-      "hero3.title": "Integrated Industry-Standard Toolchains<br>Accelerating Your Design Flow",
-      "hero3.sub": "Calibre, Virtuoso, StarRC, Voltus and automation scripting to boost your team's delivery.",
-      "hero3.cta": "Get in Touch",
-      "explore.title": "Explore Our Services",
-      "explore.pdk": "PDK Development & Porting",
-      "explore.verification": "Verification",
-      "explore.layout": "Design & Layout",
-      "explore.scripting": "Automation & Scripting",
-      "explore.node": "Full Node Coverage",
+      "hero.eyebrow": "Semiconductor Design Automation Consulting",
+      "hero.title": "From PDK to Full-Chip Signoff<br>Your Trusted Silicon IP Partner",
+      "hero.sub": "PDK development &amp; porting, circuit verification, custom layout, and automation scripting — one-stop technical consulting.",
+      "hero.cta": "View Services",
+      "hero.ctaContact": "Contact Us",
+      "hero.stat1": "Process Node Coverage",
+      "hero.stat2": "Core Service Areas",
+      "hero.stat3": "Industry-Standard Tools",
       "services.title": "Services",
       "services.titleEn": "",
       "services.sub": "Covering every critical step of the IC design flow — from front-end development to back-end signoff — as a one-stop consulting partner.",
@@ -119,13 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
       "scripting.title": "Automation & Scripting",
       "scripting.en": "",
       "scripting.desc": "Building automation flows and version-control practices to improve team efficiency and reduce repetitive work.",
-      "node.title": "Full Process-Node Coverage",
-      "node.sub": "With project experience spanning advanced to mature nodes, we support design migration and verification across old and new process nodes.",
-      "node.cta": "Discuss Your Node Requirements",
-      "node.row1": "Calibre Verification Integration",
-      "node.row2": "Virtuoso Design Platform",
-      "node.row3": "StarRC / QRC Extraction",
-      "node.row4": "Voltus Power Integrity",
       "about.title": "About",
       "about.titleEn": "",
       "about.p1": "CADSEMI is a technical consultancy focused on electronic design automation (EDA) and custom IC design services. Our team brings hands-on experience across advanced and mature process nodes — spanning PDK development, circuit verification, layout design, and flow automation — helping clients accelerate time-to-market while ensuring every deliverable meets the highest standards of design quality and process compliance.",
@@ -197,60 +165,4 @@ document.addEventListener("DOMContentLoaded", () => {
   let savedLang = "zh";
   try { savedLang = localStorage.getItem("cadsemi-lang") || "zh"; } catch (e) {}
   applyLang(savedLang);
-
-  // Hero carousel
-  const carousel = document.getElementById("carousel");
-  const slides = carousel ? Array.from(carousel.querySelectorAll(".slide")) : [];
-  const dots = Array.from(document.querySelectorAll("#carouselDots .dot"));
-  const toggleBtn = document.getElementById("carouselToggle");
-  const iconPause = toggleBtn?.querySelector(".icon-pause");
-  const iconPlay = toggleBtn?.querySelector(".icon-play");
-
-  let current = 0;
-  let playing = true;
-  let timer = null;
-
-  function showSlide(index) {
-    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === index));
-    dots.forEach((dot, i) => dot.classList.toggle("is-active", i === index));
-    current = index;
-  }
-
-  function next() {
-    showSlide((current + 1) % slides.length);
-  }
-
-  function startAutoplay() {
-    stopAutoplay();
-    timer = setInterval(next, 6000);
-  }
-
-  function stopAutoplay() {
-    if (timer) clearInterval(timer);
-    timer = null;
-  }
-
-  dots.forEach((dot, i) => {
-    dot.addEventListener("click", () => {
-      showSlide(i);
-      if (playing) startAutoplay();
-    });
-  });
-
-  toggleBtn?.addEventListener("click", () => {
-    playing = !playing;
-    if (playing) {
-      startAutoplay();
-      iconPause.hidden = false;
-      iconPlay.hidden = true;
-      toggleBtn.setAttribute("aria-label", "暫停輪播");
-    } else {
-      stopAutoplay();
-      iconPause.hidden = true;
-      iconPlay.hidden = false;
-      toggleBtn.setAttribute("aria-label", "播放輪播");
-    }
-  });
-
-  if (slides.length > 1) startAutoplay();
 });
