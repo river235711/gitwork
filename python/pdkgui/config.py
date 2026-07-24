@@ -49,6 +49,12 @@ def central_include_file(module, design):
     return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
 
 
+def central_skipper_conf(design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf -- skipper viewer paths
+    (keys: cdsTech, cdsDisp, cdsLayerMap, init; init optional)."""
+    return os.path.join(DEFAULT_COM_DIR, design, "SKIPPER.conf")
+
+
 # --------------------------------------------------------------------------
 # Per-user state directory (each user's "last time" working state; override via
 # env PDKGUI_USER_DIR).
@@ -186,3 +192,14 @@ def read_lines(path):
         if s and not s.startswith("#"):
             lines.append(s)
     return lines
+
+
+def read_conf(path):
+    """Parse 'key = value' lines into a dict (uses read_lines, so #-comments and
+    blank lines are skipped)."""
+    conf = {}
+    for line in read_lines(path):
+        if "=" in line:
+            k, v = line.split("=", 1)
+            conf[k.strip()] = v.strip()
+    return conf

@@ -9,11 +9,15 @@ it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
 <CENTRAL>/
 └── <DESIGN>/                     e.g. t22_1p7m_4x1z1u/
     ├── <MODULE>.com              golden command-file template (LoadDefault reads this)
-    └── <MODULE>.inc              latest fab deck path (one line)
+    ├── <MODULE>.inc              latest fab deck path (one line)
+    └── SKIPPER.conf              skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
 This example contains one design `t22_1p7m_4x1z1u`, with a `.com` + `.inc` pair
-for DRC / ANT / WB / BUMP / DMDV / DPDO / LVS / XRC.
+for DRC / ANT / WB / BUMP / DMDV / DPDO / LVS / XRC, plus a `SKIPPER.conf` for the
+skipper GDS viewer (the SKIPPER tab and the View buttons). In `SKIPPER.conf`,
+`init` is optional -- if unset or the file is missing, `-init` is omitted from the
+skipper command.
 
 ## How pdkgui uses it
 

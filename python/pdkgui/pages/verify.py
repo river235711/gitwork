@@ -32,6 +32,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 from .base import BasePage
+from .gdsview import open_gds
 from widgets import ScrolledText
 import config
 
@@ -60,7 +61,6 @@ _TERMINALS = (
     ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
 )
 _FILE_MANAGERS = ("xdg-open", "nautilus", "thunar", "pcmanfm", "dolphin")
-_VIEWERS = ("calibredrv", "klayout")
 
 
 def _strip_comment_lines(text):
@@ -596,11 +596,8 @@ class VerifyPage(BasePage):
                              "No usable terminal found. Run it manually:\n%s/run" % folder)
 
     def _on_view(self):
-        path = self.entries["LayoutPath"].get().strip()
-        if not path:
-            messagebox.showwarning("pdkgui", "LayoutPath is empty")
-            return
-        self._spawn(_VIEWERS, path, "calibredrv / klayout viewer not found")
+        # open the layout GDS with skipper (same flow as the SKIPPER tab)
+        open_gds(self.app, self.entries["LayoutPath"].get())
 
     def _on_edit_source(self):
         path = self.entries["SourcePath"].get().strip()

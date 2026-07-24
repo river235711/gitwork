@@ -70,6 +70,7 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 ```
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     golden command-file template (LoadDefault reads this)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
+<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf     skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
 - The LoadDefault button reads `.com`; if the central file is missing it falls
@@ -80,6 +81,23 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   file and everyone picks up the new path on their next open/run. If `.inc` is
   absent the existing include is left untouched (backward compatible).
   e.g. `echo /datacenter/.../CLN22ULP_..._<new>.encrypt > <DEFAULT_COM_DIR>/<DESIGN>/DRC.inc`
+
+## GDS viewer (skipper)
+
+The SKIPPER tab (and the **View** button on other tabs) opens a GDS with `skipper`.
+It generates a shell in `~/.pdkgui/skipper_view.sh` (never in `./`, so it works even
+when viewing a GDS in a directory you cannot write to) and runs it in the background:
+
+```
+#!/bin/bash -l
+module load <skipper>      # from the ENV tab
+module load <calibre>      # from the ENV tab
+skipper -noterm -i <gds> -cdsTech <..> -cdsDisp <..> -cdsLayerMap <..> [-init <..>]
+```
+
+The `-cdsTech` / `-cdsDisp` / `-cdsLayerMap` / `init` paths come from
+`<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf` (`key = value` lines). `init` is optional:
+`-init` is added only when it is set and the file exists, otherwise it is omitted.
 
 ## Per-user state `~/.pdkgui/`
 
