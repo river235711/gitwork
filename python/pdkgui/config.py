@@ -23,6 +23,23 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+# 使用者設定 / 狀態目錄(可用環境變數 PDKGUI_USER_DIR 覆蓋)。
+#   <USER_DIR>/default/<DESIGN>/<MODULE>.com   每個 tab 的預設 command file(LoadDefault)
+#   <USER_DIR>/session/<DESIGN>/<MODULE>.json  每個 tab 上次的工作狀態(欄位 + command)
+USER_DIR = os.path.expanduser(os.environ.get("PDKGUI_USER_DIR", "~/.pdkgui"))
+DEFAULT_SUBDIR = "default"
+SESSION_SUBDIR = "session"
+
+
+def user_default_file(module, design):
+    """<USER_DIR>/default/<DESIGN>/<MODULE>.com"""
+    return os.path.join(USER_DIR, DEFAULT_SUBDIR, design, "%s.com" % module)
+
+
+def user_session_file(module, design):
+    """<USER_DIR>/session/<DESIGN>/<MODULE>.json"""
+    return os.path.join(USER_DIR, SESSION_SUBDIR, design, "%s.json" % module)
+
 # --------------------------------------------------------------------------
 # 一般設定
 # --------------------------------------------------------------------------

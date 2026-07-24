@@ -139,10 +139,9 @@ class VerifyPage(BasePage):
         if rf is not None and not rf.get().strip():
             rf.insert(0, self.app.launch_dir)
 
-        # 還原上次存檔的狀態;沒有就載入 .com 範本並解析欄位
+        # 讀取順序:1) 上次 session  2) 沒有就讀 default(必要時由內建範本種入)
         if not self._load_state():
-            self.cmd_text.load_file(config.page_file(self.module))
-            self._sync_fields_from_text()
+            self._load_default()
 
         self._bind_changes()
 
@@ -278,8 +277,7 @@ class VerifyPage(BasePage):
     # 狀態存檔 / 還原(~/.pdkgui/state/<DESIGN>/<MODULE>.json)
     # ==================================================================
     def _state_path(self):
-        d = os.path.join(os.path.expanduser("~/.pdkgui"), "state", config.DESIGN_NAME)
-        return os.path.join(d, "%s.json" % self.module)
+        return config.user_session_file(self.module, config.DESIGN_NAME)
 
     def _collect_state(self):
         st = {}
@@ -484,18 +482,32 @@ class VerifyPage(BasePage):
             return
         self._launch_terminal(folder)
 
-    def _default_command_path(self):
-        fname = ".pdkgui.%s%s.commandfile" % (self.module.lower(), config.DESIGN_NAME)
-        return os.path.join(os.path.expanduser("~/.pdkgui"), fname)
+    def _ensure_default(self):
+        """確保 <USER_DIR>/default/<DESIGN>/<MODULE>.com 存在;
+        不存在就用內建範本 data/verify/<MODULE>.com 種入。回傳其路徑(或 None)。"""
+        path = config.user_default_file(self.module, config.DESIGN_NAME)
+        if not os.path.isfile(path):
+            template = config.read_text(config.page_file(self.module))
+            try:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(template)
+            except OSError:
+                return None
+        return path
+
+    def _load_default(self):
+        """把 default command file 載入文字框並解析欄位。"""
+        path = self._ensure_default()
+        if path and os.path.isfile(path):
+            self.cmd_text.load_file(path)
+        else:                      # 最後退回內建範本
+            self.cmd_text.load_file(config.page_file(self.module))
+        self._sync_fields_from_text()
 
     def _on_load_default(self):
-        path = self._default_command_path()
-        if os.path.isfile(path):
-            self.cmd_text.load_file(path)
-            self._sync_fields_from_text()
-            self._schedule_save()
-        else:
-            messagebox.showwarning("pdkgui", "找不到預設檔:\n%s" % path)
+        self._load_default()
+        self._schedule_save()
 
     def _on_load(self):
         path = filedialog.askopenfilename(
