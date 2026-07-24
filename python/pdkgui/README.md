@@ -82,11 +82,20 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   absent the existing include is left untouched (backward compatible).
   e.g. `echo /datacenter/.../CLN22ULP_..._<new>.encrypt > <DEFAULT_COM_DIR>/<DESIGN>/DRC.inc`
 
-## GDS viewer (skipper)
+## GDS viewers (skipper / klayout)
 
-The SKIPPER tab (and the **View** button on other tabs) opens a GDS with `skipper`.
-It generates a shell in `~/.pdkgui/skipper_view.sh` (never in `./`, so it works even
-when viewing a GDS in a directory you cannot write to) and runs it in the background:
+- **SKIPPER** tab and the **View** button on other tabs -> open with `skipper`.
+- **KLAYOUT** tab -> same GDS-list UI, but opens with `klayout`
+  (`config.KLAYOUT_BIN`, default `/usr/bin/klayout`; override via env
+  `PDKGUI_KLAYOUT`). Independent of the PROCESS selection -- no SKIPPER.conf /
+  module load needed.
+
+Both generate a shell in `~/.pdkgui/` (never in `./`, so it works even when viewing
+a GDS in a directory you cannot write to) and run it in a terminal (falling back to
+a detached background launch). Both tabs remember their GDS list in the user session
+(`~/.pdkgui/session/SKIPPER.json` / `KLAYOUT.json`).
+
+The skipper shell is:
 
 ```
 #!/bin/bash -l

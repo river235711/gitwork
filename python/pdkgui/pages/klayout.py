@@ -3,20 +3,16 @@
 """
 pages/klayout.py
 ----------------
-KLAYOUT page (minimal; extend as needed).
+KLAYOUT page: a GDS list opened with klayout (same UI as SKIPPER, but View runs
+klayout instead of skipper). Independent of the PROCESS selection.
 """
 
-import tkinter as tk
-from tkinter import messagebox
-
-from .base import BasePage
+from .gdslist import GdsListPage
+from .gdsview import open_gds_klayout
 
 
-class KlayoutPage(BasePage):
+class KlayoutPage(GdsListPage):
     module = "KLAYOUT"
 
-    def build(self):
-        tk.Label(self, text="*** KLayout ***", bg=self.bg,
-                 font=("Arial", 11)).pack(pady=10)
-        tk.Button(self, text="Open with KLayout",
-                  command=lambda: messagebox.showinfo("pdkgui", "launch klayout to open GDS")).pack()
+    def _view(self, gds):
+        open_gds_klayout(self.app, gds)

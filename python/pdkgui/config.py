@@ -104,6 +104,10 @@ LOGO_TEXT = "YOUR COMPANY LOGO"     # fallback text when the image is not found
 LOGO_BG = "#0b5fa5"
 LOGO_FG = "white"
 
+# klayout executable for the KLAYOUT tab (independent of PROCESS / design).
+# Override via env PDKGUI_KLAYOUT.
+KLAYOUT_BIN = os.environ.get("PDKGUI_KLAYOUT", "/usr/bin/klayout")
+
 # Left-hand menu items (screenshot order)
 MENU_ITEMS = [
     "PROCESS", "ENV", "DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO",
