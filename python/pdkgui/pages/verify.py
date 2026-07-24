@@ -39,6 +39,7 @@ _RE_SOURCE_PATH = re.compile(r'SOURCE\s+PATH\s+"([^"]+)"', re.IGNORECASE)
 _RE_SOURCE_PRIMARY = re.compile(r'SOURCE\s+PRIMARY\s+"([^"]+)"', re.IGNORECASE)
 _RE_RESULTS_DB = re.compile(r'RESULTS\s+DATABASE\s+"([^"]+)"', re.IGNORECASE)
 _RE_SUMMARY_REP = re.compile(r'SUMMARY\s+REPORT\s+"([^"]+)"', re.IGNORECASE)
+_RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include 指令
 
 # 欄位 <-> 文字框對應:欄位改動時要更新文字框中的哪一行(keyword, regex, 是否 realpath)
 _FIELD_KEYWORDS = {
@@ -144,7 +145,43 @@ class VerifyPage(BasePage):
         if not self._load_state():
             self._load_default()
 
+        # 開 tab:把 include 行刷新成 central .inc 的最新 fab deck 路徑
+        self._refresh_include()
+
         self._bind_changes()
+
+    def _central_deck_path(self):
+        """讀 <CENTRAL>/<DESIGN>/<MODULE>.inc 的第一個有效行(最新 deck 路徑);沒有回 None。"""
+        for line in config.read_lines(config.central_include_file(self.module, config.DESIGN_NAME)):
+            return line
+        return None
+
+    def _refresh_include(self):
+        """把 command 文字框裡的 include 行換成 central .inc 的最新 deck 路徑。
+        .inc 不存在(deck 路徑取不到)則完全不動,維持 command 原值。"""
+        deck = self._central_deck_path()
+        if not deck:
+            return
+        new_line = "include %s" % deck
+        lines = self.cmd_text.get_text().split("\n")
+        replaced = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            if _RE_INCLUDE.match(ln):
+                if lines[i] != new_line:
+                    lines[i] = new_line
+                replaced = True
+                break   # 只換第一個(fab deck 通常只有一個 include)
+        if not replaced:
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            lines.append(new_line)
+        self._syncing = True
+        try:
+            self.cmd_text.set_text("\n".join(lines))
+        finally:
+            self._syncing = False
 
     def _bind_changes(self):
         # 文字框改動 -> 更新上面欄位 + 存檔
@@ -462,6 +499,7 @@ class VerifyPage(BasePage):
         folder = self._prepare_folder()
         if not folder:
             return
+        self._refresh_include()   # Run 前確保 include = central 最新 deck
         try:
             com_path = os.path.join(folder, self._com_filename())
             with open(com_path, "w", encoding="utf-8") as f:

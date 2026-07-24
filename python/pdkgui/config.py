@@ -39,6 +39,14 @@ def central_default_file(module, design):
     return os.path.join(DEFAULT_COM_DIR, design, "%s.com" % module)
 
 
+def central_include_file(module, design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc — 最新 fab deck 路徑(一行)。
+
+    pdkgui 開 tab / 按 Run 時,會把 command file 的 include 行換成這裡的路徑。
+    deck 更新時只要改這個一行檔即可。"""
+    return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
+
+
 # --------------------------------------------------------------------------
 # 使用者狀態目錄(各人「上次」的工作狀態;可用環境變數 PDKGUI_USER_DIR 覆蓋)。
 #   <USER_DIR>/session/<DESIGN>/<MODULE>.json   每個 tab 的欄位 + command 文字
