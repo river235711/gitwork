@@ -30,7 +30,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # --------------------------------------------------------------------------
 DEFAULT_COM_DIR = os.environ.get(
     "PDKGUI_DEFAULT_DIR",
-    "/datacenter/techLibs/pdkgui/commandfile",   # ← 改成你的 central 目錄
+    "/home/willhuang/work/gitwork/python/default",   # ← 改成你的 central 目錄
 )
 
 
