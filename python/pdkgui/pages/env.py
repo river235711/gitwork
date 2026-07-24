@@ -76,6 +76,7 @@ class EnvPage(BasePage):
 
     def _on_select(self, key, combo):
         self.app.env[key] = combo.get()
+        config.save_json(config.user_global_file("ENV"), dict(self.app.env))
 
     @staticmethod
     def _parse(path):

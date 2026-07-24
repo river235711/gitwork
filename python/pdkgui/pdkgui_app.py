@@ -22,6 +22,12 @@ from pages.env import env_defaults
 class PdkGui(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        # Restore the design chosen on the PROCESS tab (saved in the global session)
+        saved_design = config.load_json(config.user_global_file("PROCESS")).get("design")
+        if saved_design:
+            config.DESIGN_NAME = saved_design
+
         self.title("pdkgui - %s" % config.DESIGN_NAME)
         self.geometry("980x560")
         self.configure(bg="#d9d9d9")
@@ -29,9 +35,14 @@ class PdkGui(tk.Tk):
         # Working directory pdkgui was launched from (default for verify RunFolder)
         self.launch_dir = os.getcwd()
         self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
-        # Tool / editor picked on the ENV tab (defaults loaded at startup),
+        # Tool / editor picked on the ENV tab (defaults, then restore saved ones),
         # shared with other tabs
         self.env = env_defaults()
+        saved_env = config.load_json(config.user_global_file("ENV"))
+        if isinstance(saved_env, dict):
+            for k, v in saved_env.items():
+                if v:
+                    self.env[k] = v
         self._page = None
 
         self._build_sidebar()

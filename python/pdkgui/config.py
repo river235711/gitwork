@@ -16,6 +16,7 @@ Three ways to specify a file:
 """
 
 import os
+import json
 
 # --------------------------------------------------------------------------
 # Paths
@@ -60,6 +61,31 @@ SESSION_SUBDIR = "session"
 def user_session_file(module, design):
     """<USER_DIR>/session/<DESIGN>/<MODULE>.json -- each user's last state."""
     return os.path.join(USER_DIR, SESSION_SUBDIR, design, "%s.json" % module)
+
+
+def user_global_file(name):
+    """<USER_DIR>/session/<name>.json -- global (not per-design) session state,
+    e.g. the PROCESS design and ENV tool selections."""
+    return os.path.join(USER_DIR, SESSION_SUBDIR, "%s.json" % name)
+
+
+def load_json(path, default=None):
+    """Read a JSON file; return default (or {}) on failure."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {} if default is None else default
+
+
+def save_json(path, obj):
+    """Write obj as JSON (no exception on failure)."""
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
 
 # --------------------------------------------------------------------------
 # General settings

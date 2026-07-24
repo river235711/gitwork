@@ -28,13 +28,20 @@ class ProcessPage(BasePage):
         values = config.read_lines(config.page_file(self.module)) or [config.DESIGN_NAME]
         # select the current design if it is in the list, else the first entry
         current = config.DESIGN_NAME if config.DESIGN_NAME in values else values[0]
+        # keep config.DESIGN_NAME consistent if the saved design is no longer listed
+        if current != config.DESIGN_NAME:
+            self.app.set_design(current)
 
         combo = ttk.Combobox(self, values=values, state="readonly", width=40)
         combo.set(current)
         combo.pack()
 
-        # on selection, update the window title "pdkgui - <name>" (other tabs follow)
+        # on selection: update the window title and persist to the global session
         combo.bind("<<ComboboxSelected>>",
-                   lambda e: self.app.set_design(combo.get()))
+                   lambda e: self._on_select(combo.get()))
 
         LogoPanel(self, height=110).pack(side="bottom", fill="x")
+
+    def _on_select(self, design):
+        self.app.set_design(design)   # updates title "pdkgui - <name>"; other tabs follow
+        config.save_json(config.user_global_file("PROCESS"), {"design": design})
