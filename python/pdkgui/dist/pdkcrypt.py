@@ -30,11 +30,16 @@ _NONCE_LEN = 16
 _TAG_LEN = 32
 _HEADER_LEN = len(MAGIC) + 1 + _SALT_LEN + _NONCE_LEN   # = 37
 
-# 預設通關密語;強烈建議用環境變數 PDKGUI_KEY 覆蓋。
+# 預設通關密語。
 DEFAULT_PASSPHRASE = "pdkgui-default-key-change-me"
 
+# 「釘住」的金鑰:部署版由 pdk_build.py 於此寫入打包當下使用的金鑰。
+# 一旦釘住,執行時一律用它、忽略環境變數與金鑰檔 —— 因此 dist 搬到哪、
+# 環境有沒有殘留 PDKGUI_KEY 都不影響,不必手動 unset。
+# None 表示「未釘住」(原始碼開發環境),此時才走 env / 檔案 / 預設。
+PINNED_KEY = 'pdkgui-default-key-change-me'
 
-# 金鑰檔名(放在 pdkcrypt.py 同目錄;打包版會被複製進 dist/)
+# 金鑰檔名(放在 pdkcrypt.py 同目錄)
 KEY_FILENAME = "pdkgui.key"
 
 
@@ -50,13 +55,17 @@ def _read_key_file(path):
 def get_passphrase():
     """取得通關密語,依序:
 
+      0. 已釘住的金鑰 PINNED_KEY(部署版)—— 有就直接用,忽略以下所有來源
       1. 環境變數 PDKGUI_KEY
       2. 金鑰檔:環境變數 PDKGUI_KEY_FILE 指定的檔,或本模組同目錄的 pdkgui.key
       3. 內建預設 DEFAULT_PASSPHRASE
 
-    用金鑰檔的好處:打包(pdk_build)與執行讀到同一把,不必兩邊手動 export,
-    避免「build 有 key、run 沒 key」導致的完整性驗證失敗。
+    部署版(dist)一定是走 (0),所以執行環境有沒有 PDKGUI_KEY 都不影響,
+    不必手動 unset;原始碼開發環境 PINNED_KEY 為 None,才走 (1)~(3)。
     """
+    if PINNED_KEY is not None:
+        return PINNED_KEY
+
     if os.environ.get("PDKGUI_KEY"):
         return os.environ["PDKGUI_KEY"]
 
