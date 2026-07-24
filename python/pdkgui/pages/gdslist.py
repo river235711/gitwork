@@ -4,9 +4,10 @@
 pages/gdslist.py
 ----------------
 Shared base for GDS-list pages (SKIPPER, KLAYOUT): a list of GDS rows, each with
-Open (file dialog) and View (open in a viewer). The list is remembered in the
-user's session (~/.pdkgui/session/<MODULE>.json), falling back to
-config.page_file(<MODULE>) on first use.
+Open (file dialog) and View (open in a viewer). The list is remembered per design
+in the user's session (~/.pdkgui/session/<DESIGN>/<MODULE>.json), so different
+PROCESS selections keep separate GDS lists. Falls back to config.page_file(<MODULE>)
+on first use.
 
 Subclasses set `module` and implement `_view(gds)`.
 """
@@ -49,9 +50,13 @@ class GdsListPage(BasePage):
         raise NotImplementedError
 
     # ------------------------------------------------------------------
+    def _session_path(self):
+        # per-design so different PROCESS selections don't overwrite each other
+        return config.user_session_file(self.module, config.DESIGN_NAME)
+
     def _load_rows(self):
-        """Restore the saved GDS list; fall back to config.page_file(module)."""
-        saved = config.load_json(config.user_global_file(self.module))
+        """Restore this design's saved GDS list; fall back to config.page_file(module)."""
+        saved = config.load_json(self._session_path())
         gds = saved.get("gds") if isinstance(saved, dict) else None
         if gds:
             return gds
@@ -68,7 +73,7 @@ class GdsListPage(BasePage):
     # --- persist the GDS list to the user's session --------------------
     def _save_state(self):
         self._save_job = None
-        config.save_json(config.user_global_file(self.module),
+        config.save_json(self._session_path(),
                          {"gds": [e.get() for e in self.entries]})
 
     def _schedule_save(self):

@@ -92,8 +92,9 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 
 Both generate a shell in `~/.pdkgui/` (never in `./`, so it works even when viewing
 a GDS in a directory you cannot write to) and run it in a terminal (falling back to
-a detached background launch). Both tabs remember their GDS list in the user session
-(`~/.pdkgui/session/SKIPPER.json` / `KLAYOUT.json`).
+a detached background launch). Both tabs remember their GDS list **per design** in the
+user session (`~/.pdkgui/session/<DESIGN>/SKIPPER.json` / `KLAYOUT.json`), so different
+PROCESS selections keep separate GDS lists.
 
 The skipper shell is:
 
