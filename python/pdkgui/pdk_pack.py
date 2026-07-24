@@ -6,11 +6,12 @@ pdk_pack.py
 把一支 .py 原始碼「加密打包」成 .pdkc 檔。
 
 用法:
-    python3 pdk_pack.py <來源.py> [輸出.pdkc]
+    python3 pdk_pack.py <來源.py> [輸出.pdkc]      # 例:python3 pdk_pack.py config.py config.pdkc
 
-    # 用自訂金鑰(建議):
-    PDKGUI_KEY=my-secret python3 pdk_pack.py secure_src/secure_page.py \
-        data/secure/secure_page.pdkc
+    # 用自訂金鑰(選用):
+    PDKGUI_KEY=my-secret python3 pdk_pack.py config.py config.pdkc
+
+一般不需要單獨用這支;整包加密部署版請用 pdk_build.py。
 
 流程:讀原始碼 → 語法檢查(compile)→ zlib 壓縮 → 加密 → 寫檔。
 (加密的是「原始碼文字」而非特定版本的 bytecode,因此跨 Python 版本可用。)
