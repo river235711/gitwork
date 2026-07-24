@@ -112,9 +112,9 @@ class VerifyPage(BasePage):
         cb.grid(row=row, column=1, sticky="we", padx=4)
         self.entries[key] = cb
 
-    def _check_row(self, row, key, text=""):
+    def _check_row(self, row, key, text="", default=False):
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
-        var = tk.BooleanVar()
+        var = tk.BooleanVar(value=default)
         tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
                        command=self._schedule_save).grid(row=row, column=1, sticky="w")
         self.entries[key] = var
@@ -225,7 +225,7 @@ class VerifyPage(BasePage):
         self._entry_row(r, "SourcePath",
                         [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
         self._entry_row(r, "SourcePrimary"); r += 1
-        self._check_row(r, "LvsHier"); r += 1
+        self._check_row(r, "LvsHier", default=True); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
@@ -240,13 +240,13 @@ class VerifyPage(BasePage):
         self._entry_row(r, "SourcePath",
                         [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
         self._entry_row(r, "SourcePrimary"); r += 1
-        self._check_row(r, "LvsHier"); r += 1
+        self._check_row(r, "LvsHier", default=True); r += 1
         self._combo_row(r, "XrcFormat", ["SPECTRE", "HSPICE", "ELDO", "CALIBREVIEW", "DSPF"], "SPECTRE"); r += 1
         self._combo_row(r, "XrcUseName", ["SOURCE", "LAYOUT"], "SOURCE"); r += 1
         self._entry_row(r, "XrcGround", default="GND"); r += 1
         self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
         self._combo_row(r, "XrcExtType", ["c", "rcc", "rccl"], "c"); r += 1
-        self._check_row(r, "XrcReduction", "run"); r += 1
+        self._check_row(r, "XrcReduction", "run", default=False); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
