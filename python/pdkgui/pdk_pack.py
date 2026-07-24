@@ -16,9 +16,20 @@ pdk_pack.py
 (加密的是「原始碼文字」而非特定版本的 bytecode,因此跨 Python 版本可用。)
 """
 
+import io
 import os
 import sys
 import zlib
+
+# locale=C 下 print 中文的保險(stdout/stderr 轉 UTF-8)
+for _name in ("stdout", "stderr"):
+    _stream = getattr(sys, _name, None)
+    try:
+        if _stream is not None and (_stream.encoding is None
+                                    or "utf" not in _stream.encoding.lower()):
+            setattr(sys, _name, io.TextIOWrapper(_stream.buffer, encoding="utf-8"))
+    except Exception:
+        pass
 
 import pdkcrypt
 

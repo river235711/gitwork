@@ -22,11 +22,23 @@ pdk_build.py
       dist/ 內 `ls` 只會看到 .pdkc,看不到邏輯原始碼。
 """
 
+import io
 import os
 import re
 import sys
 import glob
 import shutil
+
+# 舊版 Python 在 locale=C 環境下 stdout 是 ASCII,print 中文會 UnicodeEncodeError。
+# 這裡把 stdout/stderr 轉成 UTF-8 作為保險。
+for _name in ("stdout", "stderr"):
+    _stream = getattr(sys, _name, None)
+    try:
+        if _stream is not None and (_stream.encoding is None
+                                    or "utf" not in _stream.encoding.lower()):
+            setattr(sys, _name, io.TextIOWrapper(_stream.buffer, encoding="utf-8"))
+    except Exception:
+        pass
 
 import pdk_pack
 import pdkcrypt

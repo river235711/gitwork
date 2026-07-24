@@ -18,12 +18,23 @@ pdkgui 透過這裡把 .pdkc 加密檔在記憶體解密後執行,磁碟上不�
     python3 pdk_secure.py <檔案.pdkc>
 """
 
+import io
 import os
 import sys
 import zlib
 import types
 import importlib.abc
 import importlib.util
+
+# locale=C 下 print 中文的保險(stdout/stderr 轉 UTF-8)
+for _name in ("stdout", "stderr"):
+    _stream = getattr(sys, _name, None)
+    try:
+        if _stream is not None and (_stream.encoding is None
+                                    or "utf" not in _stream.encoding.lower()):
+            setattr(sys, _name, io.TextIOWrapper(_stream.buffer, encoding="utf-8"))
+    except Exception:
+        pass
 
 import pdkcrypt
 
