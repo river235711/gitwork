@@ -9,8 +9,9 @@
 #       (預設 python/3.6.3,就是你原本能 work 的那個)。
 #
 # 定位主程式 pdkgui.py 的順序:
-#   1. 環境變數  $PDKGUI_HOME          (最優先,可在 ~/.bashrc 設定)
-#   2. 本 script 旁邊(若沒被搬走)
+#   1. 本 script 旁邊就有 pdkgui.py(最優先:用全路徑執行一定跑旁邊的 app,
+#      不受環境中殘留的 PDKGUI_HOME 影響)
+#   2. 環境變數  $PDKGUI_HOME          (launcher 被搬離 app 時使用)
 #   3. 下方 DEFAULT_HOME 內建的預設安裝路徑
 #
 # 可覆蓋的環境變數:
@@ -33,11 +34,14 @@ while [ -L "$SOURCE" ]; do
 done
 SELFDIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
 
-# --- 2. 決定 PDKGUI_HOME(環境變數 > script 旁邊 > 內建預設)-----------------
-if [ -n "$PDKGUI_HOME" ]; then
-    HOME_DIR="$PDKGUI_HOME"
-elif [ -f "$SELFDIR/pdkgui.py" ]; then
+# --- 2. 決定 pdkgui.py 所在目錄 -----------------------------------------------
+#   優先「launcher 旁邊就有 pdkgui.py」(最直覺:用全路徑執行,一定跑旁邊的 app,
+#   不受殘留的 PDKGUI_HOME 影響),否則才看 PDKGUI_HOME,最後用內建預設。
+if [ -f "$SELFDIR/pdkgui.py" ]; then
     HOME_DIR="$SELFDIR"
+elif [ -n "$PDKGUI_HOME" ]; then
+    # 允許相對路徑:轉成絕對(轉不成就原樣使用)
+    HOME_DIR="$(cd "$PDKGUI_HOME" 2>/dev/null && pwd || printf '%s' "$PDKGUI_HOME")"
 else
     HOME_DIR="$DEFAULT_HOME"
 fi
