@@ -53,15 +53,23 @@ client-side 保護 = **靜態加密 + 混淆**:解密金鑰終究隨程式一起
 明文只短暫存在記憶體。可擋一般使用者 `cat`/trace,但擋不住反組譯或 dump 記憶體。
 要更強請改用 **Cython**(編成 `.so`)或 **PyArmor** 等工具。
 
+## 預設 command file(中央 golden 目錄)
+
+verify 類頁面(DRC/ANT/WB/BUMP/DMDV/DPDO/LVS/XRC)的「預設 command file」放在中央目錄,
+依 design 分子目錄(用 `config.DEFAULT_COM_DIR` 設定,或環境變數 `PDKGUI_DEFAULT_DIR` 覆蓋):
+
+```
+<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     例:.../t22_1p7m_4x1z1u/DRC.com
+```
+
+LoadDefault 按鈕即讀這裡;central 讀不到才退回內建範本 `data/verify/<MODULE>.com`。
+
 ## 使用者狀態 `~/.pdkgui/`
 
-verify 類頁面(DRC/ANT/WB/BUMP/DMDV/DPDO/LVS/XRC)的欄位與 command 文字會存這裡
-(可用 `PDKGUI_USER_DIR` 覆蓋根目錄):
+各人「上次」的欄位與 command 文字存這裡(可用 `PDKGUI_USER_DIR` 覆蓋根目錄):
 
 ```
-~/.pdkgui/
-├── default/<DESIGN>/<MODULE>.com    每個 tab 的預設 command file(LoadDefault;可編輯)
-└── session/<DESIGN>/<MODULE>.json   每個 tab 上次的工作狀態(欄位 + command)
+~/.pdkgui/session/<DESIGN>/<MODULE>.json    每個 tab 上次的工作狀態(欄位 + command)
 ```
 
-開 tab 讀取順序:**session(上次)→ default(沒有就由內建範本 data/verify/ 種入)→ 內建範本**。
+開 tab 讀取順序:**session(上次)→ central default → 內建範本**。

@@ -482,26 +482,12 @@ class VerifyPage(BasePage):
             return
         self._launch_terminal(folder)
 
-    def _ensure_default(self):
-        """確保 <USER_DIR>/default/<DESIGN>/<MODULE>.com 存在;
-        不存在就用內建範本 data/verify/<MODULE>.com 種入。回傳其路徑(或 None)。"""
-        path = config.user_default_file(self.module, config.DESIGN_NAME)
-        if not os.path.isfile(path):
-            template = config.read_text(config.page_file(self.module))
-            try:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write(template)
-            except OSError:
-                return None
-        return path
-
     def _load_default(self):
-        """把 default command file 載入文字框並解析欄位。"""
-        path = self._ensure_default()
-        if path and os.path.isfile(path):
+        """從中央 default 目錄載入 command file;讀不到就退回內建範本。"""
+        path = config.central_default_file(self.module, config.DESIGN_NAME)
+        if os.path.isfile(path):
             self.cmd_text.load_file(path)
-        else:                      # 最後退回內建範本
+        else:
             self.cmd_text.load_file(config.page_file(self.module))
         self._sync_fields_from_text()
 
