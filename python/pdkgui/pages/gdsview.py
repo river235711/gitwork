@@ -29,12 +29,15 @@ import config
 
 
 def _skipper_conf():
-    return config.read_conf(config.central_skipper_conf(config.DESIGN_NAME))
+    """Return (conf_dict, conf_path) for the current design's SKIPPER.conf."""
+    path = config.central_skipper_conf(config.DESIGN_NAME)
+    return config.read_conf(path), path
 
 
-def build_skipper_script(app, gds):
+def build_skipper_script(app, gds, conf=None, conf_path=None):
     """Return the shell text to open <gds> with skipper."""
-    conf = _skipper_conf()
+    if conf is None:
+        conf, conf_path = _skipper_conf()
     skipper = app.env.get("skipper") or "skipper/2019.06-sp3"
     calibre = app.env.get("calibre") or "calibre/2024.1_36.20"
 
@@ -50,12 +53,17 @@ def build_skipper_script(app, gds):
     if init and os.path.isfile(os.path.expanduser(init)):
         cmd += ["-init", init]
 
+    # Diagnostic: record which SKIPPER.conf was looked up and whether it was found,
+    # so this shell tells you exactly why cds paths are/aren't present.
+    status = "found" if os.path.isfile(conf_path or "") else "NOT FOUND"
     return (
         "#!/bin/bash -l\n"
+        "# DESIGN: %s\n"
+        "# SKIPPER.conf: %s (%s)\n"
         "module load %s\n"
         "module load %s\n"
         "%s\n"
-    ) % (skipper, calibre, " ".join(cmd))
+    ) % (config.DESIGN_NAME, conf_path, status, skipper, calibre, " ".join(cmd))
 
 
 def open_gds(app, gds):
@@ -68,7 +76,17 @@ def open_gds(app, gds):
         messagebox.showerror("pdkgui", "No DISPLAY, cannot open skipper")
         return
 
-    script = build_skipper_script(app, os.path.expanduser(gds))
+    conf, conf_path = _skipper_conf()
+    if not conf.get("cdsTech"):
+        messagebox.showwarning(
+            "pdkgui",
+            "skipper cds paths are not configured; opening with -i only.\n\n"
+            "SKIPPER.conf: %s\n(exists: %s)\n\n"
+            "Check config.DEFAULT_COM_DIR / $PDKGUI_DEFAULT_DIR and that the file "
+            "sits under <DEFAULT_COM_DIR>/%s/SKIPPER.conf."
+            % (conf_path, os.path.isfile(conf_path), config.DESIGN_NAME))
+
+    script = build_skipper_script(app, os.path.expanduser(gds), conf, conf_path)
     try:
         os.makedirs(config.USER_DIR, exist_ok=True)
         sh_path = os.path.join(config.USER_DIR, "skipper_view.sh")
