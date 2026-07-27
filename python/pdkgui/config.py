@@ -292,8 +292,11 @@ def read_conf(path):
 # The old files are never deleted; the marker records which steps already ran.
 # --------------------------------------------------------------------------
 LEGACY_PREFIX = ".pdkgui."
-LEGACY_MARKER = ".migrated"                 # JSON {"done": [step, ...]} in USER_DIR
+LEGACY_MARKER = ".migrated"                 # JSON {"version": n, "done": [step]}
 LEGACY_MARKER_V1 = ".migrated_commandfile"  # marker written by the first version
+# Bumped whenever the steps change: a marker from an older version is ignored so
+# every step runs once more (they merge, so this cannot lose anything).
+MIGRATION_VERSION = 2
 GDS_LIST_MODULES = ["SKIPPER", "KLAYOUT"]
 GDS_LIST_ROWS = 10                          # pad to the row count of the GDS pages
 
@@ -312,15 +315,24 @@ def _split_legacy_stem(stem, modules):
     return None
 
 
-def _legacy_command_state(path):
-    """Old .commandfile -> the session state of a verify tab."""
+def _legacy_command_state(path, existing):
+    """Old .commandfile -> verify-tab session state. The old text is used only
+    when the session has no command of its own, so newer work is never lost."""
+    if (existing.get("__command__") or "").strip():
+        return None
     text = read_text(path, default=None)
-    return {"__command__": text} if text is not None else None
+    if text is None:
+        return None
+    state = dict(existing)
+    state["__command__"] = text
+    return state
 
 
-def _legacy_gds_state(path):
-    """Old .gui ('layout_path1 <path>' per line) -> the session state of a GDS
-    list page. Rows are placed by their number and padded with empty strings."""
+def _legacy_gds_state(path, existing):
+    """Old .gui ('layout_path1 <path>' per line) -> GDS-list session state.
+
+    Rows are placed by their number; a row the user already filled in is kept
+    and only the empty ones are taken from the old file."""
     rows = {}
     for line in read_text(path).splitlines():
         m = _RE_LEGACY_GDS_ROW.match(line.strip())
@@ -328,13 +340,24 @@ def _legacy_gds_state(path):
             rows[int(m.group(1))] = m.group(2)
     if not rows:
         return None
-    count = max(GDS_LIST_ROWS, max(rows))
-    return {"gds": [rows.get(i + 1, "") for i in range(count)]}
+    current = existing.get("gds") or []
+    if not isinstance(current, list):
+        current = []
+    merged = []
+    for i in range(max(GDS_LIST_ROWS, max(rows), len(current))):
+        cur = current[i] if i < len(current) and isinstance(current[i], str) else ""
+        merged.append(cur if cur.strip() else rows.get(i + 1, ""))
+    if merged == current:
+        return None             # the list already holds everything
+    state = dict(existing)
+    state["gds"] = merged
+    return state
 
 
 def _migrate_step(names, suffix, modules, build_state):
-    """Convert every USER_DIR file with this suffix. Never overwrites a session
-    JSON that already exists (a newer state always wins)."""
+    """Convert every USER_DIR file with this suffix, merging into any session
+    JSON that already exists (build_state returns None when there is nothing to
+    add, so existing work is never overwritten)."""
     migrated = []
     for name in names:
         if not (name.startswith(LEGACY_PREFIX) and name.endswith(suffix)):
@@ -344,9 +367,10 @@ def _migrate_step(names, suffix, modules, build_state):
             continue
         module, design = parsed
         dest = user_session_file(module, design)
-        if os.path.exists(dest):
-            continue
-        state = build_state(os.path.join(USER_DIR, name))
+        existing = load_json(dest) if os.path.exists(dest) else {}
+        if not isinstance(existing, dict):
+            existing = {}
+        state = build_state(os.path.join(USER_DIR, name), existing)
         if not state:
             continue
         save_json(dest, state)
@@ -355,8 +379,15 @@ def _migrate_step(names, suffix, modules, build_state):
 
 
 def _migrations_done():
-    """Steps already carried out (understands the first version's marker too)."""
-    done = set(load_json(os.path.join(USER_DIR, LEGACY_MARKER)).get("done", []))
+    """Steps already carried out (understands the first version's marker too).
+
+    A marker written by an older MIGRATION_VERSION is ignored: the steps became
+    merge-based (they only fill in what is missing), so running them once more
+    is safe and recovers state an earlier, skip-if-present run left behind."""
+    data = load_json(os.path.join(USER_DIR, LEGACY_MARKER))
+    if data.get("version", 1) < MIGRATION_VERSION:
+        return set()
+    done = set(data.get("done", []))
     if os.path.exists(os.path.join(USER_DIR, LEGACY_MARKER_V1)):
         done.add("commandfile")
     return done
@@ -385,5 +416,6 @@ def migrate_legacy_user_files():
         migrated += _migrate_step(names, suffix, modules, build_state)
         done.add(step)
     # recorded even when nothing matched, so each scan happens only once
-    save_json(os.path.join(USER_DIR, LEGACY_MARKER), {"done": sorted(done)})
+    save_json(os.path.join(USER_DIR, LEGACY_MARKER),
+              {"version": MIGRATION_VERSION, "done": sorted(done)})
     return migrated

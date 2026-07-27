@@ -133,9 +133,13 @@ becomes `{"__command__": ...}` and `.gui` becomes `{"gds": [...]}`. The
 conversion:
 
 - never deletes the originals -- the old files stay where they are;
-- skips a tab that already has a session JSON (a newer state always wins);
-- records each step in `~/.pdkgui/.migrated`, so a step runs only once and a new
-  step still runs for users who upgraded earlier. Delete that file to rescan.
+- **merges** rather than replaces: a GDS row you have already filled in is kept
+  and only the empty rows are taken from the old file; a command text is only
+  taken when the session does not have one. So a tab you already used in the new
+  version still picks up the rest of its old state;
+- records each step in `~/.pdkgui/.migrated` (with a `version`), so a step runs
+  once, and a new or changed step still runs for users who upgraded earlier.
+  Delete that file to rescan.
 
 A converted verify session holds only the command text, so the Layout/Source
 fields are re-derived from it when the tab opens.
