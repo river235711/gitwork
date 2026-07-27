@@ -13,6 +13,7 @@ it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
     ├── <MODULE>.inc              latest fab deck path (one line)
     ├── XRC.inc                   four XRC paths as key=value (hcell/xcell/rules/deck)
     ├── DOC.txt                   document index: <Doc. No.>|<Doc ID>|<Title> per line
+    ├── doc/<Doc. No.>/<Doc ID>/  the PDFs of each document (see doc/README.md)
     └── SKIPPER.conf              skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
@@ -26,10 +27,9 @@ skipper command.
 
 - The DOC tab reads `<DESIGN>/DOC.txt` (per process), one line per document:
   `<Doc. No.>|<Doc ID>|<Title>`. The first field groups the left column, the third
-  is the middle column, and the PDFs of a document are looked up in
-  `<DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/*.pdf`
-  (`DOC_ROOT` defaults to `/datacenter/techLibs/cad/doc/pdkgui`, env
-  `PDKGUI_DOC_ROOT`). Clicking a PDF opens it in a viewer.
+  is the middle column, and the PDFs of a document are looked up right here in
+  `<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf`. Clicking a PDF opens it in a viewer.
+  (Env `PDKGUI_DOC_ROOT` moves just the PDF tree to another share if needed.)
 - The SYSTEM tab reads `<CENTRAL>/system.txt` -- it sits at the top level, **not**
   under a design, so every user sees the same revision history whatever PROCESS /
   design is selected. If it is absent, the built-in `data/system.txt` is used.

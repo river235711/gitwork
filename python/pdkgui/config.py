@@ -170,10 +170,13 @@ PAGE_FILES = {
 # built-in data/doc/DOC.txt is the fallback when central is unreachable.
 DOC_INDEX_FALLBACK = os.path.join(DATA_DIR, "doc", "DOC.txt")
 
-# Root of the PDF tree. The files of one document are in
-#     <DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/*.pdf
-# Override via env PDKGUI_DOC_ROOT.
-DOC_ROOT = os.environ.get("PDKGUI_DOC_ROOT", "/datacenter/techLibs/cad/doc/pdkgui")
+# The PDFs live in the central dir too, next to the DOC.txt of that process:
+#     <DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf
+# DOC_ROOT defaults to the central dir, so everything belonging to a process
+# stays under <DEFAULT_COM_DIR>/<DESIGN>/. Point PDKGUI_DOC_ROOT elsewhere only
+# if the PDF tree has to be hosted on a different share.
+DOC_ROOT = os.environ.get("PDKGUI_DOC_ROOT", DEFAULT_COM_DIR)
+DOC_SUBDIR = "doc"
 
 
 def central_doc_file(design):
@@ -188,8 +191,8 @@ def doc_index_file(design):
 
 
 def doc_group_dir(design, docno, docid):
-    """<DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID> -- holds that document's .pdf files."""
-    return os.path.join(DOC_ROOT, design, docno, docid)
+    """<DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID> -- that document's .pdf files."""
+    return os.path.join(DOC_ROOT, design, DOC_SUBDIR, docno, docid)
 
 
 def read_doc_index(design):

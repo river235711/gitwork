@@ -11,7 +11,7 @@ document:  <Doc. No.>|<Doc ID>|<Title>
     Doc. No.    left column   -- documents grouped by this name
     Title       middle column -- the titles of the selected Doc. No.
     Doc. Group  right column  -- the .pdf files of the selected title, found in
-                                 <DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/
+                                 <DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/
 
 Clicking a Doc. No. fills the titles, clicking a title fills the PDF list, and
 clicking a PDF opens it in a viewer.

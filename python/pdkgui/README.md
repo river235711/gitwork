@@ -73,6 +73,7 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
 <DEFAULT_COM_DIR>/<DESIGN>/XRC.inc          four XRC paths as key=value (hcell/xcell/rules/deck)
 <DEFAULT_COM_DIR>/<DESIGN>/DOC.txt          document index: <Doc. No.>|<Doc ID>|<Title> per line
+<DEFAULT_COM_DIR>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf    the documents themselves
 <DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf     skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
@@ -108,11 +109,14 @@ DesignRule|T-N22-CL-DR-001|TSMC 22 NM CMOS LOGIC ULTRA LOW POWER DESIGN RULE (..
 - **Doc. No.** (left) -- the unique first fields; clicking one lists its titles.
 - **Title** (middle) -- the third field; clicking one lists that document's PDFs.
 - **Doc. Group** (right) -- `*.pdf` in
-  `<DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/`; clicking one opens it in a viewer
-  (okular / evince / xdg-open ...).
+  `<DEFAULT_COM_DIR>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/`; clicking one opens it in
+  a viewer (okular / evince / xdg-open ...).
 
-`DOC_ROOT` defaults to `/datacenter/techLibs/cad/doc/pdkgui`; override with env
-`PDKGUI_DOC_ROOT`.
+The PDFs sit in the central dir next to that process's `DOC.txt`, so everything
+belonging to a process stays under `<DEFAULT_COM_DIR>/<DESIGN>/`. Adding a
+document = add its line to `DOC.txt` + drop the PDFs in the matching directory.
+Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
+`<DESIGN>/doc/...` structure below it is unchanged).
 
 ## GDS viewers (skipper / klayout)
 
