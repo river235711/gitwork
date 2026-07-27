@@ -53,6 +53,9 @@ _RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include di
 _RE_PEX_NETLIST = re.compile(
     r'^(\s*PEX\s+NETLIST\s+\S+\s+"[^"]*"\s+)(\S+)(\s+)(\S+)(.*)$', re.IGNORECASE)
 _RE_PEX_GROUND = re.compile(r'(\bGROUND\s+)(\S+)', re.IGNORECASE)
+#   the quoted "<base>.<dist|lump|simple>" filename -> swap the <base>
+_RE_PEX_NETLIST_FILE = re.compile(
+    r'(PEX\s+NETLIST\s+\S+\s+")([^"]*)(\.(?:dist|lump|simple)")', re.IGNORECASE)
 #   include .../XRC_calibre.<ver>/<corner>/rules  -> swap the <corner> segment
 _RE_XRC_CORNER = re.compile(r'^(\s*include\s+.*/)([^/\s]+)(/rules\s*)$', re.IGNORECASE)
 
@@ -414,6 +417,41 @@ class VerifyPage(BasePage):
                 self._xrc_rewrite_netlist(ground=g)
         elif key == "XrcRCCorner":
             self._xrc_rewrite_corner(self.entries[key].get())
+        elif key == "SourcePrimary":
+            self._xrc_rewrite_netlist_names(self.entries[key].get().strip())
+
+    def _xrc_netlist_base(self):
+        """Base name of the PEX NETLIST output files = SourcePrimary (the netlist
+        files are '<SourcePrimary>.dist/.lump/.simple'); drives the rm-glob and
+        the jivaro input file."""
+        w = self.entries.get("SourcePrimary")
+        return (w.get().strip() if w is not None else "") or "top"
+
+    def _xrc_exttype(self):
+        w = self.entries.get("XrcExtType")
+        return w.get() if w is not None else "c"
+
+    def _xrc_netlist_ext(self):
+        """-c extracts the lumped netlist (.lump); -rcc the distributed (.dist)."""
+        return "lump" if self._xrc_exttype() == "c" else "dist"
+
+    def _xrc_rewrite_netlist_names(self, base):
+        """Rewrite the quoted '<base>.<dist|lump|simple>' filename on the three
+        PEX NETLIST lines when SourcePrimary changes (keep each extension)."""
+        if self._syncing or not base:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            new = _RE_PEX_NETLIST_FILE.sub(
+                lambda m: m.group(1) + base + m.group(3), ln, count=1)
+            if new != ln:
+                lines[i] = new
+                changed = True
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
 
     def _xrc_rewrite_netlist(self, fmt=None, usename=None, ground=None):
         """Rewrite the PEX NETLIST lines: format token, usename token, and the
@@ -595,9 +633,8 @@ class VerifyPage(BasePage):
     # --- XRC ---
     def _run_script_xrc(self):
         hier = "-hier -turbo -turbo_all " if self._checked("LvsHier") else ""
-        w = self.entries.get("XrcExtType")
-        exttype = w.get() if w is not None else "c"
-        primary = self.entries["LayoutPrimary"].get().strip() or "top"
+        exttype = self._xrc_exttype()
+        primary = self._xrc_netlist_base()   # netlist files use SourcePrimary
         com = self._com_filename()
         # hcell / xcell symlink sources: central XRC.inc, else XRC_HCELL_DIR/<name>
         conf = self._xrc_central()
@@ -606,7 +643,7 @@ class VerifyPage(BasePage):
         # netlist output cleaned by rm depends on the extraction type:
         #   -c   -> lumped netlist (<primary>.lump*)
         #   -rcc -> distributed netlist (<primary>.dist*)
-        netlist_ext = "lump" if exttype == "c" else "dist"
+        netlist_ext = self._xrc_netlist_ext()
         script = (
             "#!/bin/bash -l\n"
             "module load %s\n"
@@ -673,6 +710,13 @@ class VerifyPage(BasePage):
             with open(com_path, "w", encoding="utf-8") as f:
                 f.write(self.cmd_text.get_text())
             self._write_run(folder, self._run_script())
+            # XRC + XrcReduction: also drop a jivaro.xml (the run appends
+            # 'jivaro -xml jivaro.xml') reducing the extracted netlist.
+            if self.module == "XRC" and self._checked("XrcReduction"):
+                infile = "%s.%s" % (self._xrc_netlist_base(), self._xrc_netlist_ext())
+                with open(os.path.join(folder, "jivaro.xml"), "w",
+                          encoding="utf-8") as f:
+                    f.write(self._jivaro_xml(infile))
         except OSError as e:
             messagebox.showerror("pdkgui", "Failed to write files:\n%s" % e)
             return
