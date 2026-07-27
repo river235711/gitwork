@@ -8,7 +8,9 @@ Verification-flow pages:
   - LVS: calibre -lvs (LvsHier toggles -hier -turbo -turbo_all).
   - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
     jivaro step).
-  - JIVARO: reuses the existing simple layout.
+  - JIVARO: no command file -- pick a post-layout netlist (File) + RunFolder;
+    Run generates jivaro.xml (inputFile = File, outputFile inserts '.red' before
+    the .lump/.dist suffix) and a run script that calls jivaro -xml jivaro.xml.
 
 Common:
   - Bottom command-file text box (right + bottom scrollbars); initially loads
@@ -83,12 +85,15 @@ class VerifyPage(BasePage):
 
     def build(self):
         self.entries = {}
+        self.cmd_text = None       # JIVARO has no command box (guards in state/bind)
         self._syncing = False      # prevent field<->text feedback loops
         self._save_job = None       # after() id for the debounced save
         if self.module == "LVS":
             self._build_lvs()
         elif self.module == "XRC":
             self._build_xrc()
+        elif self.module == "JIVARO":
+            self._build_jivaro()
         elif self.module in DRC_CLASS:
             self._build_drc_class()
         else:
@@ -248,8 +253,9 @@ class VerifyPage(BasePage):
             self._syncing = False
 
     def _bind_changes(self):
-        # text change -> update the fields above + save
-        self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
+        # text change -> update the fields above + save (JIVARO has no text box)
+        if self.cmd_text is not None:
+            self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
         # field change -> push down to the text (Layout/Source) + save
         for key, w in self.entries.items():
             if isinstance(w, tk.BooleanVar):
@@ -308,6 +314,27 @@ class VerifyPage(BasePage):
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
         self._command_box(r)
+
+    def _build_jivaro(self):
+        """JIVARO: no command file. Pick a post-layout netlist (File), a
+        RunFolder, and Run -> generate jivaro.xml + run script."""
+        self._title()
+        r = 1
+        self._entry_row(r, "File",
+                        [self._open_btn("File"), ("Edit", self._on_edit_file)]); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
+        bf = tk.Frame(self, bg=self.bg)
+        bf.grid(row=r, column=0, columnspan=4, pady=10)
+        tk.Button(bf, text="Run", width=12, command=self._on_run).pack(side="left", padx=4)
+        r += 1
+        self.grid_columnconfigure(1, weight=1)
+        # RunFolder default = launch dir, then restore last session, then bind
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+        self._load_state()
+        self._bind_changes()
 
     # ==================================================================
     # Parse fields from the text (ignoring lines starting with '//')
@@ -451,7 +478,8 @@ class VerifyPage(BasePage):
         st = {}
         for key, w in self.entries.items():
             st[key] = bool(w.get()) if isinstance(w, tk.BooleanVar) else w.get()
-        st["__command__"] = self.cmd_text.get_text()
+        if self.cmd_text is not None:
+            st["__command__"] = self.cmd_text.get_text()
         return st
 
     def _apply_state(self, st):
@@ -466,7 +494,7 @@ class VerifyPage(BasePage):
             elif hasattr(w, "delete"):
                 w.delete(0, tk.END)
                 w.insert(0, val)
-        if "__command__" in st:
+        if "__command__" in st and self.cmd_text is not None:
             self.cmd_text.set_text(st["__command__"])
 
     def _load_state(self):
@@ -636,12 +664,69 @@ class VerifyPage(BasePage):
         folder = self._prepare_folder()
         if not folder:
             return
+        if self.module == "JIVARO":
+            self._run_jivaro(folder)
+            return
         self._refresh_include()   # before Run, ensure include = latest central deck
         try:
             com_path = os.path.join(folder, self._com_filename())
             with open(com_path, "w", encoding="utf-8") as f:
                 f.write(self.cmd_text.get_text())
             self._write_run(folder, self._run_script())
+        except OSError as e:
+            messagebox.showerror("pdkgui", "Failed to write files:\n%s" % e)
+            return
+        self._launch_terminal(folder)
+
+    # --- JIVARO run: generate jivaro.xml + run script ---
+    def _jivaro_output_name(self, infile):
+        """Output netlist name: insert '.red' before the .lump/.dist suffix,
+        prefixed with './'.  foo.lump -> ./foo.red.lump"""
+        base = os.path.basename(infile)
+        for ext in (".lump", ".dist"):
+            if base.endswith(ext):
+                return "./" + base[:-len(ext)] + ".red" + ext
+        root, ext = os.path.splitext(base)
+        return "./" + root + ".red" + ext
+
+    def _jivaro_xml(self, infile):
+        return (
+            '<?xml version="1.0" ?>\n\n'
+            '<reductionParameters version="2020.1">\n'
+            '<options>\n\n'
+            '    <inputFile value="%s"/>\n'
+            '    <outputFile value="%s"/>\n'
+            '    <logVerboseLevel value="trace"/>\n'
+            '    <outputProgression value="false"/>\n'
+            '    <cpu value="1"/>\n\n\n'
+            '<!-- Parsing Options -->\n\n\n'
+            '<!-- Hierarchy management Options -->\n\n\n'
+            '<!-- Parasitics management Options -->\n\n'
+            '    <reduceNegativeResistors value="true"/>\n\n'
+            '<!-- Reduced File Tuning -->\n\n\n'
+            '<!-- Reduction settings -->\n\n'
+            '    <criterion value="accurate"/>\n'
+            '    <errorMax  value="2"/>\n'
+            '    <frequencyLimit  value="20"/>\n'
+            '    <negativeCapacitor value="false"/>\n'
+            '    <decouplingAutoThreshold value="false"/>\n\n'
+            '</options>\n\n'
+            '</reductionParameters>\n'
+        ) % (infile, self._jivaro_output_name(infile))
+
+    def _run_jivaro(self, folder):
+        infile = self.entries["File"].get().strip()
+        if not infile:
+            messagebox.showerror("pdkgui", "Please choose a post-layout netlist File first")
+            return
+        infile = os.path.expanduser(infile)
+        try:
+            with open(os.path.join(folder, "jivaro.xml"), "w", encoding="utf-8") as f:
+                f.write(self._jivaro_xml(infile))
+            self._write_run(folder,
+                            "#!/bin/bash -l\n"
+                            "module load %s\n"
+                            "jivaro -xml jivaro.xml\n" % self._jivaro_env())
         except OSError as e:
             messagebox.showerror("pdkgui", "Failed to write files:\n%s" % e)
             return
@@ -729,9 +814,15 @@ class VerifyPage(BasePage):
         open_gds(self.app, self.entries["LayoutPath"].get())
 
     def _on_edit_source(self):
-        path = self.entries["SourcePath"].get().strip()
+        self._edit_entry("SourcePath")
+
+    def _on_edit_file(self):
+        self._edit_entry("File")
+
+    def _edit_entry(self, key):
+        path = self.entries[key].get().strip()
         if not path:
-            messagebox.showwarning("pdkgui", "SourcePath is empty")
+            messagebox.showwarning("pdkgui", "%s is empty" % key)
             return
         editor = self.app.env.get("editor") or "gvim"
         self._spawn([editor], path, "editor not found: %s" % editor)
