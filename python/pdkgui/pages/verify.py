@@ -575,19 +575,23 @@ class VerifyPage(BasePage):
         conf = self._xrc_central()
         hcell = conf.get("hcell") or "%s/hcell" % config.XRC_HCELL_DIR
         xcell = conf.get("xcell") or "%s/xcell" % config.XRC_HCELL_DIR
+        # netlist output cleaned by rm depends on the extraction type:
+        #   -c   -> lumped netlist (<primary>.lump*)
+        #   -rcc -> distributed netlist (<primary>.dist*)
+        netlist_ext = "lump" if exttype == "c" else "dist"
         script = (
             "#!/bin/bash -l\n"
             "module load %s\n"
             "module load %s\n"
             "\n"
-            "rm -rf lvs.log pdb.log fmt.log %s.lump* svdb/\n"
+            "rm -rf lvs.log pdb.log fmt.log %s.%s* svdb/\n"
             "if [ ! -e hcell ] && [ ! -L hcell ]; then ln -sf %s hcell; fi\n"
             "if [ ! -e xcell ] && [ ! -L xcell ]; then ln -sf %s xcell; fi\n"
             "calibre -64 -lvs %s-hcell hcell %s | tee lvs.log\n"
             "calibre -64 -xrc -pdb -turbo -turbo_all -xcell xcell -%s %s | tee pdb.log\n"
             "calibre -64 -xrc -fmt -xcell xcell -%s %s | tee fmt.log\n"
-        ) % (self._calibre_env(), self._jivaro_env(), primary, hcell, xcell,
-             hier, com, exttype, com, exttype, com)
+        ) % (self._calibre_env(), self._jivaro_env(), primary, netlist_ext,
+             hcell, xcell, hier, com, exttype, com, exttype, com)
         if self._checked("XrcReduction"):
             script += "jivaro -xml jivaro.xml\n"
         return script
