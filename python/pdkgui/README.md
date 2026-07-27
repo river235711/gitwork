@@ -118,6 +118,32 @@ document = add its line to `DOC.txt` + drop the PDFs in the matching directory.
 Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
 `<DESIGN>/doc/...` structure below it is unchanged).
 
+## Converting an old central directory (central_migrate.py)
+
+The old central directory was flat -- one file per tab+process. `central_migrate.py`
+converts it to the new per-process layout:
+
+```
+<OLD>/.pdkgui.<tab lowercase><PROCESS>.commandfile  ->  <NEW>/<PROCESS>/<MODULE>.com
+<OLD>/.pdkgui.<tab lowercase><PROCESS>.fab          ->  <NEW>/<PROCESS>/<MODULE>.inc
+```
+
+`.fab` holds `key <value>` lines. For DRC/ANT/WB/BUMP/DMDV/DPDO/LVS the `.inc` is
+just the `deck` path; for XRC it becomes the four-key file, with `rules` derived
+from `rccorner_typical` by stripping the trailing `/typical/rules` (the other
+corners carry no extra information -- pdkgui appends `/<corner>/rules` itself --
+and are reported if they point somewhere else).
+
+```bash
+python3 central_migrate.py                  # dry run, default paths
+python3 central_migrate.py --write          # write
+python3 central_migrate.py OLD NEW --write  # explicit paths
+```
+
+It is a dry run unless `--write` is given, never overwrites a file that exists
+and differs unless `--force`, and prints anything that needs attention (a
+missing `deck`, a `.com` with no `.fab`, ...).
+
 ## Upgrading from the pre-session version
 
 The older pdkgui stored each tab's state as one flat file per tab+process:
