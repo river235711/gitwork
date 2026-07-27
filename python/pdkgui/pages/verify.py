@@ -504,6 +504,13 @@ class VerifyPage(BasePage):
 
     def _on_text_change(self):
         self._sync_fields_from_text()
+        # editing SOURCE PRIMARY in the text must also rename the PEX NETLIST
+        # output files (same rule as editing the SourcePrimary field). Use the
+        # raw field value: while it is empty mid-edit, leave the names alone.
+        if self.module == "XRC":
+            w = self.entries.get("SourcePrimary")
+            if w is not None:
+                self._xrc_rewrite_netlist_names(w.get().strip())
         self._schedule_save()
 
     # ==================================================================
