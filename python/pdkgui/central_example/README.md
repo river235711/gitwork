@@ -7,6 +7,7 @@ it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
 
 ```
 <CENTRAL>/
+├── system.txt                    revision history -- design-independent, read by every user
 └── <DESIGN>/                     e.g. t22_1p7m_4x1z1u/
     ├── <MODULE>.com              golden command-file template (LoadDefault reads this)
     ├── <MODULE>.inc              latest fab deck path (one line)
@@ -22,6 +23,9 @@ skipper command.
 
 ## How pdkgui uses it
 
+- The SYSTEM tab reads `<CENTRAL>/system.txt` -- it sits at the top level, **not**
+  under a design, so every user sees the same revision history whatever PROCESS /
+  design is selected. If it is absent, the built-in `data/system.txt` is used.
 - On tab open (and with no session) -> load `<DESIGN>/<MODULE>.com` into the text box.
 - On tab open **and** on Run -> rewrite the `include <...>` line in the text to
   the value of `<DESIGN>/<MODULE>.inc`.

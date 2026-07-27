@@ -5,8 +5,10 @@ pages/system.py
 ---------------
 SYSTEM page: shows the revision history.
 
-Content is read from config.page_file("SYSTEM") (default data/system.txt); the
-text box has right + bottom scrollbars and is read-only.
+Content is read from config.page_file("SYSTEM"), which prefers the central
+shared copy <DEFAULT_COM_DIR>/system.txt (design-independent, so every user sees
+the same history) and falls back to the built-in data/system.txt; the text box
+has right + bottom scrollbars and is read-only.
 """
 
 from .base import BasePage

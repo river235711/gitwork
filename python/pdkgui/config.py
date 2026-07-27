@@ -64,6 +64,20 @@ def central_skipper_conf(design):
     return os.path.join(DEFAULT_COM_DIR, design, "SKIPPER.conf")
 
 
+# Design-independent central files: these live at the TOP of the central dir
+# (not under <DESIGN>/), so every user reads the same file whatever PROCESS /
+# design is selected.   <MODULE>: <filename at <DEFAULT_COM_DIR>/>
+CENTRAL_SHARED_FILES = {
+    "SYSTEM": "system.txt",     # revision history, same for all designs
+}
+
+
+def central_shared_file(module):
+    """<DEFAULT_COM_DIR>/<filename> for a design-independent module, or None."""
+    name = CENTRAL_SHARED_FILES.get(module)
+    return os.path.join(DEFAULT_COM_DIR, name) if name else None
+
+
 # --------------------------------------------------------------------------
 # Per-user state directory (each user's "last time" working state; override via
 # env PDKGUI_USER_DIR).
@@ -171,12 +185,17 @@ _ENV_OVERRIDES = {
 def page_file(module_name):
     """Return the absolute path of the file a tab should read.
 
-    Priority: environment-variable override > PAGE_FILES.
+    Priority: environment-variable override > central shared copy (if it
+    exists) > PAGE_FILES (the built-in file shipped in data/).
     Returns None when there is no setting.
     """
     env_var = _ENV_OVERRIDES.get(module_name)
     if env_var and os.environ.get(env_var):
         return os.path.abspath(os.path.expanduser(os.environ[env_var]))
+
+    shared = central_shared_file(module_name)
+    if shared and os.path.isfile(shared):
+        return shared
 
     rel = PAGE_FILES.get(module_name)
     if rel is None:

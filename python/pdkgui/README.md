@@ -68,6 +68,7 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 `PDKGUI_DEFAULT_DIR`):
 
 ```
+<DEFAULT_COM_DIR>/system.txt                SYSTEM revision history (design-independent, shared)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     golden command-file template (LoadDefault reads this)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
 <DEFAULT_COM_DIR>/<DESIGN>/XRC.inc          four XRC paths as key=value (hcell/xcell/rules/deck)
@@ -76,6 +77,11 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 
 - The LoadDefault button reads `.com`; if the central file is missing it falls
   back to the built-in template `data/verify/<MODULE>.com`.
+- `system.txt` is **design-independent** (`config.CENTRAL_SHARED_FILES`): it sits
+  at the top of the central dir, not under a design, so the SYSTEM tab shows the
+  same revision history to every user regardless of the PROCESS selection. Read
+  order is `PDKGUI_SYSTEM_FILE` > `<DEFAULT_COM_DIR>/system.txt` >
+  built-in `data/system.txt`.
 - `.inc` (optional) holds the **latest fab PDK deck path** (one line). On **tab
   open and on Run**, pdkgui rewrites the `include <...>` line in the command to
   the value of `.inc` -- when the deck is updated you edit just this one-line
