@@ -164,7 +164,12 @@ class VerifyPage(BasePage):
 
         # Read order: 1) last session  2) else the default (seeded from the
         # built-in template if needed)
-        if not self._load_state():
+        if self._load_state():
+            # A session migrated from the old .commandfile holds only the command
+            # text, so derive the Layout/Source fields from it (for a full
+            # session this is a no-op -- fields and text are kept in sync).
+            self._sync_fields_from_text()
+        else:
             self._load_default()
 
         # On open: refresh the include line to the latest fab deck from central .inc

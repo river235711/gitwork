@@ -118,6 +118,25 @@ document = add its line to `DOC.txt` + drop the PDFs in the matching directory.
 Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
 `<DESIGN>/doc/...` structure below it is unchanged).
 
+## Upgrading from the pre-session version
+
+The older pdkgui stored each tab's command file as one flat file per tab+process:
+
+```
+~/.pdkgui/.pdkgui.<tab lowercase><PROCESS>.commandfile
+```
+
+On the **first start** of this version those are converted automatically into the
+session layout (`~/.pdkgui/session/<DESIGN>/<MODULE>.json`). The conversion:
+
+- never deletes the originals -- the old `.commandfile`s stay where they are;
+- skips a tab that already has a session JSON (a newer state always wins);
+- runs only once, guarded by `~/.pdkgui/.migrated_commandfile`. Delete that
+  marker to run the scan again.
+
+A converted session holds only the command text, so the Layout/Source fields are
+re-derived from it when the tab opens.
+
 ## GDS viewers (skipper / klayout)
 
 - **SKIPPER** tab and the **View** button on other tabs -> open with `skipper`.

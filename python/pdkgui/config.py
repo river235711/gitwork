@@ -279,3 +279,68 @@ def read_conf(path):
             k, v = line.split("=", 1)
             conf[k.strip()] = v.strip()
     return conf
+
+
+# --------------------------------------------------------------------------
+# One-time migration from the pre-session layout
+#   old:  <USER_DIR>/.pdkgui.<module lowercase><DESIGN>.commandfile  (raw text)
+#         e.g. ~/.pdkgui/.pdkgui.drct22_1p7m_4x1z1u.commandfile
+#   new:  <USER_DIR>/session/<DESIGN>/<MODULE>.json  ({"__command__": text})
+# The old files are left in place (nothing is deleted) and a marker file makes
+# this run only on the first start of the new version.
+# --------------------------------------------------------------------------
+LEGACY_PREFIX = ".pdkgui."
+LEGACY_SUFFIX = ".commandfile"
+LEGACY_MARKER = ".migrated_commandfile"     # inside USER_DIR
+
+
+def _split_legacy_stem(stem):
+    """'drct22_1p7m_4x1z1u' -> ('DRC', 't22_1p7m_4x1z1u').
+
+    Module and design are concatenated without a separator, so match the known
+    module names (longest first) against the front of the stem."""
+    for module in sorted(VERIFY_MODULES, key=len, reverse=True):
+        low = module.lower()
+        if stem.startswith(low) and len(stem) > len(low):
+            return module, stem[len(low):]
+    return None
+
+
+def migrate_legacy_commandfiles():
+    """Convert old command files into session JSONs. Returns [(old, new), ...].
+
+    Runs once (guarded by the marker), skips any tab whose session JSON already
+    exists, and never deletes the originals."""
+    marker = os.path.join(USER_DIR, LEGACY_MARKER)
+    if os.path.exists(marker):
+        return []
+    try:
+        names = os.listdir(USER_DIR)
+    except OSError:
+        return []               # no ~/.pdkgui yet: nothing to migrate
+
+    migrated = []
+    for name in names:
+        if not (name.startswith(LEGACY_PREFIX) and name.endswith(LEGACY_SUFFIX)):
+            continue
+        parsed = _split_legacy_stem(name[len(LEGACY_PREFIX):-len(LEGACY_SUFFIX)])
+        if not parsed:
+            continue
+        module, design = parsed
+        dest = user_session_file(module, design)
+        if os.path.exists(dest):
+            continue            # already using the new layout: keep that state
+        text = read_text(os.path.join(USER_DIR, name), default=None)
+        if text is None:
+            continue
+        save_json(dest, {"__command__": text})
+        migrated.append((name, dest))
+
+    # marker is written even when nothing matched, so the scan happens once
+    try:
+        os.makedirs(USER_DIR, exist_ok=True)
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("converted %d legacy command file(s)\n" % len(migrated))
+    except OSError:
+        pass
+    return migrated
