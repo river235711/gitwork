@@ -1,5 +1,0 @@
-TSMC 22 NM CMOS LOGIC ULTRA LOW LEAKAGE DRC COMMAND FILE (CALIBRE)
-
-This is example document content read by the DOC tab.
-Put your real document text into data/doc/<document_name>.txt; the left-hand
-list automatically shows every .txt under data/doc/.

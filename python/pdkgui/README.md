@@ -72,6 +72,7 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     golden command-file template (LoadDefault reads this)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
 <DEFAULT_COM_DIR>/<DESIGN>/XRC.inc          four XRC paths as key=value (hcell/xcell/rules/deck)
+<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt          document index: <Doc. No.>|<Doc ID>|<Title> per line
 <DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf     skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
@@ -93,6 +94,25 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   Run, pdkgui symlinks `hcell`/`xcell` in the run folder (`ln -sf`), rebuilds the
   rules include as `include <rules>/<corner>/rules` (corner from the XrcRCCorner
   field) and the deck include as `include <deck>`.
+
+## DOC tab (document browser)
+
+Three linked columns driven by `<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt` (built-in
+fallback `data/doc/DOC.txt`), one line per document:
+
+```
+<Doc. No.>|<Doc ID>|<Title>
+DesignRule|T-N22-CL-DR-001|TSMC 22 NM CMOS LOGIC ULTRA LOW POWER DESIGN RULE (...)
+```
+
+- **Doc. No.** (left) -- the unique first fields; clicking one lists its titles.
+- **Title** (middle) -- the third field; clicking one lists that document's PDFs.
+- **Doc. Group** (right) -- `*.pdf` in
+  `<DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/`; clicking one opens it in a viewer
+  (okular / evince / xdg-open ...).
+
+`DOC_ROOT` defaults to `/datacenter/techLibs/cad/doc/pdkgui`; override with env
+`PDKGUI_DOC_ROOT`.
 
 ## GDS viewers (skipper / klayout)
 

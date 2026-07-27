@@ -160,8 +160,49 @@ PAGE_FILES = {
     "JIVARO":  "verify/JIVARO.com",
 }
 
-# DOC page content directory (one .txt per document; filename == document name)
-DOC_DIR = os.path.join(DATA_DIR, "doc")
+# --------------------------------------------------------------------------
+# DOC page
+# --------------------------------------------------------------------------
+# Document index: one line per document, three '|' separated fields
+#     <Doc. No.>|<Doc ID>|<Title>
+# e.g. DesignRule|T-N22-CL-DR-001|TSMC 22 NM ... DESIGN RULE (CLN22ULP/...)
+# It lives in the central dir per PROCESS/design (see central_doc_file); the
+# built-in data/doc/DOC.txt is the fallback when central is unreachable.
+DOC_INDEX_FALLBACK = os.path.join(DATA_DIR, "doc", "DOC.txt")
+
+# Root of the PDF tree. The files of one document are in
+#     <DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID>/*.pdf
+# Override via env PDKGUI_DOC_ROOT.
+DOC_ROOT = os.environ.get("PDKGUI_DOC_ROOT", "/datacenter/techLibs/cad/doc/pdkgui")
+
+
+def central_doc_file(design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt -- the document index for this process."""
+    return os.path.join(DEFAULT_COM_DIR, design, "DOC.txt")
+
+
+def doc_index_file(design):
+    """The DOC index actually used: central first, built-in data/ as fallback."""
+    path = central_doc_file(design)
+    return path if os.path.isfile(path) else DOC_INDEX_FALLBACK
+
+
+def doc_group_dir(design, docno, docid):
+    """<DOC_ROOT>/<DESIGN>/<Doc. No.>/<Doc ID> -- holds that document's .pdf files."""
+    return os.path.join(DOC_ROOT, design, docno, docid)
+
+
+def read_doc_index(design):
+    """Parse the DOC index into [(docno, docid, title), ...] keeping file order.
+    Lines that are blank, '#' comments, or lack the two separators are skipped."""
+    docs = []
+    for line in read_lines(doc_index_file(design)):
+        parts = line.split("|", 2)          # title may itself contain '|'
+        if len(parts) == 3:
+            docno, docid, title = (p.strip() for p in parts)
+            if docno and docid:
+                docs.append((docno, docid, title))
+    return docs
 
 # Source directory for the XRC hcell / xcell symbolic links (per PDK / process).
 # The run script does:  ln -sf <this dir>/hcell   and   ln -sf <this dir>/xcell
