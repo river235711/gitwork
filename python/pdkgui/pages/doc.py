@@ -67,14 +67,21 @@ class DocPage(BasePage):
         body = tk.Frame(frame, bg=self.bg)
         body.pack(fill="both", expand=True)
 
-        sb = tk.Scrollbar(body, orient="vertical")
-        sb.pack(side="right", fill="y")
+        # vertical + horizontal scrollbars: long titles / file names stay
+        # reachable when the window is narrow
+        vsb = tk.Scrollbar(body, orient="vertical")
+        hsb = tk.Scrollbar(body, orient="horizontal")
         lb = tk.Listbox(body, activestyle="none", exportselection=False,
                         fg="blue", bg=self.bg, bd=1, highlightthickness=0,
                         selectbackground="#a8d3f0", selectforeground="blue",
-                        yscrollcommand=sb.set)
-        lb.pack(side="left", fill="both", expand=True)
-        sb.configure(command=lb.yview)
+                        yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        lb.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        body.grid_rowconfigure(0, weight=1)
+        body.grid_columnconfigure(0, weight=1)
+        vsb.configure(command=lb.yview)
+        hsb.configure(command=lb.xview)
         lb.bind("<<ListboxSelect>>", lambda e: on_click())
         return lb
 
