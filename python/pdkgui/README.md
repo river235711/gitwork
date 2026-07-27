@@ -70,6 +70,7 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 ```
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     golden command-file template (LoadDefault reads this)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
+<DEFAULT_COM_DIR>/<DESIGN>/XRC.inc          four XRC paths as key=value (hcell/xcell/rules/deck)
 <DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf     skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
@@ -81,6 +82,11 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   file and everyone picks up the new path on their next open/run. If `.inc` is
   absent the existing include is left untouched (backward compatible).
   e.g. `echo /datacenter/.../CLN22ULP_..._<new>.encrypt > <DEFAULT_COM_DIR>/<DESIGN>/DRC.inc`
+- **XRC.inc is special**: XRC needs four central paths, so its `.inc` is a
+  `key = value` file with keys `hcell`, `xcell`, `rules`, `deck`. On tab open /
+  Run, pdkgui symlinks `hcell`/`xcell` in the run folder (`ln -sf`), rebuilds the
+  rules include as `include <rules>/<corner>/rules` (corner from the XrcRCCorner
+  field) and the deck include as `include <deck>`.
 
 ## GDS viewers (skipper / klayout)
 

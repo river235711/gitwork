@@ -46,6 +46,14 @@ _RE_RESULTS_DB = re.compile(r'RESULTS\s+DATABASE\s+"([^"]+)"', re.IGNORECASE)
 _RE_SUMMARY_REP = re.compile(r'SUMMARY\s+REPORT\s+"([^"]+)"', re.IGNORECASE)
 _RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include directive
 
+# XRC command-text rewrites (see pages/verify.py XRC spec):
+#   PEX NETLIST <KIND> "<file>" <FORMAT> <USENAME> [GROUND <g>] MASK DIRECT ...
+_RE_PEX_NETLIST = re.compile(
+    r'^(\s*PEX\s+NETLIST\s+\S+\s+"[^"]*"\s+)(\S+)(\s+)(\S+)(.*)$', re.IGNORECASE)
+_RE_PEX_GROUND = re.compile(r'(\bGROUND\s+)(\S+)', re.IGNORECASE)
+#   include .../XRC_calibre.<ver>/<corner>/rules  -> swap the <corner> segment
+_RE_XRC_CORNER = re.compile(r'^(\s*include\s+.*/)([^/\s]+)(/rules\s*)$', re.IGNORECASE)
+
 # Field <-> text mapping: which text line to update when a field changes
 # (keyword, regex, realpath?)
 _FIELD_KEYWORDS = {
@@ -164,8 +172,12 @@ class VerifyPage(BasePage):
         return None
 
     def _refresh_include(self):
-        """Rewrite the command-text include line to the latest deck path from
-        central .inc. If .inc is absent (no deck path), leave the command as-is."""
+        """Rewrite the command-text include line(s) to the latest paths from the
+        central .inc. XRC carries four paths (hcell/xcell/rules/deck); every other
+        module has a single deck-path line."""
+        if self.module == "XRC":
+            self._xrc_refresh_from_central()
+            return
         deck = self._central_deck_path()
         if not deck:
             return
@@ -190,6 +202,51 @@ class VerifyPage(BasePage):
         finally:
             self._syncing = False
 
+    def _xrc_central(self):
+        return config.central_xrc_paths(config.DESIGN_NAME)
+
+    def _xrc_refresh_from_central(self):
+        """Rebuild the two XRC include lines from the central XRC.inc:
+          - the corner rules:  include <rules>/<XrcRCCorner>/rules
+          - the DFM deck:       include <deck>
+        Missing keys are left untouched; the hcell/xcell keys drive the run
+        script (see _run_script_xrc), not the command text."""
+        conf = self._xrc_central()
+        if not conf:
+            return
+        w = self.entries.get("XrcRCCorner")
+        corner = (w.get() if w is not None else "") or "typical"
+        rules_line = ("include %s/%s/rules" % (conf["rules"].rstrip("/"), corner)
+                      if conf.get("rules") else None)
+        deck_line = "include %s" % conf["deck"] if conf.get("deck") else None
+
+        lines = self.cmd_text.get_text().split("\n")
+        rules_done = deck_done = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//") or not _RE_INCLUDE.match(ln):
+                continue
+            if _RE_XRC_CORNER.match(ln):        # the .../<corner>/rules include
+                if rules_line and not rules_done:
+                    lines[i] = rules_line
+                    rules_done = True
+            elif deck_line and not deck_done:   # any other include -> the deck
+                lines[i] = deck_line
+                deck_done = True
+        appended = []
+        if rules_line and not rules_done:
+            appended.append(rules_line)
+        if deck_line and not deck_done:
+            appended.append(deck_line)
+        if appended:
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            lines.extend(appended)
+        self._syncing = True
+        try:
+            self.cmd_text.set_text("\n".join(lines))
+        finally:
+            self._syncing = False
+
     def _bind_changes(self):
         # text change -> update the fields above + save
         self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
@@ -198,7 +255,7 @@ class VerifyPage(BasePage):
             if isinstance(w, tk.BooleanVar):
                 continue  # checkbutton already bound in _check_row
             if isinstance(w, ttk.Combobox):
-                w.bind("<<ComboboxSelected>>", lambda e: self._schedule_save())
+                w.bind("<<ComboboxSelected>>", lambda e, k=key: self._on_field_change(k))
             else:
                 w.bind("<KeyRelease>", lambda e, k=key: self._on_field_change(k))
 
@@ -241,11 +298,11 @@ class VerifyPage(BasePage):
                         [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
         self._entry_row(r, "SourcePrimary"); r += 1
         self._check_row(r, "LvsHier", default=True); r += 1
-        self._combo_row(r, "XrcFormat", ["SPECTRE", "HSPICE", "ELDO", "CALIBREVIEW", "DSPF"], "SPECTRE"); r += 1
+        self._combo_row(r, "XrcFormat", ["SPECTRE", "DSPF"], "SPECTRE"); r += 1
         self._combo_row(r, "XrcUseName", ["SOURCE", "LAYOUT"], "SOURCE"); r += 1
         self._entry_row(r, "XrcGround", default="GND"); r += 1
         self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
-        self._combo_row(r, "XrcExtType", ["c", "rcc", "rccl"], "c"); r += 1
+        self._combo_row(r, "XrcExtType", ["c", "rcc"], "c"); r += 1
         self._check_row(r, "XrcReduction", "run", default=False); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
@@ -300,19 +357,84 @@ class VerifyPage(BasePage):
                 changed = True
                 break
         if changed:
-            self._syncing = True
+            self._set_text_keep_cursor("\n".join(lines))
+
+    def _set_text_keep_cursor(self, new_text):
+        """Replace the command text without moving the caret (used by every
+        field->text rewrite)."""
+        self._syncing = True
+        try:
+            pos = self.cmd_text.text.index("insert")
+            self.cmd_text.set_text(new_text)
             try:
-                pos = self.cmd_text.text.index("insert")
-                self.cmd_text.set_text("\n".join(lines))
-                try:
-                    self.cmd_text.text.mark_set("insert", pos)
-                except Exception:
-                    pass
-            finally:
-                self._syncing = False
+                self.cmd_text.text.mark_set("insert", pos)
+            except Exception:
+                pass
+        finally:
+            self._syncing = False
+
+    # ------------------------------------------------------------------
+    # XRC field -> command-text rewrites (Format / UseName / Ground / Corner)
+    # ------------------------------------------------------------------
+    def _xrc_sync_from_field(self, key):
+        if key == "XrcFormat":
+            self._xrc_rewrite_netlist(fmt=self.entries[key].get())
+        elif key == "XrcUseName":
+            self._xrc_rewrite_netlist(usename=self.entries[key].get())
+        elif key == "XrcGround":
+            g = self.entries[key].get().strip()
+            if g:
+                self._xrc_rewrite_netlist(ground=g)
+        elif key == "XrcRCCorner":
+            self._xrc_rewrite_corner(self.entries[key].get())
+
+    def _xrc_rewrite_netlist(self, fmt=None, usename=None, ground=None):
+        """Rewrite the PEX NETLIST lines: format token, usename token, and the
+        GROUND <name> value (only lines that carry a GROUND clause)."""
+        if self._syncing:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            m = _RE_PEX_NETLIST.match(ln)
+            if not m:
+                continue
+            pre, f, sp, u, rest = m.groups()
+            if fmt is not None:
+                f = fmt
+            if usename is not None:
+                u = usename
+            new = pre + f + sp + u + rest
+            if ground is not None:
+                new = _RE_PEX_GROUND.sub(lambda mm: mm.group(1) + ground, new)
+            if new != ln:
+                lines[i] = new
+                changed = True
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
+
+    def _xrc_rewrite_corner(self, corner):
+        """Swap the <corner> segment of the active .../<corner>/rules include."""
+        if self._syncing or not corner:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            m = _RE_XRC_CORNER.match(ln)
+            if m:
+                new = m.group(1) + corner + m.group(3)
+                if new != ln:
+                    lines[i] = new
+                    self._set_text_keep_cursor("\n".join(lines))
+                break
 
     def _on_field_change(self, key):
         self._sync_text_from_field(key)
+        if self.module == "XRC":
+            self._xrc_sync_from_field(key)
         self._schedule_save()
 
     def _on_text_change(self):
@@ -449,19 +571,22 @@ class VerifyPage(BasePage):
         exttype = w.get() if w is not None else "c"
         primary = self.entries["LayoutPrimary"].get().strip() or "top"
         com = self._com_filename()
-        d = config.XRC_HCELL_DIR
+        # hcell / xcell symlink sources: central XRC.inc, else XRC_HCELL_DIR/<name>
+        conf = self._xrc_central()
+        hcell = conf.get("hcell") or "%s/hcell" % config.XRC_HCELL_DIR
+        xcell = conf.get("xcell") or "%s/xcell" % config.XRC_HCELL_DIR
         script = (
             "#!/bin/bash -l\n"
             "module load %s\n"
             "module load %s\n"
             "\n"
             "rm -rf lvs.log pdb.log fmt.log %s.lump* svdb/\n"
-            "if [ ! -e hcell ] && [ ! -L hcell ]; then ln -sf %s/hcell; fi\n"
-            "if [ ! -e xcell ] && [ ! -L xcell ]; then ln -sf %s/xcell; fi\n"
+            "if [ ! -e hcell ] && [ ! -L hcell ]; then ln -sf %s hcell; fi\n"
+            "if [ ! -e xcell ] && [ ! -L xcell ]; then ln -sf %s xcell; fi\n"
             "calibre -64 -lvs %s-hcell hcell %s | tee lvs.log\n"
             "calibre -64 -xrc -pdb -turbo -turbo_all -xcell xcell -%s %s | tee pdb.log\n"
             "calibre -64 -xrc -fmt -xcell xcell -%s %s | tee fmt.log\n"
-        ) % (self._calibre_env(), self._jivaro_env(), primary, d, d,
+        ) % (self._calibre_env(), self._jivaro_env(), primary, hcell, xcell,
              hier, com, exttype, com, exttype, com)
         if self._checked("XrcReduction"):
             script += "jivaro -xml jivaro.xml\n"

@@ -49,6 +49,15 @@ def central_include_file(module, design):
     return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
 
 
+def central_xrc_paths(design):
+    """XRC.inc as a 'key = value' file (parsed by read_conf), holding the four
+    central XRC files:  hcell, xcell (run-script ln -sf sources), rules (the
+    .../include_for_xrc/XRC_calibre.<ver> base) and deck (the DFM_LVS_RC deck).
+    Returns {} when the file is absent. Unlike DRC.inc (a single deck-path line)
+    XRC.inc is multi-key because XRC needs four paths."""
+    return read_conf(central_include_file("XRC", design))
+
+
 def central_skipper_conf(design):
     """<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf -- skipper viewer paths
     (keys: cdsTech, cdsDisp, cdsLayerMap, init; init optional)."""

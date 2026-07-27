@@ -10,6 +10,7 @@ it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
 └── <DESIGN>/                     e.g. t22_1p7m_4x1z1u/
     ├── <MODULE>.com              golden command-file template (LoadDefault reads this)
     ├── <MODULE>.inc              latest fab deck path (one line)
+    ├── XRC.inc                   four XRC paths as key=value (hcell/xcell/rules/deck)
     └── SKIPPER.conf              skipper viewer paths (cdsTech/cdsDisp/cdsLayerMap/init)
 ```
 
@@ -26,6 +27,11 @@ skipper command.
   the value of `<DESIGN>/<MODULE>.inc`.
 - `.inc` is the single source of truth for the fab deck path: to update the deck,
   **edit just the one line in `.inc`** and everyone picks it up on their next open/run.
+- **XRC is the exception**: `XRC.inc` is a `key = value` file with four keys
+  (`hcell`, `xcell`, `rules`, `deck`). On open/Run the run folder symlinks
+  `hcell`/`xcell`, and the two XRC includes are rebuilt as
+  `include <rules>/<corner>/rules` (corner from the XrcRCCorner field) and
+  `include <deck>`.
 
 ## How to apply
 
