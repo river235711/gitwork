@@ -16,6 +16,7 @@ Three ways to specify a file:
 """
 
 import os
+import re
 import json
 
 # --------------------------------------------------------------------------
@@ -282,37 +283,97 @@ def read_conf(path):
 
 
 # --------------------------------------------------------------------------
-# One-time migration from the pre-session layout
-#   old:  <USER_DIR>/.pdkgui.<module lowercase><DESIGN>.commandfile  (raw text)
-#         e.g. ~/.pdkgui/.pdkgui.drct22_1p7m_4x1z1u.commandfile
-#   new:  <USER_DIR>/session/<DESIGN>/<MODULE>.json  ({"__command__": text})
-# The old files are left in place (nothing is deleted) and a marker file makes
-# this run only on the first start of the new version.
+# One-time migration from the pre-session layout. Old files sit directly in
+# USER_DIR, module and design concatenated without a separator:
+#   .pdkgui.<module lowercase><DESIGN>.commandfile   verify tabs, raw command text
+#     -> session/<DESIGN>/<MODULE>.json   {"__command__": text}
+#   .pdkgui.<module lowercase><DESIGN>.gui           GDS lists, 'layout_pathN <path>'
+#     -> session/<DESIGN>/<MODULE>.json   {"gds": [path, ...]}
+# The old files are never deleted; the marker records which steps already ran.
 # --------------------------------------------------------------------------
 LEGACY_PREFIX = ".pdkgui."
-LEGACY_SUFFIX = ".commandfile"
-LEGACY_MARKER = ".migrated_commandfile"     # inside USER_DIR
+LEGACY_MARKER = ".migrated"                 # JSON {"done": [step, ...]} in USER_DIR
+LEGACY_MARKER_V1 = ".migrated_commandfile"  # marker written by the first version
+GDS_LIST_MODULES = ["SKIPPER", "KLAYOUT"]
+GDS_LIST_ROWS = 10                          # pad to the row count of the GDS pages
+
+_RE_LEGACY_GDS_ROW = re.compile(r'^layout_path(\d+)\s+(.+?)\s*$', re.IGNORECASE)
 
 
-def _split_legacy_stem(stem):
+def _split_legacy_stem(stem, modules):
     """'drct22_1p7m_4x1z1u' -> ('DRC', 't22_1p7m_4x1z1u').
 
     Module and design are concatenated without a separator, so match the known
     module names (longest first) against the front of the stem."""
-    for module in sorted(VERIFY_MODULES, key=len, reverse=True):
+    for module in sorted(modules, key=len, reverse=True):
         low = module.lower()
         if stem.startswith(low) and len(stem) > len(low):
             return module, stem[len(low):]
     return None
 
 
-def migrate_legacy_commandfiles():
-    """Convert old command files into session JSONs. Returns [(old, new), ...].
+def _legacy_command_state(path):
+    """Old .commandfile -> the session state of a verify tab."""
+    text = read_text(path, default=None)
+    return {"__command__": text} if text is not None else None
 
-    Runs once (guarded by the marker), skips any tab whose session JSON already
-    exists, and never deletes the originals."""
-    marker = os.path.join(USER_DIR, LEGACY_MARKER)
-    if os.path.exists(marker):
+
+def _legacy_gds_state(path):
+    """Old .gui ('layout_path1 <path>' per line) -> the session state of a GDS
+    list page. Rows are placed by their number and padded with empty strings."""
+    rows = {}
+    for line in read_text(path).splitlines():
+        m = _RE_LEGACY_GDS_ROW.match(line.strip())
+        if m:
+            rows[int(m.group(1))] = m.group(2)
+    if not rows:
+        return None
+    count = max(GDS_LIST_ROWS, max(rows))
+    return {"gds": [rows.get(i + 1, "") for i in range(count)]}
+
+
+def _migrate_step(names, suffix, modules, build_state):
+    """Convert every USER_DIR file with this suffix. Never overwrites a session
+    JSON that already exists (a newer state always wins)."""
+    migrated = []
+    for name in names:
+        if not (name.startswith(LEGACY_PREFIX) and name.endswith(suffix)):
+            continue
+        parsed = _split_legacy_stem(name[len(LEGACY_PREFIX):-len(suffix)], modules)
+        if not parsed:
+            continue
+        module, design = parsed
+        dest = user_session_file(module, design)
+        if os.path.exists(dest):
+            continue
+        state = build_state(os.path.join(USER_DIR, name))
+        if not state:
+            continue
+        save_json(dest, state)
+        migrated.append((name, dest))
+    return migrated
+
+
+def _migrations_done():
+    """Steps already carried out (understands the first version's marker too)."""
+    done = set(load_json(os.path.join(USER_DIR, LEGACY_MARKER)).get("done", []))
+    if os.path.exists(os.path.join(USER_DIR, LEGACY_MARKER_V1)):
+        done.add("commandfile")
+    return done
+
+
+def migrate_legacy_user_files():
+    """Convert the old per-tab files into session JSONs. Returns [(old, new), ...].
+
+    Each step runs at most once; new steps still run for users who already
+    migrated with an earlier version."""
+    steps = (
+        ("commandfile", ".commandfile", VERIFY_MODULES, _legacy_command_state),
+        ("gui", ".gui", GDS_LIST_MODULES, _legacy_gds_state),
+    )
+    done = _migrations_done()
+    todo = [s for s in steps if s[0] not in done]
+    if not todo:
         return []
     try:
         names = os.listdir(USER_DIR)
@@ -320,27 +381,9 @@ def migrate_legacy_commandfiles():
         return []               # no ~/.pdkgui yet: nothing to migrate
 
     migrated = []
-    for name in names:
-        if not (name.startswith(LEGACY_PREFIX) and name.endswith(LEGACY_SUFFIX)):
-            continue
-        parsed = _split_legacy_stem(name[len(LEGACY_PREFIX):-len(LEGACY_SUFFIX)])
-        if not parsed:
-            continue
-        module, design = parsed
-        dest = user_session_file(module, design)
-        if os.path.exists(dest):
-            continue            # already using the new layout: keep that state
-        text = read_text(os.path.join(USER_DIR, name), default=None)
-        if text is None:
-            continue
-        save_json(dest, {"__command__": text})
-        migrated.append((name, dest))
-
-    # marker is written even when nothing matched, so the scan happens once
-    try:
-        os.makedirs(USER_DIR, exist_ok=True)
-        with open(marker, "w", encoding="utf-8") as f:
-            f.write("converted %d legacy command file(s)\n" % len(migrated))
-    except OSError:
-        pass
+    for step, suffix, modules, build_state in todo:
+        migrated += _migrate_step(names, suffix, modules, build_state)
+        done.add(step)
+    # recorded even when nothing matched, so each scan happens only once
+    save_json(os.path.join(USER_DIR, LEGACY_MARKER), {"done": sorted(done)})
     return migrated

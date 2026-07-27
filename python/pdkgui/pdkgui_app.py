@@ -24,8 +24,9 @@ class PdkGui(tk.Tk):
         super().__init__()
 
         # First start after the upgrade: convert the old
-        # ~/.pdkgui/.pdkgui.<tab><design>.commandfile files into the session layout
-        config.migrate_legacy_commandfiles()
+        # ~/.pdkgui/.pdkgui.<tab><design>.{commandfile,gui} files into the
+        # session layout
+        config.migrate_legacy_user_files()
 
         # Restore the design chosen on the PROCESS tab (saved in the global session)
         saved_design = config.load_json(config.user_global_file("PROCESS")).get("design")

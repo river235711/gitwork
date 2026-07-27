@@ -120,22 +120,25 @@ Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
 
 ## Upgrading from the pre-session version
 
-The older pdkgui stored each tab's command file as one flat file per tab+process:
+The older pdkgui stored each tab's state as one flat file per tab+process:
 
 ```
-~/.pdkgui/.pdkgui.<tab lowercase><PROCESS>.commandfile
+~/.pdkgui/.pdkgui.<tab lowercase><PROCESS>.commandfile   verify tabs: the command text
+~/.pdkgui/.pdkgui.<tab lowercase><PROCESS>.gui           SKIPPER / KLAYOUT: 'layout_pathN <path>'
 ```
 
 On the **first start** of this version those are converted automatically into the
-session layout (`~/.pdkgui/session/<DESIGN>/<MODULE>.json`). The conversion:
+session layout (`~/.pdkgui/session/<DESIGN>/<MODULE>.json`) -- `.commandfile`
+becomes `{"__command__": ...}` and `.gui` becomes `{"gds": [...]}`. The
+conversion:
 
-- never deletes the originals -- the old `.commandfile`s stay where they are;
+- never deletes the originals -- the old files stay where they are;
 - skips a tab that already has a session JSON (a newer state always wins);
-- runs only once, guarded by `~/.pdkgui/.migrated_commandfile`. Delete that
-  marker to run the scan again.
+- records each step in `~/.pdkgui/.migrated`, so a step runs only once and a new
+  step still runs for users who upgraded earlier. Delete that file to rescan.
 
-A converted session holds only the command text, so the Layout/Source fields are
-re-derived from it when the tab opens.
+A converted verify session holds only the command text, so the Layout/Source
+fields are re-derived from it when the tab opens.
 
 ## GDS viewers (skipper / klayout)
 
