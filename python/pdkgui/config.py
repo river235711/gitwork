@@ -18,6 +18,7 @@ Three ways to specify a file:
 import os
 import re
 import json
+import socket
 
 # --------------------------------------------------------------------------
 # Paths
@@ -128,7 +129,23 @@ def save_json(path, obj):
 # --------------------------------------------------------------------------
 # General settings
 # --------------------------------------------------------------------------
-DESIGN_NAME = "t22_1p7m_4x1z1u"     # window title shows "pdkgui - <DESIGN_NAME>"
+DESIGN_NAME = "t22_1p7m_4x1z1u"     # see window_title()
+
+
+def hostname():
+    """Short name of the machine, for the window title -- with several sessions
+    open across hosts it says which one this window belongs to."""
+    try:
+        return socket.gethostname().split(".")[0]
+    except Exception:
+        return ""
+
+
+def window_title():
+    """'pdkgui - <design> - <host>' (the host is dropped if it cannot be read)."""
+    host = hostname()
+    return ("pdkgui - %s - %s" % (DESIGN_NAME, host) if host
+            else "pdkgui - %s" % DESIGN_NAME)
 
 # --------------------------------------------------------------------------
 # Fonts -- one place to make the whole GUI bigger.

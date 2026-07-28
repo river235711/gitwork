@@ -29,6 +29,22 @@ class ProcessTab(GuiTestCase):
             saved = config.load_json(config.user_global_file("PROCESS"))
             self.assertEqual(saved.get("design"), design)
 
+    def test_the_title_names_the_design_and_the_host(self):
+        host = config.hostname()
+        self.assertTrue(host, "no host name to show")
+        self.assertEqual(self.app.title(),
+                         "pdkgui - %s - %s" % (config.DESIGN_NAME, host))
+
+    def test_the_title_follows_the_selected_design(self):
+        page = self.open_tab("PROCESS")
+        combo = self.widgets(page, "TCombobox")[0]
+        for design in combo.cget("values"):
+            combo.set(design)
+            combo.event_generate("<<ComboboxSelected>>")
+            self.app.update()
+            self.assertEqual(self.app.title(),
+                             "pdkgui - %s - %s" % (design, config.hostname()))
+
     def test_design_choice_survives_a_restart(self):
         page = self.open_tab("PROCESS")
         combo = self.widgets(page, "TCombobox")[0]

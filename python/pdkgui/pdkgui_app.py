@@ -36,7 +36,7 @@ class PdkGui(tk.Tk):
             config.DESIGN_NAME = saved_design
 
         self._apply_fonts()
-        self.title("pdkgui - %s" % config.DESIGN_NAME)
+        self.title(config.window_title())
         self.geometry(config.window_geometry())
         self.configure(bg="#d9d9d9")
 
@@ -91,7 +91,7 @@ class PdkGui(tk.Tk):
     def set_design(self, name):
         """Switch the current design: update the window title so other tabs follow."""
         config.DESIGN_NAME = name
-        self.title("pdkgui - %s" % name)
+        self.title(config.window_title())
 
     # ------------------------------------------------------------------
     # Left-hand menu
