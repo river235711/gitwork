@@ -28,12 +28,18 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # --------------------------------------------------------------------------
 # Default command files: kept in a central (golden) directory, one subdir per
 # design:   <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com
-# Change the default below to your central path, or override via env
-# PDKGUI_DEFAULT_DIR.
+# Override via env PDKGUI_DEFAULT_DIR.
+#
+# It sits NEXT TO the version directories, not inside one:
+#   <bin>/_pdkgui/<version>/pdkgui/   the program (one dir per release)
+#   <bin>/_pdkgui/current -> <version>
+#   <bin>/_pdkgui/central/            this directory, shared by every version
+# so a deck update (edit one .inc) needs no release, and rolling the program
+# back does not silently roll the decks back with it.
 # --------------------------------------------------------------------------
 DEFAULT_COM_DIR = os.environ.get(
     "PDKGUI_DEFAULT_DIR",
-    "/datacenter/users/will.huang/work/tmp2/pdkgui/central_example",   # <- change to your central dir
+    "/datacenter/techLibs/cad/bin/_pdkgui/central",   # <- change to your central dir
 )
 
 

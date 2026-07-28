@@ -118,6 +118,38 @@ document = add its line to `DOC.txt` + drop the PDFs in the matching directory.
 Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
 `<DESIGN>/doc/...` structure below it is unchanged).
 
+## Deployment layout (versioned install + shared central)
+
+Users always run one stable entry point; releases are switched by repointing a
+symlink, and the central configuration is shared by every version:
+
+```
+/datacenter/techLibs/cad/bin/
+├── pdkgui -> _pdkgui/current/pdkgui/pdkgui   what users run (symlink)
+└── _pdkgui/
+    ├── 2026.0728/pdkgui/    one release = the contents of dist/
+    ├── current -> 2026.0728  flip this to switch or roll back
+    └── central/              config.DEFAULT_COM_DIR, shared by all versions
+        ├── system.txt
+        └── <DESIGN>/{*.com,*.inc,SKIPPER.conf,DOC.txt,doc/}
+```
+
+Releasing a new version:
+
+```bash
+python3 pdk_build.py dist /datacenter/techLibs/cad/bin/_pdkgui/current/pdkgui
+cp -r dist /datacenter/techLibs/cad/bin/_pdkgui/<version>/pdkgui
+cd /datacenter/techLibs/cad/bin/_pdkgui && ln -sfn <version> current
+```
+
+Because `bin/pdkgui` is a symlink, the launcher resolves it and finds `pdkgui.py`
+in the release directory, so `DEFAULT_HOME` is never consulted -- it only matters
+if the launcher is *copied* somewhere instead.
+
+Keeping `central/` outside the version directories is deliberate: a deck update
+is just an edit to one `.inc` and needs no release, and rolling the program back
+does not silently roll the decks back with it.
+
 ## Converting an old central directory (central_migrate.py)
 
 The old central directory was flat -- one file per tab+process. `central_migrate.py`

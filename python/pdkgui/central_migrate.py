@@ -54,7 +54,9 @@ import argparse
 import config
 
 OLD_CENTRAL = "/datacenter/techLibs/cad/bin/_pdkgui/current/pdkgui"
-NEW_CENTRAL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "central_example")
+# write to wherever this pdkgui reads its central files from, so the two cannot
+# drift apart ($PDKGUI_DEFAULT_DIR overrides both)
+NEW_CENTRAL = config.DEFAULT_COM_DIR
 
 PREFIX = ".pdkgui."
 CORNER_KEY = "rccorner_"
