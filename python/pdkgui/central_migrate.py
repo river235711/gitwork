@@ -232,6 +232,17 @@ def main():
         modules = sorted(per_process[process])
         print("  %-20s %2d modules  %s" % (process, len(modules), " ".join(modules)))
 
+    # SKIPPER.conf is not derivable from the old files, so flag the processes
+    # that still lack one (its cds paths are per process -- never copy another
+    # process's file, the techfile/layermap differ).
+    no_conf = [p for p in sorted(per_process)
+               if not os.path.isfile(os.path.join(args.new, p, "SKIPPER.conf"))]
+    if no_conf:
+        print("\nno SKIPPER.conf yet (skipper opens with -i only; write one per\n"
+              "process with keys cdsTech / cdsDisp / cdsLayerMap / init):")
+        for process in no_conf:
+            print("  %s/SKIPPER.conf" % process)
+
     if ignored:
         print("\nignored (no known module name at the start of the file name):")
         for name in ignored:
