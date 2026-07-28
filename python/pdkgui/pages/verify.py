@@ -107,7 +107,7 @@ class VerifyPage(BasePage):
     # ==================================================================
     def _title(self):
         tk.Label(self, text=config.DESIGN_NAME, bg=self.bg,
-                 font=("Arial", 11)).grid(row=0, column=0, columnspan=4, pady=(0, 10))
+                 font=config.ui_font(1)).grid(row=0, column=0, columnspan=4, pady=(0, 10))
 
     def _entry_row(self, row, key, buttons=(), default=None):
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")

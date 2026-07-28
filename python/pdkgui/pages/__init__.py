@@ -44,7 +44,7 @@ class _PlaceholderPage(BasePage):
 
     def build(self):
         tk.Label(self, text="*** %s ***\n(not implemented)" % self.module,
-                 bg=self.bg, font=("Arial", 11)).pack(pady=20)
+                 bg=self.bg, font=config.ui_font(1)).pack(pady=20)
 
 
 def build_page(name, master, app):

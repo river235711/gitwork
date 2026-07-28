@@ -23,7 +23,7 @@ class ProcessPage(BasePage):
 
     def build(self):
         tk.Label(self, text="*** Process ***", bg=self.bg,
-                 font=("Arial", 11)).pack(pady=(20, 10))
+                 font=config.ui_font(1)).pack(pady=(20, 10))
 
         values = config.read_lines(config.page_file(self.module)) or [config.DESIGN_NAME]
         # select the current design if it is in the list, else the first entry

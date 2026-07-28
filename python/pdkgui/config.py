@@ -128,6 +128,38 @@ def save_json(path, obj):
 # --------------------------------------------------------------------------
 DESIGN_NAME = "t22_1p7m_4x1z1u"     # window title shows "pdkgui - <DESIGN_NAME>"
 
+# --------------------------------------------------------------------------
+# Fonts -- one place to make the whole GUI bigger.
+# Most widgets set no font of their own and follow Tk's named fonts, which the
+# app points at UI_FONT_SIZE on start; the few that do ask for one go through
+# ui_font()/mono_font(), so everything scales together.
+# Raise the number (or set PDKGUI_FONT_SIZE=13) to enlarge the whole interface.
+# --------------------------------------------------------------------------
+UI_FONT_BASE = 9                    # size the layout was originally drawn at
+UI_FONT_SIZE = int(os.environ.get("PDKGUI_FONT_SIZE", "11"))
+UI_FONT_FAMILY = "Arial"
+MONO_FONT_FAMILY = "Courier New"    # command files / revision history
+
+# Window size at UI_FONT_BASE; scaled with the font so nothing gets cramped.
+WINDOW_W, WINDOW_H = 980, 560
+
+
+def ui_font(delta=0, weight=None):
+    """(family, size[, weight]) for a normal widget; delta shifts from the base."""
+    size = max(6, UI_FONT_SIZE + delta)
+    return (UI_FONT_FAMILY, size, weight) if weight else (UI_FONT_FAMILY, size)
+
+
+def mono_font(delta=0):
+    """Fixed-width font, kept in step with the interface size."""
+    return (MONO_FONT_FAMILY, max(6, UI_FONT_SIZE + delta))
+
+
+def window_geometry():
+    """Default window size, grown in proportion to the chosen font size."""
+    scale = float(UI_FONT_SIZE) / UI_FONT_BASE
+    return "%dx%d" % (int(WINDOW_W * scale), int(WINDOW_H * scale))
+
 # --- Logo settings: point this at your own image ---
 LOGO_PATH = os.path.join(BASE_DIR, "company_logo.png")
 LOGO_TEXT = "YOUR COMPANY LOGO"     # fallback text when the image is not found

@@ -93,5 +93,5 @@ class LogoPanel(tk.Frame):
         else:
             tk.Label(
                 self, text=text, bg=config.LOGO_BG, fg=config.LOGO_FG,
-                font=("Arial", 16, "bold"),
+                font=config.ui_font(5, "bold"),
             ).pack(expand=True, fill="both")

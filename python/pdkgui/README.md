@@ -246,6 +246,21 @@ conversion:
 A converted verify session holds only the command text, so the Layout/Source
 fields are re-derived from it when the tab opens.
 
+## Interface size
+
+One setting scales the whole GUI -- `config.UI_FONT_SIZE` (default 11), or per
+user without editing anything:
+
+```bash
+PDKGUI_FONT_SIZE=13 pdkgui
+```
+
+Most widgets set no font of their own and follow Tk's named fonts, which the app
+resizes on start; the few that do ask for one go through `config.ui_font()` /
+`config.mono_font()`, so titles, the menu buttons, command boxes and the ttk
+comboboxes all move together. The default window size grows in proportion
+(`config.window_geometry()`), so a larger font does not leave the layout cramped.
+
 ## GDS viewers (skipper / klayout)
 
 - **SKIPPER** tab and the **View** button on other tabs -> open with `skipper`.

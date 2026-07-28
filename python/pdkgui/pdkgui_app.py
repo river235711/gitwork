@@ -14,7 +14,7 @@ Main program logic for pdkgui (main window + left menu + page routing).
 import os
 import subprocess
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import font as tkfont, messagebox, ttk
 
 import config
 from pages import build_page
@@ -35,8 +35,9 @@ class PdkGui(tk.Tk):
         if saved_design:
             config.DESIGN_NAME = saved_design
 
+        self._apply_fonts()
         self.title("pdkgui - %s" % config.DESIGN_NAME)
-        self.geometry("980x560")
+        self.geometry(config.window_geometry())
         self.configure(bg="#d9d9d9")
 
         # Working directory pdkgui was launched from (default for verify RunFolder)
@@ -57,6 +58,30 @@ class PdkGui(tk.Tk):
         self._build_content_area()
         self.show_module(self._restore_module())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _apply_fonts(self):
+        """Resize Tk's named fonts, which every widget that sets no font of its
+        own follows -- entries, labels, buttons, listboxes, text boxes. Doing it
+        here means one setting (config.UI_FONT_SIZE) scales the whole interface."""
+        family, size = config.ui_font()
+        for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont",
+                     "TkIconFont", "TkSmallCaptionFont", "TkTooltipFont"):
+            try:
+                tkfont.nametofont(name).configure(family=family, size=size)
+            except tk.TclError:
+                pass
+        try:
+            mono_family, mono_size = config.mono_font()
+            tkfont.nametofont("TkFixedFont").configure(family=mono_family,
+                                                       size=mono_size)
+        except tk.TclError:
+            pass
+        # ttk widgets (the PROCESS / ENV comboboxes) and their dropdown lists
+        try:
+            ttk.Style().configure(".", font=config.ui_font())
+        except tk.TclError:
+            pass
+        self.option_add("*TCombobox*Listbox.font", config.ui_font())
 
     def _restore_module(self):
         """The tab open when we last exited (so a restart lands where you were)."""
@@ -81,7 +106,7 @@ class PdkGui(tk.Tk):
             btn = tk.Button(
                 sidebar, text=name, relief="raised", bd=1,
                 bg="#bcdff0", activebackground="#9fcfe8",
-                font=("Arial", 9),
+                font=config.ui_font(-1),
                 command=lambda n=name: self.show_module(n),
             )
             btn.pack(fill="x", padx=2, pady=1)

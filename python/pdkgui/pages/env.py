@@ -48,7 +48,7 @@ class EnvPage(BasePage):
 
     def build(self):
         tk.Label(self, text="*** Tool Version ***", bg=self.bg,
-                 font=("Arial", 11)).pack(pady=(20, 10))
+                 font=config.ui_font(1)).pack(pady=(20, 10))
 
         tools = self._parse(config.page_file(self.module))
         if not tools:

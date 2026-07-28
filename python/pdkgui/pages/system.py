@@ -40,7 +40,7 @@ class SystemPage(BasePage):
 
         st = ScrolledText(
             self, wrap="none", readonly=True,
-            bg="white", bd=0, font=("Courier New", 10),
+            bg="white", bd=0, font=config.mono_font(),
         )
         st.grid(row=0, column=0, sticky="nsew")
         st.load_file(config.page_file(self.module))
@@ -55,7 +55,7 @@ class SystemPage(BasePage):
 
         frame = tk.Frame(self, bg=bg, bd=1, relief="solid")
         tk.Label(frame, text="pdkgui version", bg=bg, anchor="w",
-                 font=("Arial", 10, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+                 font=config.ui_font(0, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
 
         if outdated:
             running, live, _dir = update
@@ -69,7 +69,7 @@ class SystemPage(BasePage):
             tk.Button(frame, text="Restart now", width=14,
                       command=self.app.restart).pack(anchor="w", padx=10, pady=8)
         elif config.live_install_dir():
-            tk.Label(frame, bg=bg, anchor="w", fg=_OK_FG, font=("Arial", 11),
+            tk.Label(frame, bg=bg, anchor="w", fg=_OK_FG, font=config.ui_font(1),
                      text=config.release_name(config.BASE_DIR)
                      ).pack(anchor="w", padx=10)
             tk.Label(frame, bg=bg, anchor="w", fg="#555",
