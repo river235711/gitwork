@@ -214,6 +214,56 @@ def read_doc_index(design):
                 docs.append((docno, docid, title))
     return docs
 
+
+# --------------------------------------------------------------------------
+# Deployed-version detection
+# --------------------------------------------------------------------------
+# Releases live in <bin>/_pdkgui/<version>/pdkgui/ and users start the app
+# through <bin>/pdkgui, a symlink to the release that <bin>/_pdkgui/current
+# points at. Switching version is just repointing that symlink, so an already
+# running instance keeps using the release it started from. Resolving the entry
+# point tells us which release is live now; BASE_DIR is the one we are running
+# (it is this file's directory -- also correct in a build, where the import hook
+# sets __file__ to the .pdkc path). Override the entry with PDKGUI_ENTRY.
+LIVE_ENTRY = os.environ.get("PDKGUI_ENTRY", "/datacenter/techLibs/cad/bin/pdkgui")
+
+
+def live_install_dir():
+    """Directory of the release <LIVE_ENTRY> currently resolves to, else None."""
+    try:
+        if not os.path.exists(LIVE_ENTRY):
+            return None
+        return os.path.dirname(os.path.realpath(LIVE_ENTRY))
+    except OSError:
+        return None
+
+
+def release_name(path):
+    """Display name of a release directory: '/..._pdkgui/2026.0728/pdkgui'
+    -> '2026.0728' (the version dir), otherwise the directory's own name."""
+    path = path.rstrip(os.sep)
+    head, tail = os.path.split(path)
+    return os.path.basename(head) if tail == "pdkgui" and head else tail
+
+
+def pending_update():
+    """(running release, live release, live dir) when the deployed version has
+    moved on, else None.
+
+    None also when the entry point is missing or unreadable -- a source checkout
+    or a broken share must never disturb the GUI."""
+    live = live_install_dir()
+    if not live:
+        return None
+    try:
+        running = os.path.realpath(BASE_DIR)
+    except OSError:
+        return None
+    if os.path.normpath(live) == os.path.normpath(running):
+        return None
+    return release_name(running), release_name(live), live
+
+
 # Source directory for the XRC hcell / xcell symbolic links (per PDK / process).
 # The run script does:  ln -sf <this dir>/hcell   and   ln -sf <this dir>/xcell
 # Override via env PDKGUI_XRC_HCELL_DIR.

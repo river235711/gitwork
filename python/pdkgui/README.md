@@ -159,6 +159,25 @@ Keeping `central/` outside the version directories is deliberate: a deck update
 is just an edit to one `.inc` and needs no release, and rolling the program back
 does not silently roll the decks back with it.
 
+### Telling users a new release is out
+
+Repointing `current` does not affect windows that are already open -- they keep
+running the release they started from. So pdkgui watches for it: every 5 minutes
+it resolves `config.LIVE_ENTRY` (`/datacenter/techLibs/cad/bin/pdkgui`, override
+with `PDKGUI_ENTRY`) and compares that release with the one it is running from.
+
+- A strip appears along the bottom: *"A newer pdkgui is available: 2026.0728
+  (this window is running 2026.0720)"*, with **Restart now** and **Later**
+  (Later hides it for 30 minutes).
+- **Run** on a verification tab asks first -- running a verification from a
+  superseded release is the case worth catching. Choosing "run with the version
+  you have" is remembered for the rest of the session, so repeated runs are not
+  interrupted.
+- Restarting saves the session first and reopens on the same tab. Runs already
+  launched are in their own terminals and are unaffected.
+- Nothing is ever restarted behind the user's back, and if the entry point is
+  missing (a source checkout, an unreachable share) the whole thing stays dormant.
+
 ## Converting an old central directory (central_migrate.py)
 
 The old central directory was flat -- one file per tab+process. `central_migrate.py`

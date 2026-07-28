@@ -710,6 +710,9 @@ class VerifyPage(BasePage):
         os.chmod(run_path, 0o755)
 
     def _on_run(self):
+        # a verification is the worst thing to run from a superseded release
+        if not self.app.confirm_if_outdated():
+            return
         folder = self._prepare_folder()
         if not folder:
             return
