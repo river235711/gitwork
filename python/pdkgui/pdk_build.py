@@ -14,7 +14,11 @@ Produce the encrypted deploy directory dist/.
     env vars, so after deployment you just run it -- no env setup or unset needed.
 
 Usage:
-    python3 pdk_build.py [out_dir=dist]
+    python3 pdk_build.py [out_dir=dist] [install_dir]
+
+    # install_dir is where the build will finally live; it is pinned into
+    # dist/pdkgui as DEFAULT_HOME (defaults to out_dir, or $PDKGUI_INSTALL_DIR):
+    python3 pdk_build.py dist /datacenter/users/you/work/tmp2/pdkgui/dist
 
     # to use a custom key (optional): set it at pack time; not needed at runtime.
     PDKGUI_KEY='your-secret' python3 pdk_build.py dist
@@ -60,8 +64,13 @@ def _encrypt_to(src_rel, dist):
     return out
 
 
-def build(dist_name="dist"):
+def build(dist_name="dist", install_dir=None):
     dist = os.path.join(SRC, dist_name)
+    # Where the build will finally live. Defaults to the dist dir itself; pass
+    # the deployed path (arg or $PDKGUI_INSTALL_DIR) when dist/ is copied to a
+    # share afterwards, e.g. /datacenter/users/<you>/work/tmp2/pdkgui/dist
+    install_dir = (install_dir or os.environ.get("PDKGUI_INSTALL_DIR")
+                   or os.path.abspath(dist))
     if os.path.exists(dist):
         shutil.rmtree(dist)
     os.makedirs(dist)
@@ -88,8 +97,13 @@ def build(dist_name="dist"):
     #    vars, so dist runs anywhere regardless of a leftover PDKGUI_KEY -- no unset.
     _pin_key(os.path.join(dist, "pdkcrypt.py"), build_key)
 
+    # 5. point the copied launcher's DEFAULT_HOME at the install dir instead of
+    #    the source checkout it was copied from
+    _pin_default_home(os.path.join(dist, "pdkgui"), install_dir)
+
     using_default = (build_key == pdkcrypt.DEFAULT_PASSPHRASE)
     print("deploy build created: %s" % dist)
+    print("  install   : %s (pinned as DEFAULT_HOME in dist/pdkgui)" % install_dir)
     print("  key       : pinned into dist/pdkcrypt.py (runtime ignores env vars, no unset)")
     print("  key source: %s" % ("built-in default" if using_default
                                  else "PDKGUI_KEY / key file active at pack time"))
@@ -98,6 +112,21 @@ def build(dist_name="dist"):
     print("\nDeploy: move the whole dist/ to the target and run it (no env needed):")
     print("  %s/pdkgui" % dist)
     return dist
+
+
+def _pin_default_home(launcher_path, install_dir):
+    """Point dist/pdkgui's DEFAULT_HOME at where the build will be installed.
+
+    The launcher is copied verbatim, so without this the deployed copy keeps the
+    source checkout's path. DEFAULT_HOME only matters when the launcher itself is
+    copied somewhere else (onto PATH, say) -- running dist/pdkgui or a symlink to
+    it finds pdkgui.py next to the script and never reads DEFAULT_HOME."""
+    with open(launcher_path, encoding="utf-8") as f:
+        src = f.read()
+    src = re.sub(r'(?m)^DEFAULT_HOME=.*$',
+                 'DEFAULT_HOME="%s"' % install_dir, src, count=1)
+    with open(launcher_path, "w", encoding="utf-8") as f:
+        f.write(src)
 
 
 def _pin_key(pdkcrypt_path, key):
@@ -114,4 +143,5 @@ def _pin_key(pdkcrypt_path, key):
 
 
 if __name__ == "__main__":
-    build(sys.argv[1] if len(sys.argv) > 1 else "dist")
+    build(sys.argv[1] if len(sys.argv) > 1 else "dist",
+          sys.argv[2] if len(sys.argv) > 2 else None)
