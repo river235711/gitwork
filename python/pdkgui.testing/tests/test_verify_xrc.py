@@ -12,6 +12,7 @@ import os
 import unittest
 
 import config
+import sandbox
 from harness import GuiTestCase
 
 NETLIST_KINDS = ("DISTRIBUTED", "LUMPED", "SIMPLE")
@@ -148,6 +149,27 @@ class XrcOptions(GuiTestCase):
         self.set_check(self.page, "LvsHier", False)
         self.click(self.page, "Run")
         self.assertIn("calibre -64 -lvs -hcell hcell", self.run_script())
+
+    # --- the optional DFM export --------------------------------------
+    def test_no_dfm_export_when_the_process_does_not_need_one(self):
+        self.click(self.page, "Run")
+        script = self.run_script()
+        self.assertNotIn("TSMC_CAL_DFM_PATH", script)
+        # the module loads are still followed by a blank line
+        self.assertEqual(script.splitlines()[3], "")
+
+    def test_dfm_export_follows_the_module_loads_when_central_sets_it(self):
+        self.set_design(sandbox.DESIGN2)
+        page = self.open_tab("XRC")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.click(page, "Run")
+
+        lines = self.run_script().splitlines()
+        self.assertEqual(lines[3], "export TSMC_CAL_DFM_PATH=%s" % sandbox.DFM_PATH,
+                         "the export is not on the line after the module loads")
+        self.assertTrue(lines[1].startswith("module load"))
+        self.assertTrue(lines[2].startswith("module load"))
+        self.assertTrue(lines[4].startswith("rm -rf"))
 
     # --- rve ----------------------------------------------------------
     def test_rve_opens_the_pex_view_of_the_svdb(self):

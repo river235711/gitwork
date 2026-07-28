@@ -59,9 +59,11 @@ def central_include_file(module, design):
 def central_xrc_paths(design):
     """XRC.inc as a 'key = value' file (parsed by read_conf), holding the four
     central XRC files:  hcell, xcell (run-script ln -sf sources), rules (the
-    .../include_for_xrc/XRC_calibre.<ver> base) and deck (the DFM_LVS_RC deck).
+    .../include_for_xrc/XRC_calibre.<ver> base) and deck (the DFM_LVS_RC deck),
+    plus an optional fifth:  dfm, exported as TSMC_CAL_DFM_PATH by the run
+    script for the processes whose deck needs it.
     Returns {} when the file is absent. Unlike DRC.inc (a single deck-path line)
-    XRC.inc is multi-key because XRC needs four paths."""
+    XRC.inc is multi-key because XRC needs several paths."""
     return read_conf(central_include_file("XRC", design))
 
 

@@ -45,6 +45,10 @@ DOC_PDFS = ("TN22CLDR001C1_1_8a.pdf", "N22_DRC_Switch_UserGuide_V18a.pdf")
 OLD_RELEASE = "2026.0720"
 NEW_RELEASE = "2026.0728"
 
+# the optional XRC.inc key DESIGN2 carries (see _build_central)
+DFM_PATH = ("/datacenter/techLibs/tsmc/T22N/tools/pdk_sirius/T22N/calibre_layout"
+            "/tsmc/T40/T40LP_1P6M_4X1U/layout_utility/xrc/include_for_xrc/DFM")
+
 
 def paths():
     """Every location the tests care about."""
@@ -98,8 +102,12 @@ def _build_central(src_dir, p):
         raise RuntimeError("central_example not found in %s" % src_dir)
     shutil.copytree(example, p["central"])
 
-    # a second design, so per-design behaviour is actually exercised
+    # a second design, so per-design behaviour is actually exercised. It stands
+    # in for the t40lp processes, whose decks need TSMC_CAL_DFM_PATH exported --
+    # so it carries the optional 'dfm' key that t22 does not.
     shutil.copytree(p["design"], p["design2"])
+    with open(os.path.join(p["design2"], "XRC.inc"), "a", encoding="utf-8") as f:
+        f.write("dfm   = %s\n" % DFM_PATH)
 
     # the DOC pdf tree the index points at (central_example ships only a README)
     group = os.path.join(p["design"], "doc", DOC_NO, DOC_ID)

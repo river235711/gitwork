@@ -657,19 +657,23 @@ class VerifyPage(BasePage):
         #   -c   -> lumped netlist (<primary>.lump*)
         #   -rcc -> distributed netlist (<primary>.dist*)
         netlist_ext = self._xrc_netlist_ext()
+        # Processes whose deck needs the DFM rules set 'dfm' in XRC.inc; those
+        # that do not simply leave the line out (a blank line stays instead).
+        dfm = conf.get("dfm")
+        dfm_line = "export TSMC_CAL_DFM_PATH=%s\n" % dfm if dfm else "\n"
         script = (
             "#!/bin/bash -l\n"
             "module load %s\n"
             "module load %s\n"
-            "\n"
+            "%s"
             "rm -rf lvs.log pdb.log fmt.log %s.%s* svdb/\n"
             "if [ ! -e hcell ] && [ ! -L hcell ]; then ln -sf %s; fi\n"
             "if [ ! -e xcell ] && [ ! -L xcell ]; then ln -sf %s; fi\n"
             "calibre -64 -lvs %s-hcell hcell %s | tee lvs.log\n"
             "calibre -64 -xrc -pdb -turbo -turbo_all -xcell xcell -%s %s | tee pdb.log\n"
             "calibre -64 -xrc -fmt -xcell xcell -%s %s | tee fmt.log\n"
-        ) % (self._calibre_env(), self._jivaro_env(), primary, netlist_ext,
-             hcell, xcell, hier, com, exttype, com, exttype, com)
+        ) % (self._calibre_env(), self._jivaro_env(), dfm_line, primary,
+             netlist_ext, hcell, xcell, hier, com, exttype, com, exttype, com)
         if self._checked("XrcReduction"):
             script += "jivaro -xml jivaro.xml\n"
         return script
