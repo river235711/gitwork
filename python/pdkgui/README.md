@@ -166,7 +166,12 @@ running the release they started from. So pdkgui watches for it: every 5 minutes
 it resolves `config.LIVE_ENTRY` (`/datacenter/techLibs/cad/bin/pdkgui`, override
 with `PDKGUI_ENTRY`) and compares that release with the one it is running from.
 
-- A strip appears along the bottom: *"A newer pdkgui is available: 2026.0728
+It compares *which directory* the entry point resolves to, not version numbers --
+version names are not reliably ordered (`3.6` vs `3.601` vs `2026.0401`), and the
+release to move to is whatever `current` points at, which after a rollback is the
+older one. The wording stays neutral for that reason.
+
+- A strip appears along the bottom: *"The current pdkgui release is now 2026.0728
   (this window is running 2026.0720)"*, with **Restart now** and **Later**
   (Later hides it for 30 minutes).
 - **Run** on a verification tab asks first -- running a verification from a

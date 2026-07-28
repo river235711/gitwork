@@ -148,13 +148,16 @@ class PdkGui(tk.Tk):
                   command=self.restart).pack(side="right", padx=4, pady=3)
 
     def _check_update(self):
-        """Poll for a newer release and show the banner; reschedules itself."""
+        """Poll for a change of deployed release and show the banner; reschedules
+        itself. The wording stays neutral about which release is newer: version
+        names are not reliably ordered (3.6 vs 3.601 vs 2026.0401), and after a
+        rollback the release to move to is the older one."""
         update = config.pending_update()
         if update and not self._update_snoozed:
             running, live, _dir = update
             self._banner_label.configure(
-                text="A newer pdkgui is available: %s  (this window is running %s)"
-                     % (live, running))
+                text="The current pdkgui release is now %s  "
+                     "(this window is running %s)" % (live, running))
             self._banner.pack(side="bottom", fill="x")
         elif not update:
             # went away again (rolled back to our release): drop the banner
