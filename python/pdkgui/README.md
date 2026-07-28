@@ -137,14 +137,23 @@ symlink, and the central configuration is shared by every version:
 Releasing a new version:
 
 ```bash
-python3 pdk_build.py dist /datacenter/techLibs/cad/bin/_pdkgui/current/pdkgui
-cp -r dist /datacenter/techLibs/cad/bin/_pdkgui/<version>/pdkgui
-cd /datacenter/techLibs/cad/bin/_pdkgui && ln -sfn <version> current
+V=2026.0728
+python3 pdk_build.py dist /datacenter/techLibs/cad/bin/_pdkgui/$V/pdkgui
+cp -r dist /datacenter/techLibs/cad/bin/_pdkgui/$V/pdkgui
+cd /datacenter/techLibs/cad/bin/_pdkgui && ln -sfn $V current
 ```
 
-Because `bin/pdkgui` is a symlink, the launcher resolves it and finds `pdkgui.py`
-in the release directory, so `DEFAULT_HOME` is never consulted -- it only matters
-if the launcher is *copied* somewhere instead.
+Pin the install dir to **that version**, not to `current`: the build is then
+self-consistent, and a launcher copied out of it runs the version it came from.
+Pinning `current` instead would make a release's behaviour depend on where the
+symlink happens to point -- validating a new release before flipping `current`
+would silently run the old one.
+
+"Always the newest" is the symlink's job, not `DEFAULT_HOME`'s. Since
+`bin/pdkgui` is a symlink, the launcher resolves it, finds `pdkgui.py` in the
+release directory and never reads `DEFAULT_HOME` at all; `PDKGUI_HOME` covers
+pointing at another version temporarily. `DEFAULT_HOME` is only the fallback for
+a launcher *copied* elsewhere.
 
 Keeping `central/` outside the version directories is deliberate: a deck update
 is just an edit to one `.inc` and needs no release, and rolling the program back

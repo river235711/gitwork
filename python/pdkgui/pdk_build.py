@@ -17,8 +17,10 @@ Usage:
     python3 pdk_build.py [out_dir=dist] [install_dir]
 
     # install_dir is where the build will finally live; it is pinned into
-    # dist/pdkgui as DEFAULT_HOME (defaults to out_dir, or $PDKGUI_INSTALL_DIR):
-    python3 pdk_build.py dist /datacenter/users/you/work/tmp2/pdkgui/dist
+    # dist/pdkgui as DEFAULT_HOME (defaults to out_dir, or $PDKGUI_INSTALL_DIR).
+    # Give the version's own directory, not a "current" symlink, so the build
+    # stays self-consistent -- see README, "Deployment layout".
+    python3 pdk_build.py dist /datacenter/techLibs/cad/bin/_pdkgui/2026.0728/pdkgui
 
     # to use a custom key (optional): set it at pack time; not needed at runtime.
     PDKGUI_KEY='your-secret' python3 pdk_build.py dist
@@ -68,7 +70,9 @@ def build(dist_name="dist", install_dir=None):
     dist = os.path.join(SRC, dist_name)
     # Where the build will finally live. Defaults to the dist dir itself; pass
     # the deployed path (arg or $PDKGUI_INSTALL_DIR) when dist/ is copied to a
-    # share afterwards, e.g. /datacenter/users/<you>/work/tmp2/pdkgui/dist
+    # share afterwards -- use that version's own directory, e.g.
+    # /datacenter/techLibs/cad/bin/_pdkgui/<version>/pdkgui, never the "current"
+    # symlink, so a launcher copied out of the build runs the version it is from
     install_dir = (install_dir or os.environ.get("PDKGUI_INSTALL_DIR")
                    or os.path.abspath(dist))
     if os.path.exists(dist):
