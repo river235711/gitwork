@@ -12,9 +12,15 @@ python3 run_tests.py --keep          # keep .sandbox to inspect what was written
 python3 run_tests.py --src /path/to/pdkgui
 ```
 
-The tests need a display (they build real Tk widgets). Run them in an X session;
-with no `DISPLAY` the runner starts Xvfb if it is installed, otherwise it stops
-and says so.
+On the EDA hosts the system `python3` has no tkinter -- it comes from a module.
+The runner handles that itself: it re-runs under `python/3.6.3` the same way the
+`pdkgui` launcher does, so plain `python3 run_tests.py` works there. Override
+with `PDKGUI_MODULE=python/<version>` or point `PDKGUI_PYTHON` straight at an
+interpreter.
+
+The tests also need a display (they build real Tk widgets, kept hidden). Run
+them in an X session or over `ssh -X`; with no `DISPLAY` the runner starts Xvfb
+if it is installed, otherwise it stops and says so.
 
 ## How it stays out of the way
 

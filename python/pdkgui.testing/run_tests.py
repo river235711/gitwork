@@ -28,6 +28,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SRC = os.path.normpath(os.path.join(HERE, os.pardir, "pdkgui"))
+_REEXEC_FLAG = "PDKGUI_TEST_REEXEC"      # guards against re-running in a loop
 
 
 def _find_source(explicit):
@@ -37,6 +38,45 @@ def _find_source(explicit):
         sys.exit("pdkgui source not found in %s\n"
                  "Pass --src /path/to/pdkgui or set PDKGUI_SRC." % src)
     return src
+
+
+def _ensure_tkinter():
+    """Re-run under a python that has tkinter, the way the pdkgui launcher does.
+
+    The EDA hosts' system python3 has no tkinter -- it comes from a module
+    (python/3.6.3 by default, PDKGUI_MODULE to pick another, or PDKGUI_PYTHON to
+    name an interpreter directly). Without this, the run dies with a confusing
+    ImportError inside the first test instead of just working."""
+    try:
+        import tkinter                                    # noqa: F401
+        return
+    except ImportError:
+        pass
+    if os.environ.get(_REEXEC_FLAG):
+        sys.exit("This python has no tkinter, and loading %s did not provide one.\n"
+                 "Point PDKGUI_PYTHON at an interpreter that has it, or\n"
+                 "PDKGUI_MODULE at the right module."
+                 % os.environ.get("PDKGUI_MODULE", "python/3.6.3"))
+
+    os.environ[_REEXEC_FLAG] = "1"
+    argv = " ".join(_quote(a) for a in [sys.argv[0]] + sys.argv[1:])
+    module = os.environ.get("PDKGUI_MODULE", "python/3.6.3")
+    python = os.environ.get("PDKGUI_PYTHON", "python3")
+    script = (
+        'for _i in "$MODULESHOME/init/bash" /usr/share/Modules/init/bash '
+        '/etc/profile.d/modules.sh /usr/share/lmod/lmod/init/bash; do\n'
+        '  [ -f "$_i" ] && . "$_i" && break\n'
+        'done\n'
+        'type module >/dev/null 2>&1 && module load %s >/dev/null 2>&1\n'
+        'exec %s %s\n'
+    ) % (_quote(module), _quote(python), argv)
+    print("no tkinter in this python -- reloading via module %s\n" % module)
+    sys.stdout.flush()          # exec replaces us; unflushed output would be lost
+    os.execvp("bash", ["bash", "-lc", script])
+
+
+def _quote(arg):
+    return "'" + str(arg).replace("'", "'\\''") + "'"
 
 
 def _ensure_display():
@@ -66,6 +106,7 @@ def main():
     args = ap.parse_args()
 
     src = _find_source(args.src)
+    _ensure_tkinter()            # may re-exec this script and not return
     display = _ensure_display()
 
     sys.path.insert(0, HERE)          # harness, sandbox
