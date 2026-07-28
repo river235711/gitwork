@@ -68,9 +68,9 @@ class SystemPage(BasePage):
                      ).pack(anchor="w", padx=10, pady=(4, 0))
             tk.Button(frame, text="Restart now", width=14,
                       command=self.app.restart).pack(anchor="w", padx=10, pady=8)
-        elif config.live_install_dir():
+        elif config.running_release():
             tk.Label(frame, bg=bg, anchor="w", fg=_OK_FG, font=config.ui_font(1),
-                     text=config.release_name(config.BASE_DIR)
+                     text=config.running_release()
                      ).pack(anchor="w", padx=10)
             tk.Label(frame, bg=bg, anchor="w", fg="#555",
                      text="This is the current release."

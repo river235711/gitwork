@@ -299,22 +299,39 @@ def release_name(path):
     return os.path.basename(head) if tail == "pdkgui" and head else tail
 
 
+def running_release():
+    """Name of the release this instance is installed as, else None.
+
+    None means we are not part of the tree the 'current' symlink governs -- a
+    source checkout, or a link pointing at someone else's tree -- in which case
+    that symlink says nothing about us and no version should be claimed."""
+    try:
+        link = current_link()
+        if not os.path.exists(link):
+            return None
+        releases_root = os.path.dirname(os.path.realpath(link))
+        running = os.path.realpath(BASE_DIR)
+        if (os.path.normpath(os.path.dirname(os.path.dirname(running)))
+                != os.path.normpath(releases_root)):
+            return None
+        return release_name(running)
+    except OSError:
+        return None
+
+
 def pending_update():
     """(running release, live release, live dir) when the deployed version has
     moved on, else None.
 
-    None also when the entry point is missing or unreadable -- a source checkout
-    or a broken share must never disturb the GUI."""
+    None also when the link is missing or unreadable, or we are not installed in
+    its tree -- a source checkout or a broken share must never disturb the GUI."""
     live = live_install_dir()
-    if not live:
+    running_name = running_release()
+    if not live or not running_name:
         return None
-    try:
-        running = os.path.realpath(BASE_DIR)
-    except OSError:
+    if os.path.normpath(live) == os.path.normpath(os.path.realpath(BASE_DIR)):
         return None
-    if os.path.normpath(live) == os.path.normpath(running):
-        return None
-    return release_name(running), release_name(live), live
+    return running_name, release_name(live), live
 
 
 # Source directory for the XRC hcell / xcell symbolic links (per PDK / process).
