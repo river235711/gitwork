@@ -144,8 +144,12 @@ def inc_text(module, conf):
 
 
 def collect(old_dir):
-    """Scan the old central dir -> {(module, process): {'com': path, 'fab': path}}."""
-    found = {}
+    """Scan the old central dir.
+
+    Returns ({(module, process): {'com': path, 'fab': path}}, [ignored names]):
+    files whose stem starts with no known module (e.g. the DOC ones) are listed
+    so nothing disappears silently."""
+    found, ignored = {}, []
     for name in sorted(os.listdir(old_dir)):
         if not name.startswith(PREFIX):
             continue
@@ -155,8 +159,10 @@ def collect(old_dir):
                 if module:
                     found.setdefault((module, process), {})[kind] = \
                         os.path.join(old_dir, name)
+                else:
+                    ignored.append(name)
                 break
-    return found
+    return found, ignored
 
 
 def write_file(path, text, write, force):
@@ -189,12 +195,14 @@ def main():
     if not os.path.isdir(args.old):
         sys.exit("old central dir not found: %s" % args.old)
 
-    found = collect(args.old)
+    found, ignored = collect(args.old)
     if not found:
         sys.exit("no .pdkgui.*.commandfile / .fab files in %s" % args.old)
 
     counts, issues = {}, []
+    per_process = {}
     for (module, process), src in sorted(found.items()):
+        per_process.setdefault(process, []).append(module)
         for kind, ext in (("com", ".com"), ("fab", ".inc")):
             path = src.get(kind)
             if not path:
@@ -218,6 +226,16 @@ def main():
     print("\n%d process/module pairs from %s" % (len(found), args.old))
     for status in sorted(counts):
         print("  %-11s %d" % (status, counts[status]))
+
+    print("\n%d process(es):" % len(per_process))
+    for process in sorted(per_process):
+        modules = sorted(per_process[process])
+        print("  %-20s %2d modules  %s" % (process, len(modules), " ".join(modules)))
+
+    if ignored:
+        print("\nignored (no known module name at the start of the file name):")
+        for name in ignored:
+            print("  " + name)
     if issues:
         print("\nneeds attention:")
         for i in issues:
