@@ -20,11 +20,6 @@ import config
 from pages import build_page
 from pages.env import env_defaults
 
-# How often to notice that the deployed release changed, and how long "later"
-# silences the banner for.
-UPDATE_POLL_MS = 5 * 60 * 1000
-UPDATE_SNOOZE_MS = 30 * 60 * 1000
-
 
 class PdkGui(tk.Tk):
     def __init__(self):
@@ -56,16 +51,12 @@ class PdkGui(tk.Tk):
                 if v:
                     self.env[k] = v
         self._page = None
-        self._update_snoozed = False   # "later" pressed on the banner
         self._update_ack = False       # "run anyway" chosen on the Run prompt
 
-        # built first so it owns the full-width strip along the bottom
-        self._build_update_banner()
         self._build_sidebar()
         self._build_content_area()
         self.show_module(self._restore_module())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._check_update()
 
     def _restore_module(self):
         """The tab open when we last exited (so a restart lands where you were)."""
@@ -134,45 +125,9 @@ class PdkGui(tk.Tk):
 
     # ------------------------------------------------------------------
     # Deployed-version check: the release we run from can be superseded while
-    # the window stays open (an admin repoints the "current" symlink).
+    # the window stays open (an admin repoints the "current" symlink). The
+    # SYSTEM tab shows the state; a Run asks before using a superseded release.
     # ------------------------------------------------------------------
-    def _build_update_banner(self):
-        """Full-width strip along the bottom; packed only while an update waits."""
-        self._banner = tk.Frame(self, bg="#ffe9a8", bd=1, relief="solid")
-        self._banner_label = tk.Label(self._banner, bg="#ffe9a8", anchor="w",
-                                      justify="left")
-        self._banner_label.pack(side="left", padx=8, pady=4)
-        tk.Button(self._banner, text="Later",
-                  command=self._snooze_update).pack(side="right", padx=(4, 8), pady=3)
-        tk.Button(self._banner, text="Restart now",
-                  command=self.restart).pack(side="right", padx=4, pady=3)
-
-    def _check_update(self):
-        """Poll for a change of deployed release and show the banner; reschedules
-        itself. The wording stays neutral about which release is newer: version
-        names are not reliably ordered (3.6 vs 3.601 vs 2026.0401), and after a
-        rollback the release to move to is the older one."""
-        update = config.pending_update()
-        if update and not self._update_snoozed:
-            running, live, _dir = update
-            self._banner_label.configure(
-                text="The current pdkgui release is now %s  "
-                     "(this window is running %s)" % (live, running))
-            self._banner.pack(side="bottom", fill="x")
-        elif not update:
-            # went away again (rolled back to our release): drop the banner
-            self._banner.pack_forget()
-            self._update_snoozed = False
-        self.after(UPDATE_POLL_MS, self._check_update)
-
-    def _snooze_update(self):
-        self._banner.pack_forget()
-        self._update_snoozed = True
-        self.after(UPDATE_SNOOZE_MS, self._unsnooze_update)
-
-    def _unsnooze_update(self):
-        self._update_snoozed = False
-
     def confirm_if_outdated(self):
         """Called before a Run. False means the caller must not proceed (the user
         chose to restart). Asking once per session is enough -- someone who wants
@@ -198,15 +153,18 @@ class PdkGui(tk.Tk):
 
         Runs already launched from a tab live in their own terminals, so they are
         unaffected."""
+        launcher = config.live_launcher()
+        if not launcher:
+            messagebox.showerror("pdkgui", "The current release could not be found;\n"
+                                           "close pdkgui and start it again manually.")
+            return
         self._flush_page()
         try:
-            subprocess.Popen([config.LIVE_ENTRY],
-                             start_new_session=True, close_fds=True)
+            subprocess.Popen([launcher], start_new_session=True, close_fds=True)
         except Exception as e:
             messagebox.showerror(
                 "pdkgui", "Could not restart from:\n%s\n\n%s\n\n"
-                          "Close pdkgui and start it again manually."
-                          % (config.LIVE_ENTRY, e))
+                          "Close pdkgui and start it again manually." % (launcher, e))
             return
         self.destroy()
 

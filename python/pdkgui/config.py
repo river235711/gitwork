@@ -218,24 +218,45 @@ def read_doc_index(design):
 # --------------------------------------------------------------------------
 # Deployed-version detection
 # --------------------------------------------------------------------------
-# Releases live in <bin>/_pdkgui/<version>/pdkgui/ and users start the app
-# through <bin>/pdkgui, a symlink to the release that <bin>/_pdkgui/current
-# points at. Switching version is just repointing that symlink, so an already
-# running instance keeps using the release it started from. Resolving the entry
-# point tells us which release is live now; BASE_DIR is the one we are running
-# (it is this file's directory -- also correct in a build, where the import hook
-# sets __file__ to the .pdkc path). Override the entry with PDKGUI_ENTRY.
-LIVE_ENTRY = os.environ.get("PDKGUI_ENTRY", "/datacenter/techLibs/cad/bin/pdkgui")
+# Releases live in <bin>/_pdkgui/<version>/pdkgui/ and <bin>/_pdkgui/current is
+# the symlink naming the release everyone should be on. Switching version just
+# repoints it, so an instance that is already running stays on the release it
+# started from.
+#
+# The live release is read from that symlink, not from <bin>/pdkgui: the entry
+# point users type may be a *copy* of the launcher rather than a symlink into a
+# release, in which case resolving it yields <bin> and tells us nothing.
+#
+# The link is derived from where we are running (BASE_DIR is this file's
+# directory -- also correct in a build, where the import hook sets __file__ to
+# the .pdkc path), so no absolute path is hard-coded and a source checkout simply
+# finds nothing. Override with PDKGUI_CURRENT_LINK.
+RELEASE_LINK = "current"
+
+
+def current_link():
+    """<releases root>/current -- sibling of the release we run from."""
+    return (os.environ.get("PDKGUI_CURRENT_LINK")
+            or os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), RELEASE_LINK))
 
 
 def live_install_dir():
-    """Directory of the release <LIVE_ENTRY> currently resolves to, else None."""
+    """Install directory inside the release <current> points at, else None."""
     try:
-        if not os.path.exists(LIVE_ENTRY):
+        link = current_link()
+        if not os.path.exists(link):
             return None
-        return os.path.dirname(os.path.realpath(LIVE_ENTRY))
+        # keep our own sub-directory name (…/<version>/pdkgui)
+        live = os.path.join(os.path.realpath(link), os.path.basename(BASE_DIR))
+        return live if os.path.isdir(live) else None
     except OSError:
         return None
+
+
+def live_launcher():
+    """The launcher script inside the live release (what a restart should run)."""
+    live = live_install_dir()
+    return os.path.join(live, "pdkgui") if live else None
 
 
 def release_name(path):

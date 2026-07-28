@@ -162,26 +162,33 @@ does not silently roll the decks back with it.
 ### Telling users a new release is out
 
 Repointing `current` does not affect windows that are already open -- they keep
-running the release they started from. So pdkgui watches for it: every 5 minutes
-it resolves `config.LIVE_ENTRY` (`/datacenter/techLibs/cad/bin/pdkgui`, override
-with `PDKGUI_ENTRY`) and compares that release with the one it is running from.
+running the release they started from. pdkgui compares the release it runs from
+(`config.BASE_DIR`) with the one `_pdkgui/current` points at:
 
-It compares *which directory* the entry point resolves to, not version numbers --
-version names are not reliably ordered (`3.6` vs `3.601` vs `2026.0401`), and the
-release to move to is whatever `current` points at, which after a rollback is the
-older one. The wording stays neutral for that reason.
-
-- A strip appears along the bottom: *"The current pdkgui release is now 2026.0728
-  (this window is running 2026.0720)"*, with **Restart now** and **Later**
-  (Later hides it for 30 minutes).
+- The **SYSTEM tab** is split in half: the revision history on top, the version
+  panel below. When up to date it shows just the release, e.g. `2026.0729`; when
+  the current release has moved on it names both and offers **Restart now**. The
+  check runs when the tab is opened, so revisiting SYSTEM refreshes it.
 - **Run** on a verification tab asks first -- running a verification from a
   superseded release is the case worth catching. Choosing "run with the version
   you have" is remembered for the rest of the session, so repeated runs are not
   interrupted.
 - Restarting saves the session first and reopens on the same tab. Runs already
   launched are in their own terminals and are unaffected.
-- Nothing is ever restarted behind the user's back, and if the entry point is
-  missing (a source checkout, an unreachable share) the whole thing stays dormant.
+
+Two details worth knowing:
+
+- The live release is read from the `current` **symlink**, not from `bin/pdkgui`:
+  that entry point may be a *copy* of the launcher rather than a symlink into a
+  release, in which case resolving it just yields `bin`. The link is located
+  relative to the running release, so no absolute path is baked in (override with
+  `PDKGUI_CURRENT_LINK`).
+- It compares *directories*, not version numbers -- version names are not
+  reliably ordered (`3.6` vs `3.601` vs `2026.0401`), and after a rollback the
+  release to move to is the older one. The wording stays neutral for that reason.
+
+Outside a release layout (a source checkout, an unreachable share) the panel just
+reports the directory it is running from and nothing else happens.
 
 ## Converting an old central directory (central_migrate.py)
 
