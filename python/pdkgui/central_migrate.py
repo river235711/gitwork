@@ -12,6 +12,8 @@ New central (one subdirectory per process):
 
     <NEW>/<PROCESS>/<MODULE>.com     the command file (copied verbatim)
     <NEW>/<PROCESS>/<MODULE>.inc     the deck pointer
+    <NEW>/<PROCESS>/SKIPPER.conf     the skipper viewer paths (from the skipper
+                                     .fab; that tab has no command file)
 
 .fab -> .inc conversion:
 
@@ -30,6 +32,13 @@ New central (one subdirectory per process):
         rccorner_typical <BASE>/typical/rules
         rccorner_cbest   <BASE>/cbest/rules  ->  rules = <BASE>
         ...
+
+  * SKIPPER -- the same 'key <value>' lines become 'key = value':
+
+        cdsTech /...//techfile               ->  cdsTech     = /...//techfile
+        cdsDisp /.../display.drf             ->  cdsDisp     = /.../display.drf
+        cdsLayerMap /.../tsmcN22.layermap    ->  cdsLayerMap = /.../tsmcN22.layermap
+        init /.../t22.init.tcl               ->  init        = /.../t22.init.tcl
 
 Usage:
     python3 central_migrate.py                     # default paths, dry run
@@ -51,6 +60,17 @@ PREFIX = ".pdkgui."
 CORNER_KEY = "rccorner_"
 CORNER_TAIL = "/rules"
 
+# SKIPPER has no command file: its .fab becomes SKIPPER.conf instead of an .inc
+SKIPPER = "SKIPPER"
+MODULES = config.VERIFY_MODULES + [SKIPPER]
+SKIPPER_KEYS = ("cdsTech", "cdsDisp", "cdsLayerMap", "init")
+
+SKIPPER_CONF_HEADER = """\
+# skipper viewer settings for this design (read by the SKIPPER tab and by
+# the View buttons on other tabs). 'init' is optional -- if unset or the file
+# is missing, pdkgui omits -init from the skipper command.
+"""
+
 XRC_INC_HEADER = """\
 # XRC central files (parsed as 'key = value'; #-comments and blank lines
 # ignored). Four keys:
@@ -68,7 +88,7 @@ def split_stem(stem):
 
     Module and process are concatenated without a separator, so match the known
     module names (longest first) against the front of the stem."""
-    for module in sorted(config.VERIFY_MODULES, key=len, reverse=True):
+    for module in sorted(MODULES, key=len, reverse=True):
         low = module.lower()
         if stem.startswith(low) and len(stem) > len(low):
             return module, stem[len(low):]
@@ -143,6 +163,31 @@ def inc_text(module, conf):
     return text, problems
 
 
+def conf_text(conf):
+    """The skipper .fab -> SKIPPER.conf ('key = value'). Returns (text, problems)."""
+    problems = []
+    missing = [k for k in SKIPPER_KEYS[:-1] if not conf.get(k)]   # init is optional
+    if missing:
+        problems.append("missing %s" % ", ".join(missing))
+    extra = [k for k in sorted(conf) if k not in SKIPPER_KEYS]
+    if extra:
+        problems.append("unknown key(s) kept as-is: %s" % ", ".join(extra))
+
+    width = max(len(k) for k in SKIPPER_KEYS)
+    lines = ["%-*s = %s" % (width, k, conf[k])
+             for k in list(SKIPPER_KEYS) + extra if conf.get(k)]
+    if not lines:
+        return None, problems + ["no usable key in the file"]
+    return SKIPPER_CONF_HEADER + "\n".join(lines) + "\n", problems
+
+
+def outputs_for(module):
+    """The (source kind, destination extension) pairs a module produces."""
+    if module == SKIPPER:
+        return (("fab", ".conf"),)      # no command file for skipper
+    return (("com", ".com"), ("fab", ".inc"))
+
+
 def collect(old_dir):
     """Scan the old central dir.
 
@@ -203,7 +248,7 @@ def main():
     per_process = {}
     for (module, process), src in sorted(found.items()):
         per_process.setdefault(process, []).append(module)
-        for kind, ext in (("com", ".com"), ("fab", ".inc")):
+        for kind, ext in outputs_for(module):
             path = src.get(kind)
             if not path:
                 issues.append("%s/%s: no %s file" % (process, module, kind))
@@ -212,6 +257,8 @@ def main():
                 with open(path, encoding="utf-8", errors="replace") as f:
                     text = f.read()
                 problems = []
+            elif module == SKIPPER:
+                text, problems = conf_text(read_fab(path))
             else:
                 text, problems = inc_text(module, read_fab(path))
             for p in problems:

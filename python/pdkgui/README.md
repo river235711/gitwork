@@ -126,13 +126,17 @@ converts it to the new per-process layout:
 ```
 <OLD>/.pdkgui.<tab lowercase><PROCESS>.commandfile  ->  <NEW>/<PROCESS>/<MODULE>.com
 <OLD>/.pdkgui.<tab lowercase><PROCESS>.fab          ->  <NEW>/<PROCESS>/<MODULE>.inc
+<OLD>/.pdkgui.skipper<PROCESS>.fab                  ->  <NEW>/<PROCESS>/SKIPPER.conf
 ```
 
 `.fab` holds `key <value>` lines. For DRC/ANT/WB/BUMP/DMDV/DPDO/LVS the `.inc` is
 just the `deck` path; for XRC it becomes the four-key file, with `rules` derived
 from `rccorner_typical` by stripping the trailing `/typical/rules` (the other
 corners carry no extra information -- pdkgui appends `/<corner>/rules` itself --
-and are reported if they point somewhere else).
+and are reported if they point somewhere else). The skipper tab has no command
+file: its `.fab` (`cdsTech` / `cdsDisp` / `cdsLayerMap` / `init`) becomes
+`SKIPPER.conf` in `key = value` form, and any process still without one is
+listed at the end of the run.
 
 ```bash
 python3 central_migrate.py                  # dry run, default paths
