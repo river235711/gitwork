@@ -43,10 +43,13 @@ class DrcFamily(GuiTestCase):
             self.assertTrue(self.spawned, "%s Run opened no terminal" % module)
 
     def test_rve_opens_the_results_database(self):
-        page = self.open_tab("DRC")
-        self.set_entry(page, "RunFolder", self.run_folder())
-        self.click(page, "Rve")
-        self.assertIn("calibre -rve", self.run_script())
+        for module in DRC_CLASS:
+            page = self.open_tab(module)
+            self.set_entry(page, "RunFolder", self.run_folder())
+            self.click(page, "Rve")
+            script = self.run_script()
+            self.assertIn("calibre -rve", script)
+            self.assertIn("module load %s" % self.app.env["calibre"], script)
 
     def test_run_reports_a_missing_run_folder_instead_of_writing(self):
         page = self.open_tab("DRC")
@@ -167,6 +170,26 @@ class LvsTab(GuiTestCase):
                       'SOURCE PATH "%s"\n' % cdl)
         self.assertEqual(page.entries["SourcePrimary"].get(), "src_top")
         self.assertEqual(page.entries["SourcePath"].get(), os.path.realpath(cdl))
+
+    def test_rve_opens_the_lvs_view_of_the_svdb(self):
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.click(page, "Rve")
+        script = self.run_script()
+        self.assertIn("calibre -turbo 8 -rve -lvs svdb", script)
+        self.assertIn("module load %s" % self.app.env["calibre"], script)
+
+    def test_rve_uses_the_calibre_version_picked_on_env(self):
+        env = self.open_tab("ENV")
+        pick = list(env.combos["calibre"].cget("values"))[-1]
+        env.combos["calibre"].set(pick)
+        env.combos["calibre"].event_generate("<<ComboboxSelected>>")
+        self.app.update()
+
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.click(page, "Rve")
+        self.assertIn("module load %s" % pick, self.run_script())
 
     def test_edit_opens_the_source_netlist(self):
         page = self.open_tab("LVS")

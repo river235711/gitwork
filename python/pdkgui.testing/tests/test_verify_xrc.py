@@ -149,6 +149,13 @@ class XrcOptions(GuiTestCase):
         self.click(self.page, "Run")
         self.assertIn("calibre -64 -lvs -hcell hcell", self.run_script())
 
+    # --- rve ----------------------------------------------------------
+    def test_rve_opens_the_pex_view_of_the_svdb(self):
+        self.click(self.page, "Rve")
+        script = self.run_script()
+        self.assertIn("calibre -turbo 8 -rve -pex svdb", script)
+        self.assertIn("module load %s" % self.app.env["calibre"], script)
+
     # --- netlist naming -----------------------------------------------
     def test_source_primary_renames_the_netlist_files(self):
         self.set_entry(self.page, "SourcePrimary", "new_top")

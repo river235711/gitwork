@@ -19,7 +19,8 @@ Common:
     lines starting with '//') into the fields.
   - Run: create RunFolder, write calibre_<DESIGN>_<module>.com and run, open a
     terminal to execute run.
-  - Rve: rewrite run as calibre -rve <db>, open a terminal.
+  - Rve: rewrite run as calibre -rve <db> (LVS: -turbo 8 -rve -lvs svdb,
+    XRC: -turbo 8 -rve -pex svdb), open a terminal.
   - LoadDefault: load the central default command file.
   - Load/Save: *.com / * file dialogs.
 """
@@ -681,11 +682,20 @@ class VerifyPage(BasePage):
         return self._run_script_drc()
 
     def _run_script_rve(self):
+        """Open the results in RVE. LVS and XRC read the svdb directory and need
+        to be told which view to open (-lvs / -pex); the DRC family opens its
+        results database directly."""
+        if self.module == "LVS":
+            view = "calibre -turbo 8 -rve -lvs %s" % self._results_db()
+        elif self.module == "XRC":
+            view = "calibre -turbo 8 -rve -pex %s" % self._results_db()
+        else:
+            view = "calibre -rve %s" % self._results_db()
         return (
             "#!/bin/bash -l\n"
             "module load %s\n"
-            "calibre -rve %s\n"
-        ) % (self._calibre_env(), self._results_db())
+            "%s\n"
+        ) % (self._calibre_env(), view)
 
     # ==================================================================
     # Action buttons
