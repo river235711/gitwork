@@ -5,23 +5,50 @@ A Tkinter GUI modeled on an internal EDA flow manager (PROCESS / ENV / DRC / ANT
 
 ## File layout
 
+Three groups, and which of them a deployed build contains:
+
+**The program** -- shipped, and encrypted except for the bootstrap:
+
 ```
-pdkgui/
-├── pdkgui              launcher (bash): module-load a tkinter python, then run
-├── pdkgui.py           bootstrap (plaintext, no logic): install the encrypted
-│                       import hook -> pdkgui_app.main()
-├── pdkgui_app.py       main window + left menu + page routing
-├── config.py           central settings (which file each tab reads, paths, constants)
-├── widgets.py          shared widgets (ScrolledText with two scrollbars, LogoPanel)
-├── pages/              per-tab pages
-│   ├── base.py  process.py  env.py  verify.py  skipper.py
-│   ├── klayout.py  doc.py  system.py  __init__.py (page registry)
-├── data/               files that ship with the release (system.txt / process.txt / env.txt / verify/*.com)
-├── pdkcrypt.py         encryption core (stdlib only: PBKDF2 + HMAC-CTR + encrypt-then-MAC)
-├── pdk_secure.py       runtime loader + encrypted-module import hook
-├── pdk_pack.py         single-file encryptor (.py -> .pdkc)
-└── pdk_build.py        produce the full encrypted deploy build dist/
+pdkgui              launcher (bash): find a tkinter python, then run
+pdkgui.py           bootstrap (stays plaintext, no logic): install the
+                    encrypted import hook -> pdkgui_app.main()
+pdkgui_app.py       main window + left menu + page routing
+config.py           central settings (which file each tab reads, paths, constants)
+widgets.py          shared widgets (ScrolledText with two scrollbars, LogoPanel)
+pages/              per-tab pages
+    base.py  process.py  env.py  verify.py  skipper.py
+    klayout.py  doc.py  system.py  __init__.py (page registry)
+data/               files that ship with the release
+                    (system.txt / process.txt / env.txt / verify/*.com)
 ```
+
+**Decryption, needed at run time** -- also shipped, and necessarily plaintext,
+since the build has to be able to decrypt itself:
+
+```
+pdkcrypt.py         encryption core (stdlib only: PBKDF2 + HMAC-CTR + encrypt-then-MAC)
+pdk_secure.py       runtime loader + encrypted-module import hook
+```
+
+**Development only** -- never shipped, no effect on a running pdkgui:
+
+```
+pdk_pack.py         single-file encryptor (.py -> .pdkc)
+pdk_build.py        produce the full encrypted deploy build dist/
+central_migrate.py  convert an old flat central directory to the new layout
+central_example/    example central dir (the test suite builds its sandbox from it)
+README.md
+```
+
+These all sit in one directory on purpose: `pdkgui.py` imports `pdk_secure` at
+start-up and the import hook resolves `.pdkc` next to itself, while `pdk_build`
+decides what to pack from its own directory. Moving the packaging tools into a
+subdirectory would mean changing several path derivations to gain two fewer
+files in a listing -- not a trade worth making.
+
+`dist/` and `__pycache__/` are build output and are not committed; delete them
+freely and rebuild with `pdk_build.py`.
 
 ## Running (development)
 
