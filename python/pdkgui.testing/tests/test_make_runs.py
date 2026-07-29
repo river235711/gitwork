@@ -59,7 +59,12 @@ class MakeRuns(GuiTestCase):
                     if value != widget.get():           # the default is baseline
                         self.assertIn("%s_%s" % (key, value), cases)
         self.assertIn("baseline", cases)
-        self.assertIn("rve", cases)
+        self.assertNotIn("rve", cases,
+                         "Rve opens the interactive viewer; keep it out of a batch")
+
+    def test_rve_can_still_be_asked_for(self):
+        self._generate("--tabs", "LVS", "--with-rve")
+        self.assertIn("rve", self._cases("LVS"))
 
     def test_each_case_holds_what_is_needed_to_run(self):
         self._generate("--tabs", "DRC")
@@ -68,9 +73,8 @@ class MakeRuns(GuiTestCase):
             run = os.path.join(folder, "run")
             self.assertTrue(os.access(run, os.X_OK), "%s/run is not executable" % case)
             self.assertTrue(os.path.isfile(os.path.join(folder, "case.txt")))
-            if case != "rve":       # Rve rewrites run only
-                self.assertTrue(os.path.isfile(
-                    os.path.join(folder, "calibre_%s_drc.com" % self.design)))
+            self.assertTrue(os.path.isfile(
+                os.path.join(folder, "calibre_%s_drc.com" % self.design)))
 
     def test_the_option_really_reaches_the_run_script(self):
         self._generate("--tabs", "XRC")
@@ -89,7 +93,7 @@ class MakeRuns(GuiTestCase):
         with open(os.path.join(folder, "run"), encoding="utf-8") as f:
             self.assertIn("jivaro -xml jivaro.xml", f.read())
 
-    def test_jivaro_needs_a_netlist_and_has_no_rve(self):
+    def test_jivaro_needs_a_netlist(self):
         self._generate("--tabs", "JIVARO")
         self.assertEqual(self._cases("JIVARO"), [],
                          "JIVARO was generated without a netlist")
@@ -97,7 +101,7 @@ class MakeRuns(GuiTestCase):
         netlist = os.path.join(self.paths["work"], "%s.lump" % self.design)
         self._generate("--tabs", "JIVARO", "--netlist", netlist)
         cases = self._cases("JIVARO")
-        self.assertEqual(cases, ["baseline"], "JIVARO has no Rve button")
+        self.assertEqual(cases, ["baseline"])
         with open(os.path.join(self.out, self.design, "JIVARO", "baseline",
                                "jivaro.xml"), encoding="utf-8") as f:
             self.assertIn(netlist, f.read())
@@ -127,8 +131,9 @@ class MakeRuns(GuiTestCase):
     def test_run_all_reports_a_failing_case(self):
         self._generate("--tabs", "LVS")
         base = os.path.join(self.out, self.design, "LVS")
+        broken = "LvsHier_off"
         for case in os.listdir(base):
-            self._fake_run(os.path.join(base, case, "run"), ok=(case != "rve"))
+            self._fake_run(os.path.join(base, case, "run"), ok=(case != broken))
 
         with self.stubs.paused():
             done = subprocess.run([os.path.join(self.out, "run_all")],
@@ -136,8 +141,34 @@ class MakeRuns(GuiTestCase):
         output = done.stdout.decode("utf-8")
         self.assertEqual(done.returncode, 1, "a failing case did not fail the run")
         self.assertIn("1 failed", output)
-        self.assertIn("LVS/rve", output)
-        self.assertTrue(os.path.isfile(os.path.join(base, "rve", "run.log")))
+        self.assertIn("LVS/" + broken, output)
+        self.assertTrue(os.path.isfile(os.path.join(base, broken, "run.log")))
+
+    def test_a_second_run_repeats_only_what_failed(self):
+        """Cases are real calibre runs, so a rerun must not redo hours of work."""
+        self._generate("--tabs", "LVS")
+        base = os.path.join(self.out, self.design, "LVS")
+        broken = "LvsHier_off"
+        for case in os.listdir(base):
+            self._fake_run(os.path.join(base, case, "run"), ok=(case != broken))
+        self._run_all()                                   # first pass
+
+        listed = self._run_all("-n")
+        self.assertIn(broken, listed, "the failed case was not queued again")
+        self.assertIn("1 case(s) to run", listed,
+                      "cases that already passed were queued again")
+
+        self._fake_run(os.path.join(base, broken, "run"), ok=True)
+        self.assertIn("1 ok", self._run_all())
+        self.assertIn("nothing to run", self._run_all(),
+                      "everything passed, yet it wanted to run more")
+        self.assertIn("ok", self._run_all("-s"))
+
+    def _run_all(self, *args):
+        with self.stubs.paused():
+            done = subprocess.run([os.path.join(self.out, "run_all")] + list(args),
+                                  stdout=subprocess.PIPE, cwd=self.out)
+        return done.stdout.decode("utf-8")
 
     def test_it_writes_nothing_outside_the_output_directory(self):
         before = _snapshot(self.paths["user"])

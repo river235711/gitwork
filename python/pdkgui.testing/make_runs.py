@@ -60,11 +60,15 @@ class Case(object):
         return "Case(%s)" % self.name
 
 
-def cases_for(page):
-    """Baseline, then one case per option value, then the Rve output.
+def cases_for(page, with_rve=False):
+    """Baseline, then one case per option value.
 
     Derived from the page's widgets so it follows pdkgui rather than a list
-    kept in step by hand."""
+    kept in step by hand.
+
+    Rve is left out unless asked for: `calibre -rve` opens the interactive
+    results viewer, so a batch run of those cases would just fill the screen
+    with windows (and there are no results to view before the runs happen)."""
     import tkinter as tk
     from tkinter import ttk
 
@@ -85,7 +89,7 @@ def cases_for(page):
                                    % (key, "ticked" if flipped else "unticked",
                                       "on" if widget.get() else "off")))
     # only where the page actually offers it -- JIVARO has no Rve button
-    if has_button(page, "Rve"):
+    if with_rve and has_button(page, "Rve"):
         found.append(Case("rve", action="rve", note="what the Rve button writes"))
     return found
 
@@ -102,7 +106,7 @@ def has_button(parent, label):
 # --------------------------------------------------------------------------
 # generation
 # --------------------------------------------------------------------------
-def generate(app, out_dir, processes, tabs, fields, netlist):
+def generate(app, out_dir, processes, tabs, fields, netlist, with_rve=False):
     """Write every case; return [(process, tab, case, folder)]."""
     import config
 
@@ -115,7 +119,7 @@ def generate(app, out_dir, processes, tabs, fields, netlist):
             page = app.show_module(tab) or app._page
             app.update()
 
-            for case in cases_for(page):
+            for case in cases_for(page, with_rve):
                 folder = os.path.join(out_dir, process, tab, case.name)
                 _make(folder)
                 _apply(app, page, folder, fields, netlist, case)
@@ -187,62 +191,116 @@ RUN_ALL_TEXT = """\
 #!/bin/bash
 # Runs every generated case. Written by make_runs.py -- regenerate, do not edit.
 #
-#   ./run_all              run everything
-#   ./run_all -n           list the cases, run nothing
-#   ./run_all -x           stop at the first failure
-#   ./run_all XRC t22      only cases whose path contains all of these
+#   ./run_all                run every case that has not passed yet
+#   ./run_all -n             list what would run, run nothing
+#   ./run_all -a             run all of them, including ones that passed before
+#   ./run_all -j 4           run four at a time
+#   ./run_all -x             stop at the first failure
+#   ./run_all XRC t22        only cases whose path contains all of these
+#   ./run_all -s             show the results of the last run
 #
-# Each case's output is kept next to it as run.log.
+# Every case keeps its own run.log, and its outcome in .status, so a second
+# ./run_all picks up where the last one stopped instead of repeating hours of
+# calibre. Rve is not among the cases: it opens the interactive results viewer.
 set -u
 cd "$(dirname "$0")" || exit 1
 
-list_only=0
-stop_on_fail=0
+list_only=0; stop_on_fail=0; rerun_all=0; summary=0; jobs=1
 while [ $# -gt 0 ]; do
     case "$1" in
         -n) list_only=1; shift ;;
+        -a) rerun_all=1; shift ;;
         -x) stop_on_fail=1; shift ;;
-        -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+        -s) summary=1; shift ;;
+        -j) jobs="$2"; shift 2 ;;
+        -j*) jobs="${1#-j}"; shift ;;
+        -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+        --) shift; break ;;
         *) break ;;
     esac
 done
 
-cases=$(find . -name run -type f | sed 's|/run$||' | sort)
+all_cases=$(find . -name run -type f | sed 's|/run$||' | sort)
 for pattern in "$@"; do
-    cases=$(printf '%s\\n' "$cases" | grep -- "$pattern")
+    all_cases=$(printf '%s\\n' "$all_cases" | grep -- "$pattern" || true)
 done
 
-total=0; passed=0; failed=0; failures=""
-for dir in $cases; do
-    total=$((total + 1))
-    if [ "$list_only" = 1 ]; then
-        echo "$dir"
-        continue
-    fi
-    printf '%-58s ' "${dir#./}"
-    start=$(date +%s)
-    if (cd "$dir" && ./run) > "$dir/run.log" 2>&1; then
-        echo "ok    ($(( $(date +%s) - start ))s)"
-        passed=$((passed + 1))
-    else
-        echo "FAIL  ($(( $(date +%s) - start ))s)  see $dir/run.log"
-        failed=$((failed + 1))
-        failures="$failures $dir"
-        if [ "$stop_on_fail" = 1 ]; then break; fi
-    fi
-done
-
-if [ "$list_only" = 1 ]; then
-    echo
-    echo "$total case(s); run without -n to execute them"
+if [ "$summary" = 1 ]; then
+    for dir in $all_cases; do
+        status=$(cat "$dir/.status" 2>/dev/null || echo "not run")
+        printf '%-58s %s\\n' "${dir#./}" "$status"
+    done
     exit 0
 fi
 
+# skip what already passed, unless -a
+cases=""
+for dir in $all_cases; do
+    if [ "$rerun_all" = 0 ] && [ "$(cat "$dir/.status" 2>/dev/null)" = "ok" ]; then
+        continue
+    fi
+    cases="$cases $dir"
+done
+
+total=$(printf '%s\\n' $cases | grep -c . || true)
+if [ "$list_only" = 1 ]; then
+    for dir in $cases; do echo "$dir"; done
+    echo
+    echo "$total case(s) to run; run without -n to execute them"
+    exit 0
+fi
+if [ "$total" = 0 ]; then
+    echo "nothing to run (use -a to repeat the ones that already passed)"
+    exit 0
+fi
+
+run_one() {
+    dir="$1"
+    start=$(date +%s)
+    if (cd "$dir" && ./run) > "$dir/run.log" 2>&1; then
+        echo ok > "$dir/.status"
+        printf '%-58s ok    (%ss)\\n' "${dir#./}" "$(( $(date +%s) - start ))"
+    else
+        echo failed > "$dir/.status"
+        printf '%-58s FAIL  (%ss)  see %s\\n' "${dir#./}" \\
+               "$(( $(date +%s) - start ))" "$dir/run.log"
+    fi
+}
+
+echo "$total case(s), $jobs at a time"
 echo
-echo "$total case(s): $passed ok, $failed failed"
+if [ "$jobs" -gt 1 ]; then
+    running=0
+    for dir in $cases; do
+        run_one "$dir" &
+        running=$((running + 1))
+        if [ "$running" -ge "$jobs" ]; then wait -n 2>/dev/null || wait; running=$((running - 1)); fi
+    done
+    wait
+else
+    for dir in $cases; do
+        run_one "$dir"
+        if [ "$stop_on_fail" = 1 ] && [ "$(cat "$dir/.status")" = failed ]; then
+            echo; echo "stopped at the first failure"; break
+        fi
+    done
+fi
+
+passed=0; failed=0; failures=""
+for dir in $cases; do
+    case "$(cat "$dir/.status" 2>/dev/null)" in
+        ok)     passed=$((passed + 1)) ;;
+        failed) failed=$((failed + 1)); failures="$failures $dir" ;;
+    esac
+done
+
+echo
+echo "$passed ok, $failed failed (of $total)"
 if [ -n "$failures" ]; then
     echo "failed:"
     for dir in $failures; do echo "  $dir"; done
+    echo
+    echo "fix, then ./run_all repeats only these"
     exit 1
 fi
 """
@@ -285,6 +343,9 @@ def main():
     ap.add_argument("--source-primary", dest="source_primary",
                     help="SourcePrimary for every case")
     ap.add_argument("--netlist", help="File for the JIVARO tab (enables its case)")
+    ap.add_argument("--with-rve", dest="with_rve", action="store_true",
+                    help="also generate the Rve cases (they open the interactive "
+                         "results viewer, so they are left out of a batch)")
     args = ap.parse_args()
 
     src = os.path.abspath(args.src or os.environ.get("PDKGUI_SRC") or DEFAULT_SRC)
@@ -338,7 +399,8 @@ def main():
     app = pdkgui_app.PdkGui()
     app.withdraw()
     try:
-        written = generate(app, out_dir, processes, tabs, fields, args.netlist)
+        written = generate(app, out_dir, processes, tabs, fields,
+                           args.netlist, args.with_rve)
     finally:
         try:
             app._on_close()

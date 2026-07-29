@@ -29,19 +29,35 @@ process.
 
 ```
 ~/pdkgui_runs/
-├── run_all                 ./run_all -n to list, ./run_all XRC to filter,
-├── cases.txt               ./run_all -x to stop at the first failure
+├── run_all
+├── cases.txt
 └── t22_1p7m_4x1z1u/XRC/XrcExtType_rcc/
         calibre_t22_1p7m_4x1z1u_xrc.com
         run                 what you would have got from the GUI
         case.txt            which option this case varies
+        run.log  .status    written by run_all
         jivaro.xml          (only where the case turns reduction on)
 ```
 
-`run_all` runs every case, keeps each one's output as `run.log` beside it, and
-prints a pass/fail summary (exit 1 if anything failed). Reads the central pdkgui
-is configured for (`--central` overrides) and writes nothing outside `--out` --
-its session goes to `<out>/.session`, never `~/.pdkgui`.
+Rve is not among the cases -- `calibre -rve` opens the interactive results
+viewer, which does not belong in a batch (and there is nothing to view until the
+runs have happened). `--with-rve` generates them anyway.
+
+```bash
+./run_all              run every case that has not passed yet
+./run_all -n           list what would run
+./run_all -j 4         four at a time
+./run_all -a           include the ones that already passed
+./run_all -x           stop at the first failure
+./run_all XRC t22      only cases whose path contains all of these
+./run_all -s           show the last result of every case
+```
+
+Each case keeps its outcome in `.status` and its output in `run.log`, so a
+second `./run_all` picks up only what failed instead of repeating hours of
+calibre. Exit status is 1 if anything failed. It reads the central pdkgui is
+configured for (`--central` overrides) and writes nothing outside `--out` -- its
+session goes to `<out>/.session`, never `~/.pdkgui`.
 
 ## Checking the generated files (run_tests.py)
 
