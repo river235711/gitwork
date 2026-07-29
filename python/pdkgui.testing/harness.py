@@ -27,6 +27,7 @@ import sys
 import unittest
 
 import sandbox
+import stubs
 
 
 class GuiTestCase(unittest.TestCase):
@@ -49,15 +50,23 @@ class GuiTestCase(unittest.TestCase):
         self._config_state = {name: getattr(config, name)
                               for name in ("DESIGN_NAME", "BASE_DIR")}
         config.DESIGN_NAME = self.design
-        self.spawned = []
-        self.dialogs = []
-        self.answers = []        # popped by messagebox questions
-        self.files = []          # popped by file dialogs
-        self._patches = []
-        self._install_stubs()
+        self.stubs = stubs.Installer().install()
 
         self.app = pdkgui_app.PdkGui()
         self.app.withdraw()
+
+    # The recorders live on the stub installer. They are exposed as properties
+    # whose setters replace the contents rather than the list, so a test that
+    # does `self.spawned = []` to start counting afresh still shares the list
+    # the stubs append to.
+    spawned = property(lambda self: self.stubs.spawned,
+                       lambda self, v: self.stubs.spawned.__setitem__(slice(None), v))
+    dialogs = property(lambda self: self.stubs.dialogs,
+                       lambda self, v: self.stubs.dialogs.__setitem__(slice(None), v))
+    answers = property(lambda self: self.stubs.answers,
+                       lambda self, v: self.stubs.answers.__setitem__(slice(None), v))
+    files = property(lambda self: self.stubs.files,
+                     lambda self, v: self.stubs.files.__setitem__(slice(None), v))
 
     def tearDown(self):
         try:
@@ -67,76 +76,9 @@ class GuiTestCase(unittest.TestCase):
             self.app._on_close()
         except Exception:
             pass
-        for obj, name, original in reversed(self._patches):
-            setattr(obj, name, original)
+        self.stubs.restore()
         for name, value in self._config_state.items():
             setattr(self.config, name, value)
-
-    # ------------------------------------------------------------------
-    # stubbing
-    # ------------------------------------------------------------------
-    def _patch(self, obj, name, value):
-        self._patches.append((obj, name, getattr(obj, name)))
-        setattr(obj, name, value)
-
-    def _install_stubs(self):
-        import pdkgui_app
-        from pages import doc, gdsview, verify
-
-        def popen(cmd, *a, **kw):
-            self.spawned.append(list(cmd) if isinstance(cmd, (list, tuple)) else [cmd])
-            return _FakeProcess()
-
-        for mod in (verify, gdsview, doc, pdkgui_app):
-            self._patch(mod.subprocess, "Popen", popen)
-            break        # they all import the same subprocess module object
-
-        # pretend the external programs exist, so the "found nothing" paths in
-        # the code are not what we end up testing
-        for mod in (verify, gdsview, doc):
-            if hasattr(mod, "shutil"):
-                self._patch(mod.shutil, "which", lambda prog: "/usr/bin/" + prog)
-                break
-
-        for mod in (verify, gdsview, doc, pdkgui_app):
-            self._stub_messagebox(mod)
-        self._stub_filedialog(verify)
-
-    def _stub_messagebox(self, mod):
-        box = getattr(mod, "messagebox", None)
-        if box is None:
-            return
-        for kind in ("showinfo", "showwarning", "showerror"):
-            if hasattr(box, kind):
-                self._patch(box, kind, self._recorder(kind))
-        for kind in ("askyesno", "askokcancel", "askyesnocancel"):
-            if hasattr(box, kind):
-                self._patch(box, kind, self._asker(kind))
-
-    def _recorder(self, kind):
-        def record(title=None, message=None, **kw):
-            self.dialogs.append((kind, message))
-        return record
-
-    def _asker(self, kind):
-        def ask(title=None, message=None, **kw):
-            self.dialogs.append((kind, message))
-            return self.answers.pop(0) if self.answers else True
-        return ask
-
-    def _stub_filedialog(self, mod):
-        dlg = getattr(mod, "filedialog", None)
-        if dlg is None:
-            return
-        for kind in ("askopenfilename", "askdirectory", "asksaveasfilename"):
-            if hasattr(dlg, kind):
-                self._patch(dlg, kind, self._chooser(kind))
-
-    def _chooser(self, kind):
-        def choose(**kw):
-            self.dialogs.append((kind, None))
-            return self.files.pop(0) if self.files else ""
-        return choose
 
     # ------------------------------------------------------------------
     # helpers
@@ -241,17 +183,6 @@ class GuiTestCase(unittest.TestCase):
         """Non-comment lines, optionally only those containing a keyword."""
         out = [ln for ln in text.splitlines() if not ln.lstrip().startswith("//")]
         return [ln for ln in out if keyword in ln] if keyword else out
-
-
-class _FakeProcess(object):
-    """Stand-in for what Popen returns; nothing in pdkgui inspects it."""
-    returncode = 0
-
-    def wait(self, *a, **kw):
-        return 0
-
-    def poll(self):
-        return 0
 
 
 # set by run_tests.py before the tests are imported

@@ -1,7 +1,52 @@
 # pdkgui tests
 
-Drives a real pdkgui window and checks every tab and every option, without
-touching your `~/.pdkgui`, the central directory, or launching calibre.
+Two layers, both driving a real pdkgui window:
+
+| | What it answers |
+|---|---|
+| `run_tests.py` | Does pdkgui write the right files for every tab and option? Seconds, no calibre. |
+| `make_runs.py` | Does **calibre** accept them? Generates a run folder per tab per option from the real central, for you to run. |
+
+Neither touches your `~/.pdkgui` or the central directory.
+
+## Generating run folders to execute (make_runs.py)
+
+```bash
+python3 make_runs.py --out ~/pdkgui_runs                       # every process
+python3 make_runs.py --out ~/pdkgui_runs --process t22_1p7m_4x1z1u
+python3 make_runs.py --out ~/pdkgui_runs --tabs XRC,LVS
+python3 make_runs.py --out ~/pdkgui_runs \
+    --layout /path/top.gds --primary top \
+    --source /path/top.cdl --source-primary top \
+    --netlist /path/top.lump          # JIVARO is skipped without this
+```
+
+It opens each tab, sets **one** option away from the defaults, and presses Run --
+so each folder holds exactly what a user would get, and a failure names the
+option that caused it. The cases come from the widgets, so an option added to
+pdkgui produces a case here without touching this tool. About 26 cases per
+process.
+
+```
+~/pdkgui_runs/
+├── run_all                 ./run_all -n to list, ./run_all XRC to filter,
+├── cases.txt               ./run_all -x to stop at the first failure
+└── t22_1p7m_4x1z1u/XRC/XrcExtType_rcc/
+        calibre_t22_1p7m_4x1z1u_xrc.com
+        run                 what you would have got from the GUI
+        case.txt            which option this case varies
+        jivaro.xml          (only where the case turns reduction on)
+```
+
+`run_all` runs every case, keeps each one's output as `run.log` beside it, and
+prints a pass/fail summary (exit 1 if anything failed). Reads the central pdkgui
+is configured for (`--central` overrides) and writes nothing outside `--out` --
+its session goes to `<out>/.session`, never `~/.pdkgui`.
+
+## Checking the generated files (run_tests.py)
+
+Checks every tab and every option, without touching your `~/.pdkgui`, the
+central directory, or launching calibre.
 
 ```bash
 cd pdkgui.testing
@@ -62,6 +107,7 @@ those handlers, so the wiring stays covered.
 | `test_doc_system.py` | DOC: the three linked columns, PDFs listed for a document, non-PDFs filtered, a missing directory reported, sideways scrolling. SYSTEM: the central history, read-only, split in half, and the release panel up to date / superseded / outside a release |
 | `test_session_central.py` | Where files are read from, per-tab and per-design session files, the open tab restored, and the conversion of the old `.commandfile` / `.gui` files including the merge rules |
 | `test_bindings.py` | The widgets are wired to the handlers the other tests call |
+| `test_make_runs.py` | The generator above: every option gets a case, each case is runnable, `--layout` is applied, `run_all` lists and reports failures, nothing is written outside `--out` |
 
 ## Adding a test
 

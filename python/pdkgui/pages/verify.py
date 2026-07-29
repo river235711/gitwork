@@ -610,6 +610,10 @@ class VerifyPage(BasePage):
         return bool(w.get()) if isinstance(w, tk.BooleanVar) else False
 
     def _text(self):
+        """The command text without its comment lines (empty when the page has
+        no command box, as on JIVARO)."""
+        if self.cmd_text is None:
+            return ""
         return _strip_comment_lines(self.cmd_text.get_text())
 
     def _report_name(self):
