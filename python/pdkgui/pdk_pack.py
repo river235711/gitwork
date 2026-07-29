@@ -37,19 +37,22 @@ for _name in ("stdout", "stderr"):
 import pdkcrypt
 
 
-def pack_source(src_text, filename="<pdkc>"):
-    """Compress + encrypt source text, returning the .pdkc file content (bytes)."""
+def pack_source(src_text, filename="<pdkc>", salt=None):
+    """Compress + encrypt source text, returning the .pdkc file content (bytes).
+
+    Pass the same salt for every file of a build: the runtime then derives the
+    key once for the whole program instead of once per module."""
     compile(src_text, filename, "exec")           # verify syntax first
     compressed = zlib.compress(src_text.encode("utf-8"), 9)
-    return pdkcrypt.encrypt(compressed)
+    return pdkcrypt.encrypt(compressed, salt=salt)
 
 
-def pack_file(src_path, out_path=None):
+def pack_file(src_path, out_path=None, salt=None):
     if out_path is None:
         out_path = os.path.splitext(src_path)[0] + ".pdkc"
     with open(src_path, encoding="utf-8") as f:
         src_text = f.read()
-    blob = pack_source(src_text, src_path)
+    blob = pack_source(src_text, src_path, salt=salt)
     out_dir = os.path.dirname(out_path)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)

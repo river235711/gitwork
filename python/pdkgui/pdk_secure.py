@@ -22,6 +22,7 @@ Can also be used as a CLI to run one encrypted file:
 import io
 import os
 import sys
+import time
 import zlib
 import types
 import importlib.abc
@@ -38,6 +39,9 @@ for _name in ("stdout", "stderr"):
         pass
 
 import pdkcrypt
+
+# PDKGUI_TIMING=1: report what each encrypted module costs to load
+_TIMING = os.environ.get("PDKGUI_TIMING") not in (None, "", "0")
 
 
 def load_source(path):
@@ -83,8 +87,13 @@ class _EncryptedLoader(importlib.abc.Loader):
     def exec_module(self, module):
         # Set __file__ so os.path.abspath(__file__) etc. still work in the module
         module.__file__ = self._path
+        start = time.time() if _TIMING else 0
         src = load_source(self._path)
         exec(compile(src, self._path, "exec"), module.__dict__)
+        if _TIMING:
+            sys.stderr.write("[pdkgui] %-34s %6.1f ms\n"
+                             % ("decrypt " + os.path.basename(self._path),
+                                (time.time() - start) * 1000))
 
 
 class _EncryptedFinder(importlib.abc.MetaPathFinder):

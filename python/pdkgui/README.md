@@ -60,6 +60,17 @@ lives briefly in memory. It stops casual `cat`/trace, but not decompilation or a
 memory dump. For stronger protection use **Cython** (compile to `.so`) or a tool
 like **PyArmor**.
 
+The key has to ship (the build must decrypt itself), pinned into the plaintext
+`dist/pdkcrypt.py`, so `pdk_secure.load_source("config.pdkc")` returns the source
+to anyone holding the build. That is inherent, and it is why the PBKDF2 iteration
+count is low: a high count only slows down *guessing an unknown* passphrase, and
+nothing is guessed here -- it cost ~0.4 s per module on the EDA hosts and bought
+nothing. The files are equally unreadable at any count.
+
+Every file of a build shares one salt so the key is derived once per process
+rather than once per module; the nonce stays random per file. The count is
+recorded in each file's header, so builds made before this still load.
+
 ## Default command files (central golden directory)
 
 The default command files for the verify pages

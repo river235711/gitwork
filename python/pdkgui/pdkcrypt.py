@@ -25,12 +25,28 @@ import struct
 import hashlib
 
 MAGIC = b"PDKC"
-VERSION = 1
-KDF_ITERS = 200000            # PBKDF2 iteration count
+VERSION = 2                   # 2 records the iteration count in the header
 _SALT_LEN = 16
 _NONCE_LEN = 16
 _TAG_LEN = 32
-_HEADER_LEN = len(MAGIC) + 1 + _SALT_LEN + _NONCE_LEN   # = 37
+_ITERS_LEN = 4
+
+# PBKDF2 iteration count.
+#
+# A high count is what makes *guessing an unknown passphrase* slow. Nothing is
+# guessed here: the key ships with the program (pinned into dist/pdkcrypt.py,
+# which has to stay plaintext for the build to decrypt itself), so anyone who
+# can read the files can read the key. The encryption is there to keep the
+# source from being read casually, and that works the same at any count -- so
+# the count is kept low, because it used to cost ~0.4 s per module on the EDA
+# hosts, once for every module loaded.
+KDF_ITERS = 1000
+
+# Files written before the count was recorded (VERSION 1) all used this.
+LEGACY_KDF_ITERS = 200000
+
+_V1_HEADER_LEN = len(MAGIC) + 1 + _SALT_LEN + _NONCE_LEN               # = 37
+_HEADER_LEN = _V1_HEADER_LEN + _ITERS_LEN                              # = 41
 
 # Default passphrase.
 DEFAULT_PASSPHRASE = "pdkgui-default-key-change-me"
@@ -87,12 +103,23 @@ def get_passphrase():
     return DEFAULT_PASSPHRASE
 
 
-def _derive_keys(passphrase, salt):
+# Derived keys, kept for the life of the process. A build packs every module
+# with the same salt, so loading the whole program derives once instead of once
+# per module -- which is what made starting the encrypted build slow.
+_key_cache = {}
+
+
+def _derive_keys(passphrase, salt, iters=None):
     """Derive 64 bytes from the passphrase: first 32 for cipher, last 32 for MAC."""
     if isinstance(passphrase, str):
         passphrase = passphrase.encode("utf-8")
-    dk = hashlib.pbkdf2_hmac("sha256", passphrase, salt, KDF_ITERS, dklen=64)
-    return dk[:32], dk[32:]
+    if iters is None:
+        iters = KDF_ITERS
+    cached = _key_cache.get((passphrase, salt, iters))
+    if cached is None:
+        dk = hashlib.pbkdf2_hmac("sha256", passphrase, salt, iters, dklen=64)
+        cached = _key_cache[(passphrase, salt, iters)] = (dk[:32], dk[32:])
+    return cached
 
 
 def _keystream(key, nonce, length):
@@ -111,21 +138,33 @@ def _xor(data, keystream):
     return bytes(b ^ k for b, k in zip(data, keystream))
 
 
-def encrypt(plaintext, passphrase=None):
-    """Encrypt bytes, returning the full ciphertext file content (bytes)."""
+def encrypt(plaintext, passphrase=None, salt=None, iters=None):
+    """Encrypt bytes, returning the full ciphertext file content (bytes).
+
+    salt : reuse one across a build so the runtime derives the key once (the
+           nonce stays random per file, which is what must not repeat).
+    iters: recorded in the header, so the file says how to derive its own key."""
     if passphrase is None:
         passphrase = get_passphrase()
     if isinstance(plaintext, str):
         plaintext = plaintext.encode("utf-8")
+    if salt is None:
+        salt = new_salt()
+    if iters is None:
+        iters = KDF_ITERS
 
-    salt = os.urandom(_SALT_LEN)
     nonce = os.urandom(_NONCE_LEN)
-    enc_key, mac_key = _derive_keys(passphrase, salt)
+    enc_key, mac_key = _derive_keys(passphrase, salt, iters)
 
     ciphertext = _xor(plaintext, _keystream(enc_key, nonce, len(plaintext)))
-    header = MAGIC + bytes([VERSION]) + salt + nonce
+    header = MAGIC + bytes([VERSION]) + struct.pack(">I", iters) + salt + nonce
     tag = hmac.new(mac_key, header + ciphertext, hashlib.sha256).digest()
     return header + ciphertext + tag
+
+
+def new_salt():
+    """A salt for one build (pdk_build shares it across every packed file)."""
+    return os.urandom(_SALT_LEN)
 
 
 def decrypt(blob, passphrase=None):
@@ -134,19 +173,31 @@ def decrypt(blob, passphrase=None):
     if passphrase is None:
         passphrase = get_passphrase()
 
-    if len(blob) < _HEADER_LEN + _TAG_LEN or blob[:len(MAGIC)] != MAGIC:
+    if len(blob) < _V1_HEADER_LEN + _TAG_LEN or blob[:len(MAGIC)] != MAGIC:
         raise ValueError("not a valid PDKC encrypted file")
     version = blob[len(MAGIC)]
-    if version != VERSION:
+
+    # Version 1 predates the iteration count being recorded; everything written
+    # then used LEGACY_KDF_ITERS, so builds made before this still load.
+    if version == 1:
+        header_len, iters = _V1_HEADER_LEN, LEGACY_KDF_ITERS
+        after_version = len(MAGIC) + 1
+    elif version == 2:
+        header_len = _HEADER_LEN
+        after_version = len(MAGIC) + 1 + _ITERS_LEN
+        iters = struct.unpack(">I", blob[len(MAGIC) + 1:after_version])[0]
+    else:
         raise ValueError("unsupported PDKC version: %d" % version)
+    if len(blob) < header_len + _TAG_LEN:
+        raise ValueError("not a valid PDKC encrypted file")
 
-    salt = blob[5:5 + _SALT_LEN]
-    nonce = blob[5 + _SALT_LEN:_HEADER_LEN]
-    ciphertext = blob[_HEADER_LEN:-_TAG_LEN]
+    salt = blob[after_version:after_version + _SALT_LEN]
+    nonce = blob[after_version + _SALT_LEN:header_len]
+    ciphertext = blob[header_len:-_TAG_LEN]
     tag = blob[-_TAG_LEN:]
-    header = blob[:_HEADER_LEN]
+    header = blob[:header_len]
 
-    enc_key, mac_key = _derive_keys(passphrase, salt)
+    enc_key, mac_key = _derive_keys(passphrase, salt, iters)
     expected = hmac.new(mac_key, header + ciphertext, hashlib.sha256).digest()
     if not hmac.compare_digest(expected, tag):
         raise ValueError("integrity check failed (wrong key or tampered file)")

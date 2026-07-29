@@ -59,10 +59,10 @@ PLAINTEXT = ["pdkgui", "pdkgui.py", "pdkcrypt.py", "pdk_secure.py"]
 ENCRYPT_TOP = ["config.py", "widgets.py", "pdkgui_app.py"]
 
 
-def _encrypt_to(src_rel, dist):
+def _encrypt_to(src_rel, dist, salt=None):
     src = os.path.join(SRC, src_rel)
     out = os.path.join(dist, src_rel[:-len(".py")] + ".pdkc")
-    pdk_pack.pack_file(src, out)
+    pdk_pack.pack_file(src, out, salt=salt)
     return out
 
 
@@ -89,13 +89,18 @@ def build(dist_name="dist", install_dir=None):
         os.makedirs(os.path.dirname(d), exist_ok=True)
         shutil.copy2(s, d)
 
-    # 3. encrypt logic modules (with the key active at pack time)
+    # 3. encrypt logic modules (with the key active at pack time).
+    #    One salt for the whole build, so starting up derives the key once
+    #    rather than once per module -- that cost ~0.4 s per module on the EDA
+    #    hosts. The nonce stays random per file, which is the part that must
+    #    never repeat.
     build_key = pdkcrypt.get_passphrase()
+    salt = pdkcrypt.new_salt()
     encrypted = []
     for rel in ENCRYPT_TOP:
-        encrypted.append(_encrypt_to(rel, dist))
+        encrypted.append(_encrypt_to(rel, dist, salt))
     for py in sorted(glob.glob(os.path.join(SRC, "pages", "*.py"))):
-        encrypted.append(_encrypt_to(os.path.relpath(py, SRC), dist))
+        encrypted.append(_encrypt_to(os.path.relpath(py, SRC), dist, salt))
 
     # 4. pin the key into dist/pdkcrypt.py: runtime always uses it and ignores env
     #    vars, so dist runs anywhere regardless of a leftover PDKGUI_KEY -- no unset.
@@ -109,6 +114,8 @@ def build(dist_name="dist", install_dir=None):
     print("deploy build created: %s" % dist)
     print("  install   : %s (pinned as DEFAULT_HOME in dist/pdkgui)" % install_dir)
     print("  key       : pinned into dist/pdkcrypt.py (runtime ignores env vars, no unset)")
+    print("  kdf       : %d iterations, one salt for the build (derived once at start)"
+          % pdkcrypt.KDF_ITERS)
     print("  key source: %s" % ("built-in default" if using_default
                                  else "PDKGUI_KEY / key file active at pack time"))
     print("  plaintext : %s" % ", ".join(PLAINTEXT))

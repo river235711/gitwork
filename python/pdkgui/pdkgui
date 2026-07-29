@@ -110,5 +110,11 @@ if [ -z "$PY" ]; then
 fi
 
 # --- 5. Run in the background (forwarding all arguments) ---------------------
+#   With PDKGUI_TIMING=1, report what this script itself cost (finding a python,
+#   and any module loading) before handing over.
+if [ "${PDKGUI_TIMING:-0}" != "0" ] && [ -n "${SECONDS:-}" ]; then
+    printf '[pdkgui] %-34s %6.1f ms\n' "launcher (find python)" \
+        "$(awk "BEGIN{print $SECONDS * 1000}")" >&2
+fi
 "$PY" "$PDKGUI_PY" "$@" &
 echo "pdkgui started in the background (PID $!, python: $PY)"

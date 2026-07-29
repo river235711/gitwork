@@ -29,6 +29,20 @@ try:
 except Exception:
     pass
 
+# PDKGUI_TIMING=1 reports what start-up costs. Measured here rather than in
+# config, because loading config is itself part of what we want to see -- in a
+# deployed build that means fetching and decrypting it from NFS.
+_TIMING = os.environ.get("PDKGUI_TIMING") not in (None, "", "0")
+_T0 = __import__("time").time()
+
+
+def _report(label, since):
+    if _TIMING:
+        import time
+        sys.stderr.write("[pdkgui] %-34s %6.1f ms\n"
+                         % (label, (time.time() - since) * 1000))
+
+
 import pdk_secure
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,8 +50,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Install the encrypted-module loader (takes over only when .pdkc exist;
 # skipped automatically in a plain source checkout)
 pdk_secure.install_import_hook(BASE_DIR)
+_report("python up + import hook", _T0)
 
+_t = __import__("time").time()
 import pdkgui_app
+_report("import pdkgui_app", _t)
 
 if __name__ == "__main__":
+    if _TIMING:
+        os.environ["PDKGUI_START"] = str(_T0)    # so the app can report the total
     pdkgui_app.main()

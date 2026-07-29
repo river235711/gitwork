@@ -18,7 +18,6 @@ from tkinter import font as tkfont, messagebox, ttk
 
 import config
 from pages import build_page
-from pages.env import env_defaults
 
 
 class PdkGui(tk.Tk):
@@ -45,6 +44,10 @@ class PdkGui(tk.Tk):
         self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
         # Tool / editor picked on the ENV tab (defaults, then restore saved ones),
         # shared with other tabs
+        # imported here, not at module level: it would pull pages/__init__ and
+        # pages/env in before the window exists -- two more modules to fetch and
+        # decrypt on the way to first paint
+        from pages.env import env_defaults
         self.env = env_defaults()
         saved_env = config.load_json(config.user_global_file("ENV"))
         if isinstance(saved_env, dict):
@@ -60,6 +63,29 @@ class PdkGui(tk.Tk):
             self._build_content_area()
             self.show_module(self._restore_module())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._report_startup()
+        # The window is up and responsive now, so spend the idle moment loading
+        # the verify page module: it is the biggest one, and without this the
+        # first DRC/LVS/XRC click pays for it.
+        self.after_idle(self._warm_up)
+
+    def _warm_up(self):
+        with config.timed("warm up verify module"):
+            try:
+                import pages.verify        # noqa: F401
+            except Exception:
+                pass                       # a warm-up must never break start-up
+
+    @staticmethod
+    def _report_startup():
+        """Total from process start, when the bootstrap passed its own T0 on."""
+        started = os.environ.pop("PDKGUI_START", None)
+        if started and config.TIMING:
+            import sys
+            import time
+            sys.stderr.write("[pdkgui] %-34s %6.1f ms\n"
+                             % ("=> window ready, total",
+                                (time.time() - float(started)) * 1000))
 
     def _apply_fonts(self):
         """Resize Tk's named fonts, which every widget that sets no font of its
