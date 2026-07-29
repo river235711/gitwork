@@ -32,7 +32,8 @@ class ProcessTab(GuiTestCase):
     def test_the_title_names_the_design_and_the_host(self):
         host = config.hostname()
         self.assertTrue(host, "no host name to show")
-        self.assertEqual(self.app.title(), "%s - %s" % (config.DESIGN_NAME, host))
+        self.assertEqual(self.app.title(),
+                         "pdkgui - %s (on %s)" % (config.DESIGN_NAME, host))
 
     def test_the_title_follows_the_selected_design(self):
         page = self.open_tab("PROCESS")
@@ -42,17 +43,17 @@ class ProcessTab(GuiTestCase):
             combo.event_generate("<<ComboboxSelected>>")
             self.app.update()
             self.assertEqual(self.app.title(),
-                             "%s - %s" % (design, config.hostname()))
+                             "pdkgui - %s (on %s)" % (design, config.hostname()))
 
     def test_the_title_names_the_release_when_there_is_one(self):
-        """Running from a release directory, the title ends with its version."""
+        """Running from a release directory, the title carries its version."""
         import sandbox
         config.BASE_DIR = sandbox.install_dir(sandbox.OLD_RELEASE)
         sandbox.set_current_release(sandbox.OLD_RELEASE)
         self.assertEqual(
             config.window_title(),
-            "%s - %s v%s" % (config.DESIGN_NAME, config.hostname(),
-                             sandbox.OLD_RELEASE))
+            "pdkgui v%s - %s (on %s)" % (sandbox.OLD_RELEASE, config.DESIGN_NAME,
+                                         config.hostname()))
 
     def test_the_title_leaves_out_a_release_it_cannot_name(self):
         """A source checkout is not a release, so no version is claimed."""

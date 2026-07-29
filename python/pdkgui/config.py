@@ -237,18 +237,17 @@ def hostname():
 
 
 def window_title():
-    """'<design> - <host> v<release>'.
+    """'pdkgui v<release> - <design> (on <host>)'.
 
-    The host and the release are each left out when they cannot be determined
-    (no host name; not started from a release directory, e.g. a source
-    checkout), so the title never shows an empty field."""
-    title = DESIGN_NAME
+    The release and the host are each left out when they cannot be determined
+    (not started from a release directory, e.g. a source checkout; no host
+    name), so the title never shows an empty field or an invented version."""
+    release = running_release()
+    title = "pdkgui v%s" % release if release else "pdkgui"
+    title += " - %s" % DESIGN_NAME
     host = hostname()
     if host:
-        title += " - %s" % host
-    release = running_release()
-    if release:
-        title += " v%s" % release
+        title += " (on %s)" % host
     return title
 
 # --------------------------------------------------------------------------
