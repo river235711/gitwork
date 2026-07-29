@@ -156,7 +156,16 @@ class _NoTimer(object):
 # This keeps the promise the central layout is built on: edit an .inc and it is
 # picked up on the next tab open or Run. A changed file has a new timestamp, so
 # the cache misses and the new content is read.
+#
+# One difference worth knowing on NFS: opening a file revalidates its attributes
+# with the server, while a stat can be answered from the client's attribute
+# cache (seconds, per the mount's acregmin/acregmax). So a deck edited on
+# another host can take a few seconds longer to be noticed than it used to.
+# PDKGUI_NO_CACHE=1 turns the cache off and reads every time, for when that
+# matters or to rule the cache out while debugging.
 # --------------------------------------------------------------------------
+CACHE_ENABLED = os.environ.get("PDKGUI_NO_CACHE") in (None, "", "0")
+
 _cache = {}     # path -> (mtime_ns, size, value)
 
 
@@ -170,6 +179,8 @@ def clear_cache(path=None):
 
 def _cached(path, loader):
     """loader() result for path, reused while the file is untouched."""
+    if not CACHE_ENABLED:
+        return loader()
     try:
         info = os.stat(path)
         stamp = (info.st_mtime_ns, info.st_size)

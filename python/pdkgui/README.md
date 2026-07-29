@@ -264,7 +264,15 @@ the work went into not paying the same cost twice:
   saved when you leave rather than on every click.
 - **Repeat reads** -- `config` caches file contents against the timestamp, so a
   second read costs one `stat`. Editing a central `.inc` still takes effect on
-  the next tab open or Run: the new timestamp misses the cache.
+  the next tab open or Run: the new timestamp misses the cache. Every Run does
+  check -- three Runs stat the `.inc` three times and only re-read it when it
+  changed.
+
+  One NFS caveat: opening a file revalidates its attributes with the server,
+  while a `stat` can be answered from the client's attribute cache for a few
+  seconds. A deck edited on *another* host can therefore take those few seconds
+  longer to be noticed than before. `PDKGUI_NO_CACHE=1` reads every time, for
+  when that matters or to rule the cache out while debugging.
 
 Measured locally (the NFS saving is larger): switching between six tabs went
 from 18.3 ms and 5 central reads per round to 4.0 ms and none; an XRC Run reads
