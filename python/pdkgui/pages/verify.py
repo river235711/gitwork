@@ -54,6 +54,12 @@ _RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include di
 _RE_PEX_NETLIST = re.compile(
     r'^(\s*PEX\s+NETLIST\s+\S+\s+"[^"]*"\s+)(\S+)(\s+)(\S+)(.*)$', re.IGNORECASE)
 _RE_PEX_GROUND = re.compile(r'(\bGROUND\s+)(\S+)', re.IGNORECASE)
+#   the kind, i.e. DISTRIBUTED / LUMPED / SIMPLE
+_RE_PEX_KIND = re.compile(r'PEX\s+NETLIST\s+(\S+)', re.IGNORECASE)
+# The SIMPLE netlist keeps the format it has: XrcFormat picks the format of the
+# extracted netlists, and the simple one stays SPECTRE. (It is the odd one out
+# in the other direction too -- it carries no GROUND clause.)
+_PEX_KEEPS_FORMAT = ("SIMPLE",)
 #   the quoted "<base>.<dist|lump|simple>" filename -> swap the <base>
 _RE_PEX_NETLIST_FILE = re.compile(
     r'(PEX\s+NETLIST\s+\S+\s+")([^"]*)(\.(?:dist|lump|simple)")', re.IGNORECASE)
@@ -466,7 +472,10 @@ class VerifyPage(BasePage):
 
     def _xrc_rewrite_netlist(self, fmt=None, usename=None, ground=None):
         """Rewrite the PEX NETLIST lines: format token, usename token, and the
-        GROUND <name> value (only lines that carry a GROUND clause)."""
+        GROUND <name> value.
+
+        Two lines are left alone on purpose: the SIMPLE netlist keeps its own
+        format, and only the lines that already carry a GROUND clause get one."""
         if self._syncing:
             return
         lines = self.cmd_text.get_text().split("\n")
@@ -478,7 +487,9 @@ class VerifyPage(BasePage):
             if not m:
                 continue
             pre, f, sp, u, rest = m.groups()
-            if fmt is not None:
+            kind = _RE_PEX_KIND.search(ln)
+            keeps_format = kind and kind.group(1).upper() in _PEX_KEEPS_FORMAT
+            if fmt is not None and not keeps_format:
                 f = fmt
             if usename is not None:
                 u = usename

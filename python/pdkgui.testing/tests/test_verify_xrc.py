@@ -46,12 +46,24 @@ class XrcOptions(GuiTestCase):
                          "XrcReduction should default off")
 
     # --- 1. format ----------------------------------------------------
-    def test_format_rewrites_all_three_netlist_lines(self):
+    def test_format_applies_to_the_extracted_netlists(self):
         for value in self.page.entries["XrcFormat"].cget("values"):
             self.set_combo(self.page, "XrcFormat", value)
             for line in self._netlist_lines():
+                if "SIMPLE" in line:
+                    continue
                 self.assertEqual(self._token(line, 0), value,
                                  "format not applied: %s" % line)
+
+    def test_the_simple_netlist_keeps_its_format(self):
+        """XrcFormat picks the format of the extracted netlists; the simple one
+        stays SPECTRE."""
+        before = [ln for ln in self._netlist_lines() if "SIMPLE" in ln][0]
+        self.assertEqual(self._token(before, 0), "SPECTRE")
+
+        self.set_combo(self.page, "XrcFormat", "DSPF")
+        after = [ln for ln in self._netlist_lines() if "SIMPLE" in ln][0]
+        self.assertEqual(after, before, "the SIMPLE line was rewritten")
 
     # --- 2. use name --------------------------------------------------
     def test_use_name_rewrites_all_three_netlist_lines(self):
@@ -65,7 +77,9 @@ class XrcOptions(GuiTestCase):
         self.set_combo(self.page, "XrcFormat", "DSPF")
         self.set_combo(self.page, "XrcUseName", "LAYOUT")
         for line in self._netlist_lines():
-            self.assertEqual(self._token(line, 0), "DSPF")
+            # the format skips SIMPLE, the use name does not
+            self.assertEqual(self._token(line, 0),
+                             "SPECTRE" if "SIMPLE" in line else "DSPF")
             self.assertEqual(self._token(line, 1), "LAYOUT")
 
     # --- 3. ground ----------------------------------------------------
