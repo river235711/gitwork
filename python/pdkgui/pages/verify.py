@@ -74,7 +74,6 @@ _TERMINALS = (
     ["gnome-terminal", "--"], ["konsole", "-e"],
     ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
 )
-_FILE_MANAGERS = ("xdg-open", "nautilus", "thunar", "pcmanfm", "dolphin")
 
 
 def _strip_comment_lines(text):
@@ -913,13 +912,14 @@ class VerifyPage(BasePage):
     def _on_filemanager(self):
         folder = self.entries["RunFolder"].get().strip()
         folder = os.path.expanduser(folder) if folder else "."
-        self._spawn(_FILE_MANAGERS, folder, "no file manager found")
+        self._spawn(config.file_managers(), folder, "no file manager found")
 
     def _spawn(self, candidates, arg, not_found_msg):
+        """Open something in a desktop program (file manager, editor)."""
         for prog in candidates:
             if shutil.which(prog):
                 try:
-                    subprocess.Popen([prog, arg])
+                    subprocess.Popen([prog, arg], env=config.desktop_env())
                     return
                 except Exception:
                     continue

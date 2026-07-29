@@ -133,7 +133,7 @@ class DocPage(BasePage):
         for prog in _PDF_VIEWERS:
             if shutil.which(prog):
                 try:
-                    subprocess.Popen([prog, path])
+                    subprocess.Popen([prog, path], env=config.desktop_env())
                     return
                 except Exception:
                     continue

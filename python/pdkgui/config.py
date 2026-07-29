@@ -274,6 +274,38 @@ LOGO_TEXT = "SIRIUS-WIRELESS"     # fallback text when the image is not found
 LOGO_BG = "#0b5fa5"
 LOGO_FG = "white"
 
+# --------------------------------------------------------------------------
+# Desktop helpers (file manager, editor, PDF viewer)
+# --------------------------------------------------------------------------
+# xdg-open comes last on purpose. On some setups it hands the .desktop Exec
+# line to the program without expanding the field codes, so the file manager is
+# launched as `dolphin %i -caption "%c" <path>` and opens a tab literally named
+# "%i". Calling a file manager directly avoids the whole indirection.
+# PDKGUI_FILEMANAGER forces one (e.g. PDKGUI_FILEMANAGER=caja).
+FILE_MANAGERS = ("caja", "nautilus", "thunar", "nemo", "pcmanfm", "dolphin",
+                 "xdg-open")
+
+
+def file_managers():
+    """File managers to try, best first; PDKGUI_FILEMANAGER wins."""
+    forced = os.environ.get("PDKGUI_FILEMANAGER")
+    return (forced,) if forced else FILE_MANAGERS
+
+
+def desktop_env():
+    """Environment for launching an ordinary desktop application.
+
+    pdkgui runs in a shell with EDA modules loaded, so LD_LIBRARY_PATH points
+    into the tool trees; a desktop program inheriting it loads those libraries
+    instead of the system ones (dolphin failed on calibre's libpng15 exactly
+    this way). These programs are built against the system libraries, so the
+    variable is dropped for them. The GDS viewers are unaffected -- they are
+    started from a shell script that does its own `module load`."""
+    env = dict(os.environ)
+    env.pop("LD_LIBRARY_PATH", None)
+    return env
+
+
 # klayout executable for the KLAYOUT tab (independent of PROCESS / design).
 # Override via env PDKGUI_KLAYOUT.
 KLAYOUT_BIN = os.environ.get("PDKGUI_KLAYOUT", "/usr/bin/klayout")

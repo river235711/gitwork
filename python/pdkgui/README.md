@@ -346,6 +346,24 @@ resizes on start; the few that do ask for one go through `config.ui_font()` /
 comboboxes all move together. The default window size grows in proportion
 (`config.window_geometry()`), so a larger font does not leave the layout cramped.
 
+## Opening things outside pdkgui
+
+The **FileManager** button, **Edit**, and clicking a PDF on the DOC tab start
+ordinary desktop programs. Two things are deliberate there:
+
+- **`xdg-open` is the last resort, not the first.** On some setups it hands the
+  `.desktop` `Exec` line over without expanding the field codes, so the file
+  manager is launched as `dolphin %i -caption "%c" <path>` and opens a tab
+  literally named `%i`. Calling a file manager directly avoids that. The order
+  is `caja, nautilus, thunar, nemo, pcmanfm, dolphin, xdg-open`; set
+  `PDKGUI_FILEMANAGER=<name>` to force one.
+- **They do not inherit `LD_LIBRARY_PATH`.** pdkgui runs in a shell with EDA
+  modules loaded, so that variable points into the tool trees -- dolphin picked
+  up calibre's `libpng15` from it and failed to start properly. Desktop programs
+  are built against the system libraries, so `config.desktop_env()` drops it for
+  them. The GDS viewers keep theirs: they run from a shell script that does its
+  own `module load`.
+
 ## GDS viewers (skipper / klayout)
 
 - **SKIPPER** tab and the **View** button on other tabs -> open with `skipper`.

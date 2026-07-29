@@ -133,6 +133,36 @@ class DrcFamily(GuiTestCase):
         back = self.open_tab("DRC")
         self.assertEqual(back.entries["LayoutPrimary"].get(), "for_design_one")
 
+    def test_the_file_manager_is_launched_directly(self):
+        """Not through xdg-open, which on some setups passes the .desktop Exec
+        line unexpanded and opens a tab literally named %i."""
+        self.assertEqual(config.file_managers()[-1], "xdg-open",
+                         "xdg-open must be the last resort, not the first try")
+
+        page = self.open_tab("DRC")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.click(page, "FileManager")
+        self.assertTrue(self.spawned, "FileManager launched nothing")
+        launched = self.spawned[-1]
+        self.assertNotIn("xdg-open", launched[0])
+        self.assertEqual(launched[1:], [self.run_folder()],
+                         "the file manager got more than the folder")
+
+    def test_a_chosen_file_manager_is_used(self):
+        os.environ["PDKGUI_FILEMANAGER"] = "caja"
+        self.addCleanup(os.environ.pop, "PDKGUI_FILEMANAGER", None)
+        self.assertEqual(config.file_managers(), ("caja",))
+
+    def test_desktop_programs_do_not_inherit_the_eda_library_path(self):
+        """dolphin loaded calibre's libpng15 and failed; desktop programs are
+        built against the system libraries."""
+        os.environ["LD_LIBRARY_PATH"] = "/tools/mentor/calibre/2021.1/lib"
+        self.addCleanup(os.environ.pop, "LD_LIBRARY_PATH", None)
+        self.assertNotIn("LD_LIBRARY_PATH", config.desktop_env())
+        self.assertEqual(os.environ["LD_LIBRARY_PATH"],
+                         "/tools/mentor/calibre/2021.1/lib",
+                         "pdkgui's own environment must be left alone")
+
     def test_view_opens_the_layout_in_skipper(self):
         page = self.open_tab("DRC")
         self.set_entry(page, "LayoutPath", os.path.join(self.paths["work"], "top.gds"))
