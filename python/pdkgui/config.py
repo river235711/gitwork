@@ -237,10 +237,19 @@ def hostname():
 
 
 def window_title():
-    """'pdkgui - <design> - <host>' (the host is dropped if it cannot be read)."""
+    """'<design> - <host> v<release>'.
+
+    The host and the release are each left out when they cannot be determined
+    (no host name; not started from a release directory, e.g. a source
+    checkout), so the title never shows an empty field."""
+    title = DESIGN_NAME
     host = hostname()
-    return ("pdkgui - %s - %s" % (DESIGN_NAME, host) if host
-            else "pdkgui - %s" % DESIGN_NAME)
+    if host:
+        title += " - %s" % host
+    release = running_release()
+    if release:
+        title += " v%s" % release
+    return title
 
 # --------------------------------------------------------------------------
 # Fonts -- one place to make the whole GUI bigger.
@@ -276,7 +285,7 @@ def window_geometry():
 
 # --- Logo settings: point this at your own image ---
 LOGO_PATH = os.path.join(BASE_DIR, "company_logo.png")
-LOGO_TEXT = "YOUR COMPANY LOGO"     # fallback text when the image is not found
+LOGO_TEXT = "SIRIUS-WIRELESS"     # fallback text when the image is not found
 LOGO_BG = "#0b5fa5"
 LOGO_FG = "white"
 
