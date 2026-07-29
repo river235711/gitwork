@@ -14,25 +14,28 @@ To add a tab:
 
 import tkinter as tk
 
+import importlib
+
 import config
 from .base import BasePage
-from .process import ProcessPage
-from .env import EnvPage
-from .verify import VerifyPage
-from .skipper import SkipperPage
-from .klayout import KlayoutPage
-from .doc import DocPage
-from .system import SystemPage
 
-# Modules with a dedicated page
+# Modules with a dedicated page:  <MODULE>: (module file, class)
+# Imported on first use rather than here -- in a deployed build every page is a
+# separate encrypted file to fetch from NFS, decrypt and compile, and starting
+# up only ever shows one of them.
 _SPECIAL = {
-    "PROCESS": ProcessPage,
-    "ENV": EnvPage,
-    "SKIPPER": SkipperPage,
-    "KLAYOUT": KlayoutPage,
-    "DOC": DocPage,
-    "SYSTEM": SystemPage,
+    "PROCESS": ("process", "ProcessPage"),
+    "ENV": ("env", "EnvPage"),
+    "SKIPPER": ("skipper", "SkipperPage"),
+    "KLAYOUT": ("klayout", "KlayoutPage"),
+    "DOC": ("doc", "DocPage"),
+    "SYSTEM": ("system", "SystemPage"),
 }
+
+
+def _page_class(module_name, class_name):
+    module = importlib.import_module("." + module_name, __name__)
+    return getattr(module, class_name)
 
 
 class _PlaceholderPage(BasePage):
@@ -49,8 +52,10 @@ class _PlaceholderPage(BasePage):
 
 def build_page(name, master, app):
     """Build the page for the given module name."""
-    if name in _SPECIAL:
-        return _SPECIAL[name](master, app)
-    if name in config.VERIFY_MODULES:
-        return VerifyPage(master, app, module_name=name)
-    return _PlaceholderPage(master, app, name)
+    with config.timed("build page %s" % name):
+        if name in _SPECIAL:
+            return _page_class(*_SPECIAL[name])(master, app)
+        if name in config.VERIFY_MODULES:
+            verify = _page_class("verify", "VerifyPage")
+            return verify(master, app, module_name=name)
+        return _PlaceholderPage(master, app, name)

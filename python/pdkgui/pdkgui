@@ -56,36 +56,48 @@ if [ ! -f "$PDKGUI_PY" ]; then
     exit 1
 fi
 
-# --- 3. Load a tkinter-capable python (Environment Modules) ------------------
-#   A non-interactive shell has no `module` function, so source its init first.
-if ! type module >/dev/null 2>&1; then
-    for _init in "$MODULESHOME/init/bash" \
-                 /usr/share/Modules/init/bash \
-                 /etc/profile.d/modules.sh \
-                 /usr/share/lmod/lmod/init/bash; do
-        if [ -f "$_init" ]; then
-            source "$_init"
-            break
+# --- 3. Find a python that has tkinter ---------------------------------------
+#   Try what is already on PATH first: on a host whose python3 has tkinter this
+#   skips the module machinery entirely, which is the slowest part of starting
+#   up (module purge in particular, and it would also unload whatever the user
+#   had loaded). Only when nothing here works do we go to Environment Modules.
+find_python() {
+    for _c in "$PDKGUI_PYTHON" python3 python; do
+        [ -n "$_c" ] || continue
+        if "$_c" -c 'import tkinter' >/dev/null 2>&1; then
+            PY="$_c"
+            return 0
         fi
     done
-fi
+    return 1
+}
 
-PDKGUI_MODULE="${PDKGUI_MODULE:-python/3.6.3}"
-if type module >/dev/null 2>&1; then
-    module purge          >/dev/null 2>&1
-    module load "$PDKGUI_MODULE" >/dev/null 2>&1
-fi
-
-# --- 4. Find a python that actually has tkinter ------------------------------
-#   Candidates: $PDKGUI_PYTHON (user-specified) > python3 > python
 PY=""
-for _c in "$PDKGUI_PYTHON" python3 python; do
-    [ -n "$_c" ] || continue
-    if "$_c" -c 'import tkinter' >/dev/null 2>&1; then
-        PY="$_c"
-        break
+if ! find_python; then
+    # A non-interactive shell has no `module` function, so source its init first.
+    if ! type module >/dev/null 2>&1; then
+        for _init in "$MODULESHOME/init/bash" \
+                     /usr/share/Modules/init/bash \
+                     /etc/profile.d/modules.sh \
+                     /usr/share/lmod/lmod/init/bash; do
+            if [ -f "$_init" ]; then
+                source "$_init"
+                break
+            fi
+        done
     fi
-done
+
+    PDKGUI_MODULE="${PDKGUI_MODULE:-python/3.6.3}"
+    if type module >/dev/null 2>&1; then
+        # purge is slow and throws away the caller's environment; opt out with
+        # PDKGUI_MODULE_PURGE=0 if the load works without it
+        if [ "${PDKGUI_MODULE_PURGE:-1}" != "0" ]; then
+            module purge      >/dev/null 2>&1
+        fi
+        module load "$PDKGUI_MODULE" >/dev/null 2>&1
+    fi
+    find_python
+fi
 
 if [ -z "$PY" ]; then
     echo "pdkgui: no python with a built-in tkinter found." >&2

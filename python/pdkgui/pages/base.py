@@ -23,3 +23,10 @@ class BasePage(tk.Frame):
 
     def build(self):
         raise NotImplementedError
+
+    def on_show(self):
+        """Called each time the tab is brought to the front.
+
+        Pages are built once and kept, so anything that has to reflect the
+        outside world -- the central deck pointer, which release is current --
+        is refreshed here rather than in build()."""

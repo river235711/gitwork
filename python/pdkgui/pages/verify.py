@@ -178,6 +178,12 @@ class VerifyPage(BasePage):
 
         self._bind_changes()
 
+    def on_show(self):
+        """The page is kept between visits, so pick up a central deck that has
+        been updated since it was built (what _finalize does on first open)."""
+        if self.cmd_text is not None:
+            self._refresh_include()
+
     def _central_deck_path(self):
         """First valid line of <CENTRAL>/<DESIGN>/<MODULE>.inc (latest deck path);
         None when absent."""

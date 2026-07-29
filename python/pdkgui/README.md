@@ -246,6 +246,33 @@ conversion:
 A converted verify session holds only the command text, so the Layout/Source
 fields are re-derived from it when the tab opens.
 
+## Speed on the EDA hosts
+
+Everything pdkgui reads sits on NFS, where each open is a network round trip, so
+the work went into not paying the same cost twice:
+
+- **Starting up** -- the launcher tries the python already on PATH first and only
+  touches Environment Modules if it has no tkinter, which skips `module purge`
+  (the slowest step, and it would unload whatever you had loaded). Set
+  `PDKGUI_MODULE_PURGE=0` to keep the purge out of the way when a load is needed
+  anyway. Page modules are imported when their tab is first opened rather than
+  all nine at start-up.
+- **Switching tabs** -- pages are built once and re-shown, instead of being
+  destroyed and rebuilt from the central files every time. Anything that must
+  not go stale is refreshed in the page's `on_show()`: the verify tabs re-read
+  the deck pointer, SYSTEM re-checks which release is current. The open tab is
+  saved when you leave rather than on every click.
+- **Repeat reads** -- `config` caches file contents against the timestamp, so a
+  second read costs one `stat`. Editing a central `.inc` still takes effect on
+  the next tab open or Run: the new timestamp misses the cache.
+
+Measured locally (the NFS saving is larger): switching between six tabs went
+from 18.3 ms and 5 central reads per round to 4.0 ms and none; an XRC Run reads
+`XRC.inc` zero times instead of twice.
+
+`PDKGUI_TIMING=1 pdkgui` prints what each step cost to stderr, which is the way
+to see the real numbers on a host where the files are remote.
+
 ## Interface size
 
 One setting scales the whole GUI -- `config.UI_FONT_SIZE` (default 11), or per

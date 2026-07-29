@@ -50,6 +50,7 @@ class GuiTestCase(unittest.TestCase):
         self._config_state = {name: getattr(config, name)
                               for name in ("DESIGN_NAME", "BASE_DIR")}
         config.DESIGN_NAME = self.design
+        config.clear_cache()      # the sandbox is rebuilt per test
         self.stubs = stubs.Installer().install()
 
         self.app = pdkgui_app.PdkGui()

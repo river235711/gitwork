@@ -45,7 +45,15 @@ class SystemPage(BasePage):
         st.grid(row=0, column=0, sticky="nsew")
         st.load_file(config.page_file(self.module))
 
-        self._build_version_panel().grid(row=1, column=0, sticky="nsew", pady=(8, 0))
+        self._panel = self._build_version_panel()
+        self._panel.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
+
+    def on_show(self):
+        """Re-check which release is current: the page is kept between visits,
+        so opening SYSTEM is what refreshes it."""
+        self._panel.destroy()
+        self._panel = self._build_version_panel()
+        self._panel.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
 
     # ------------------------------------------------------------------
     def _build_version_panel(self):

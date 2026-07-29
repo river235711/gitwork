@@ -18,6 +18,7 @@ Three ways to specify a file:
 import os
 import re
 import json
+import time
 import socket
 
 # --------------------------------------------------------------------------
@@ -108,12 +109,93 @@ def user_global_file(name):
     return os.path.join(USER_DIR, SESSION_SUBDIR, "%s.json" % name)
 
 
-def load_json(path, default=None):
-    """Read a JSON file; return default (or {}) on failure."""
+# --------------------------------------------------------------------------
+# Timing (PDKGUI_TIMING=1)
+# --------------------------------------------------------------------------
+# The cost that matters is NFS latency on the EDA hosts, which cannot be
+# measured anywhere else -- so pdkgui can report its own, to stderr.
+TIMING = os.environ.get("PDKGUI_TIMING") not in (None, "", "0")
+
+
+def timed(label):
+    """Context manager printing how long a step took, when timing is on."""
+    return _Timer(label) if TIMING else _NoTimer()
+
+
+class _Timer(object):
+    def __init__(self, label):
+        self.label = label
+
+    def __enter__(self):
+        self._start = time.time()
+        return self
+
+    def __exit__(self, *exc):
+        import sys
+        sys.stderr.write("[pdkgui] %-34s %6.1f ms\n"
+                         % (self.label, (time.time() - self._start) * 1000))
+        return False
+
+
+class _NoTimer(object):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+# --------------------------------------------------------------------------
+# File cache
+# --------------------------------------------------------------------------
+# Everything lives on NFS, where each open is a network round trip, and the
+# same central files are read several times per action (XRC.inc alone is read
+# on tab open and twice more per Run). Contents are cached against the file's
+# timestamp and size, so a repeat read costs one stat instead of an open.
+#
+# This keeps the promise the central layout is built on: edit an .inc and it is
+# picked up on the next tab open or Run. A changed file has a new timestamp, so
+# the cache misses and the new content is read.
+# --------------------------------------------------------------------------
+_cache = {}     # path -> (mtime_ns, size, value)
+
+
+def clear_cache(path=None):
+    """Forget one path, or everything (used after a write, and by the tests)."""
+    if path is None:
+        _cache.clear()
+    else:
+        _cache.pop(path, None)
+
+
+def _cached(path, loader):
+    """loader() result for path, reused while the file is untouched."""
     try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
+        info = os.stat(path)
+        stamp = (info.st_mtime_ns, info.st_size)
+    except OSError:
+        _cache.pop(path, None)
+        return loader()          # let the loader deal with the missing file
+    hit = _cache.get(path)
+    if hit is not None and hit[0] == stamp[0] and hit[1] == stamp[1]:
+        return hit[2]
+    value = loader()
+    _cache[path] = (stamp[0], stamp[1], value)
+    return value
+
+
+def load_json(path, default=None):
+    """Read a JSON file; return default (or {}) on failure.
+
+    Parsed fresh each call from the cached text rather than caching the result:
+    callers get a dict of their own, so one that modifies what it reads cannot
+    corrupt what everyone else sees."""
+    text = read_text(path, default=None)
+    if text is None:
+        return {} if default is None else default
+    try:
+        return json.loads(text)
+    except ValueError:
         return {} if default is None else default
 
 
@@ -125,6 +207,8 @@ def save_json(path, obj):
             json.dump(obj, f, ensure_ascii=False, indent=2)
     except OSError:
         pass
+    finally:
+        clear_cache(path)   # the next read must see what we just wrote
 
 # --------------------------------------------------------------------------
 # General settings
@@ -396,14 +480,21 @@ def page_file(module_name):
 
 
 def read_text(path, default=""):
-    """Read a plain text file; return default on failure (no exception)."""
+    """Read a plain text file; return default on failure (no exception).
+
+    Cached against the file's timestamp (see _cached), which is what spares the
+    repeat reads: read_lines and read_conf are built on this, so every central
+    file benefits and only the parsing is redone."""
     if not path:
         return default
-    try:
-        with open(path, encoding="utf-8") as f:
-            return f.read()
-    except OSError:
-        return default
+
+    def read():
+        try:
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+        except OSError:
+            return default
+    return _cached(path, read)
 
 
 def read_lines(path):

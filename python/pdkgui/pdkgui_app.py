@@ -52,11 +52,13 @@ class PdkGui(tk.Tk):
                 if v:
                     self.env[k] = v
         self._page = None
+        self._pages = {}               # built pages, kept for the next visit
         self._update_ack = False       # "run anyway" chosen on the Run prompt
 
-        self._build_sidebar()
-        self._build_content_area()
-        self.show_module(self._restore_module())
+        with config.timed("build window"):
+            self._build_sidebar()
+            self._build_content_area()
+            self.show_module(self._restore_module())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _apply_fonts(self):
@@ -90,8 +92,16 @@ class PdkGui(tk.Tk):
 
     def set_design(self, name):
         """Switch the current design: update the window title so other tabs follow."""
+        if name == config.DESIGN_NAME:
+            return
         config.DESIGN_NAME = name
         self.title(config.window_title())
+        # The built pages belong to the previous design, so drop them; each is
+        # rebuilt when next opened. PROCESS is the page this is called from --
+        # destroying it here would pull the widget out from under the callback
+        # still running on it -- and its content (the list of designs) does not
+        # depend on which one is selected, so it is kept.
+        self._drop_cached_pages(keep="PROCESS")
 
     # ------------------------------------------------------------------
     # Left-hand menu
@@ -124,17 +134,42 @@ class PdkGui(tk.Tk):
         self.content.pack(side="left", fill="both", expand=True)
 
     def show_module(self, name):
+        """Bring a tab to the front, building it the first time.
+
+        Pages are kept and re-shown rather than destroyed and rebuilt: a rebuild
+        re-reads the central files and the session and recreates every widget,
+        which is slow over NFS and pointless when going back to a tab. Whatever
+        must not go stale is refreshed in the page's on_show()."""
         self.current_module.set(name)
         self._highlight_selected(name)
-        config.save_json(config.user_global_file("UI"), {"module": name})
 
-        # Save the current page's state before leaving it
-        self._flush_page()
-        for w in self.content.winfo_children():
-            w.destroy()
+        self._flush_page()          # save the page we are leaving
+        if self._page is not None:
+            self._page.pack_forget()
 
-        self._page = build_page(name, self.content, self)
-        self._page.pack(fill="both", expand=True, padx=10, pady=10)
+        page = self._pages.get(name)
+        if page is None:
+            page = self._pages[name] = build_page(name, self.content, self)
+        self._page = page
+        page.pack(fill="both", expand=True, padx=10, pady=10)
+        with config.timed("show %s" % name):
+            page.on_show()
+
+    def _drop_cached_pages(self, keep=None):
+        """Forget the built pages (they were built for one design), except
+        `keep`, which stays because it is the one on screen.
+
+        Deliberately no flush: show_module already saved each page on the way
+        out, and by the time this runs the design has changed -- flushing now
+        would file the previous design's state under the new one."""
+        for name in [n for n in self._pages if n != keep]:
+            page = self._pages.pop(name)
+            try:
+                page.destroy()
+            except Exception:
+                pass
+        if keep not in self._pages:
+            self._page = None
 
     def _flush_page(self):
         page = getattr(self, "_page", None)
@@ -144,8 +179,16 @@ class PdkGui(tk.Tk):
             except Exception:
                 pass
 
+    def _save_ui_state(self):
+        """Remember the open tab. Written when leaving rather than on every tab
+        switch, which was an NFS write per click; the worst a crash costs is
+        reopening on the previous tab."""
+        config.save_json(config.user_global_file("UI"),
+                         {"module": self.current_module.get()})
+
     def _on_close(self):
         self._flush_page()
+        self._save_ui_state()
         self.destroy()
 
     # ------------------------------------------------------------------
@@ -184,6 +227,7 @@ class PdkGui(tk.Tk):
                                            "close pdkgui and start it again manually.")
             return
         self._flush_page()
+        self._save_ui_state()       # the new instance opens on this tab
         try:
             subprocess.Popen([launcher], start_new_session=True, close_fds=True)
         except Exception as e:
