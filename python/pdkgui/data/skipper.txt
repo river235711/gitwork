@@ -1,2 +1,0 @@
-# Recently opened GDS (one absolute path per line); the SKIPPER tab reads this
-/datacenter/users/example/project/design_top.gds

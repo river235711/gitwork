@@ -75,20 +75,6 @@ def central_skipper_conf(design):
     return os.path.join(DEFAULT_COM_DIR, design, "SKIPPER.conf")
 
 
-# Design-independent central files: these live at the TOP of the central dir
-# (not under <DESIGN>/), so every user reads the same file whatever PROCESS /
-# design is selected.   <MODULE>: <filename at <DEFAULT_COM_DIR>/>
-CENTRAL_SHARED_FILES = {
-    "SYSTEM": "system.txt",     # revision history, same for all designs
-}
-
-
-def central_shared_file(module):
-    """<DEFAULT_COM_DIR>/<filename> for a design-independent module, or None."""
-    name = CENTRAL_SHARED_FILES.get(module)
-    return os.path.join(DEFAULT_COM_DIR, name) if name else None
-
-
 # --------------------------------------------------------------------------
 # Per-user state directory (each user's "last time" working state; override via
 # env PDKGUI_USER_DIR).
@@ -305,10 +291,12 @@ VERIFY_MODULES = ["DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO", "LVS", "XRC", "JIV
 # * Each tab -> the file it reads (path relative to data/) *
 # --------------------------------------------------------------------------
 PAGE_FILES = {
-    "SYSTEM":  "system.txt",     # revision history
+    "SYSTEM":  "system.txt",     # revision history (ships with the release)
     "PROCESS": "process.txt",    # selectable process / design list (one per line)
     "ENV":     "env.txt",        # tool version settings
-    "SKIPPER": "skipper.txt",    # recently opened GDS list (one per line)
+    # SKIPPER / KLAYOUT have no entry on purpose: their GDS lists come from the
+    # user's own session, and seeding them from a file only put an example path
+    # nobody wants in front of everyone.
     # command files for the verify modules:
     "DRC":     "verify/DRC.com",
     "ANT":     "verify/ANT.com",
@@ -327,9 +315,9 @@ PAGE_FILES = {
 # Document index: one line per document, three '|' separated fields
 #     <Doc. No.>|<Doc ID>|<Title>
 # e.g. DesignRule|T-N22-CL-DR-001|TSMC 22 NM ... DESIGN RULE (CLN22ULP/...)
-# It lives in the central dir per PROCESS/design (see central_doc_file); the
-# built-in data/doc/DOC.txt is the fallback when central is unreachable.
-DOC_INDEX_FALLBACK = os.path.join(DATA_DIR, "doc", "DOC.txt")
+# It lives in the central dir per PROCESS/design (see central_doc_file). There
+# is deliberately no built-in fallback: one process's document list is wrong for
+# another, so a missing index says so rather than showing someone else's.
 
 # The PDFs live in the central dir too, next to the DOC.txt of that process:
 #     <DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf
@@ -346,9 +334,8 @@ def central_doc_file(design):
 
 
 def doc_index_file(design):
-    """The DOC index actually used: central first, built-in data/ as fallback."""
-    path = central_doc_file(design)
-    return path if os.path.isfile(path) else DOC_INDEX_FALLBACK
+    """The DOC index for this process (may not exist; the page says so)."""
+    return central_doc_file(design)
 
 
 def doc_group_dir(design, docno, docid):
@@ -471,24 +458,18 @@ _ENV_OVERRIDES = {
     "SYSTEM":  "PDKGUI_SYSTEM_FILE",
     "PROCESS": "PDKGUI_PROCESS_FILE",
     "ENV":     "PDKGUI_ENV_FILE",
-    "SKIPPER": "PDKGUI_SKIPPER_FILE",
 }
 
 
 def page_file(module_name):
     """Return the absolute path of the file a tab should read.
 
-    Priority: environment-variable override > central shared copy (if it
-    exists) > PAGE_FILES (the built-in file shipped in data/).
-    Returns None when there is no setting.
+    Priority: environment-variable override > PAGE_FILES (the file shipped in
+    data/, alongside the release). Returns None when there is no setting.
     """
     env_var = _ENV_OVERRIDES.get(module_name)
     if env_var and os.environ.get(env_var):
         return os.path.abspath(os.path.expanduser(os.environ[env_var]))
-
-    shared = central_shared_file(module_name)
-    if shared and os.path.isfile(shared):
-        return shared
 
     rel = PAGE_FILES.get(module_name)
     if rel is None:

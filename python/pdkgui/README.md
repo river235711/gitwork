@@ -16,7 +16,7 @@ pdkgui/
 ├── pages/              per-tab pages
 │   ├── base.py  process.py  env.py  verify.py  skipper.py
 │   ├── klayout.py  doc.py  system.py  __init__.py (page registry)
-├── data/               content files each tab reads (system.txt / env.txt / verify/*.com / doc/*)
+├── data/               files that ship with the release (system.txt / process.txt / env.txt / verify/*.com)
 ├── pdkcrypt.py         encryption core (stdlib only: PBKDF2 + HMAC-CTR + encrypt-then-MAC)
 ├── pdk_secure.py       runtime loader + encrypted-module import hook
 ├── pdk_pack.py         single-file encryptor (.py -> .pdkc)
@@ -71,6 +71,25 @@ Every file of a build shares one salt so the key is derived once per process
 rather than once per module; the nonce stays random per file. The count is
 recorded in each file's header, so builds made before this still load.
 
+## What lives where
+
+Two sources, and the split is deliberate:
+
+- **`data/`, shipped inside each release** -- `system.txt` (the revision
+  history), `process.txt` (the selectable processes), `env.txt` (tool versions),
+  and the fallback `verify/*.com` templates. These describe *the program*, so
+  each release carries its own: `pdkgui v2026.0737` shows the history as of that
+  release, and someone on an older one is not told about features it lacks.
+  Changing them means a release.
+- **the central directory, shared by every release** -- everything that
+  describes *a process*: `<DESIGN>/*.com`, `*.inc`, `SKIPPER.conf`, `DOC.txt`
+  and the `doc/` PDFs. A deck update is an edit to one `.inc`, picked up on the
+  next tab open with no release at all.
+
+There is deliberately no built-in fallback for `DOC.txt`, and nothing seeds the
+SKIPPER/KLAYOUT lists: one process's documents are wrong for another, and an
+example GDS path helps nobody. When those are missing the tab says so.
+
 ## Default command files (central golden directory)
 
 The default command files for the verify pages
@@ -79,7 +98,6 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 `PDKGUI_DEFAULT_DIR`):
 
 ```
-<DEFAULT_COM_DIR>/system.txt                SYSTEM revision history (design-independent, shared)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com     golden command-file template (LoadDefault reads this)
 <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc     latest fab deck path (one line, optional)
 <DEFAULT_COM_DIR>/<DESIGN>/XRC.inc          four XRC paths as key=value (hcell/xcell/rules/deck)
@@ -90,11 +108,6 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 
 - The LoadDefault button reads `.com`; if the central file is missing it falls
   back to the built-in template `data/verify/<MODULE>.com`.
-- `system.txt` is **design-independent** (`config.CENTRAL_SHARED_FILES`): it sits
-  at the top of the central dir, not under a design, so the SYSTEM tab shows the
-  same revision history to every user regardless of the PROCESS selection. Read
-  order is `PDKGUI_SYSTEM_FILE` > `<DEFAULT_COM_DIR>/system.txt` >
-  built-in `data/system.txt`.
 - `.inc` (optional) holds the **latest fab PDK deck path** (one line). On **tab
   open and on Run**, pdkgui rewrites the `include <...>` line in the command to
   the value of `.inc` -- when the deck is updated you edit just this one-line
@@ -109,8 +122,8 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
 
 ## DOC tab (document browser)
 
-Three linked columns driven by `<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt` (built-in
-fallback `data/doc/DOC.txt`), one line per document:
+Three linked columns driven by `<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt`, one line
+per document:
 
 ```
 <Doc. No.>|<Doc ID>|<Title>
@@ -141,7 +154,6 @@ symlink, and the central configuration is shared by every version:
     ├── 2026.0728/pdkgui/    one release = the contents of dist/
     ├── current -> 2026.0728  flip this to switch or roll back
     └── central/              config.DEFAULT_COM_DIR, shared by all versions
-        ├── system.txt
         └── <DESIGN>/{*.com,*.inc,SKIPPER.conf,DOC.txt,doc/}
 ```
 

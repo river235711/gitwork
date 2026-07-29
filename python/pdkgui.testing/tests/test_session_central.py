@@ -17,12 +17,39 @@ class CentralFiles(GuiTestCase):
             self.assertEqual(config.central_default_file(module, config.DESIGN_NAME),
                              os.path.join(self.paths["design"], "%s.com" % module))
 
-    def test_the_revision_history_is_shared_by_every_design(self):
+    def test_the_release_ships_its_own_revision_history(self):
+        """SYSTEM reads the file next to the program, not central: the history
+        describes the release, so each one carries the history it belongs to."""
         first = config.page_file("SYSTEM")
         config.DESIGN_NAME = "t40lp_1p6m_4x1u"
         self.assertEqual(config.page_file("SYSTEM"), first,
                          "SYSTEM should not depend on the process")
-        self.assertEqual(first, os.path.join(self.paths["central"], "system.txt"))
+        self.assertEqual(first, os.path.join(config.DATA_DIR, "system.txt"))
+        self.assertNotIn(self.paths["central"], first)
+
+    def test_the_process_and_tool_lists_ship_with_the_release_too(self):
+        for module, name in (("PROCESS", "process.txt"), ("ENV", "env.txt")):
+            self.assertEqual(config.page_file(module),
+                             os.path.join(config.DATA_DIR, name))
+
+    def test_a_process_without_a_document_index_says_so(self):
+        """No built-in fallback: one process's documents are wrong for another,
+        so a missing index must not quietly show someone else's."""
+        os.remove(os.path.join(self.paths["design"], "DOC.txt"))
+        config.clear_cache()
+        self.assertEqual(config.read_doc_index(config.DESIGN_NAME), [])
+
+        page = self.open_tab("DOC")
+        shown = list(page.lb_title.get(0, "end"))
+        self.assertTrue(shown and shown[0].startswith("(document index not found"),
+                        "a missing index showed %r" % shown)
+
+    def test_the_gds_lists_start_empty(self):
+        """Nothing seeds them any more -- they are the user's own."""
+        for module in ("SKIPPER", "KLAYOUT"):
+            page = self.open_tab(module)
+            self.assertEqual([e.get() for e in page.entries], [""] * page.ROWS,
+                             "%s came pre-filled" % module)
 
     def test_a_missing_central_file_falls_back_to_the_built_in_one(self):
         os.remove(os.path.join(self.paths["design"], "DRC.com"))

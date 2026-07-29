@@ -7,7 +7,6 @@ it, copy it to your central path, or point `PDKGUI_DEFAULT_DIR` at it.
 
 ```
 <CENTRAL>/
-├── system.txt                    revision history -- design-independent, read by every user
 └── <DESIGN>/                     e.g. t22_1p7m_4x1z1u/
     ├── <MODULE>.com              golden command-file template (LoadDefault reads this)
     ├── <MODULE>.inc              latest fab deck path (one line)
@@ -30,9 +29,9 @@ skipper command.
   is the middle column, and the PDFs of a document are looked up right here in
   `<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf`. Clicking a PDF opens it in a viewer.
   (Env `PDKGUI_DOC_ROOT` moves just the PDF tree to another share if needed.)
-- The SYSTEM tab reads `<CENTRAL>/system.txt` -- it sits at the top level, **not**
-  under a design, so every user sees the same revision history whatever PROCESS /
-  design is selected. If it is absent, the built-in `data/system.txt` is used.
+- The SYSTEM tab does **not** read from here: the revision history ships with the
+  release as `data/system.txt`, so each version carries the history it belongs to.
+  Same for the process list and the tool versions.
 - On tab open (and with no session) -> load `<DESIGN>/<MODULE>.com` into the text box.
 - On tab open **and** on Run -> rewrite the `include <...>` line in the text to
   the value of `<DESIGN>/<MODULE>.inc`.
