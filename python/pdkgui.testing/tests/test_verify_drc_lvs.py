@@ -48,8 +48,19 @@ class DrcFamily(GuiTestCase):
             self.set_entry(page, "RunFolder", self.run_folder())
             self.click(page, "Rve")
             script = self.run_script()
-            self.assertIn("calibre -rve", script)
+            self.assertIn("calibre -rve %s_RES.db" % module, script)
             self.assertIn("module load %s" % self.app.env["calibre"], script)
+
+    def test_the_database_name_follows_the_command_file(self):
+        """Unlike LVS/XRC's svdb, the DRC family's database is named by the
+        command file, so Rve has to read it back out."""
+        page = self.open_tab("DRC")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.set_text(page, page.cmd_text.get_text().replace(
+            'DRC RESULTS DATABASE "DRC_RES.db"',
+            'DRC RESULTS DATABASE "renamed.db"'))
+        self.click(page, "Rve")
+        self.assertIn("calibre -rve renamed.db", self.run_script())
 
     def test_run_reports_a_missing_run_folder_instead_of_writing(self):
         page = self.open_tab("DRC")
@@ -208,6 +219,17 @@ class LvsTab(GuiTestCase):
         script = self.run_script()
         self.assertIn("calibre -turbo 8 -rve -lvs svdb", script)
         self.assertIn("module load %s" % self.app.env["calibre"], script)
+
+    def test_rve_reads_svdb_whatever_the_command_file_says(self):
+        """calibre writes the svdb directory itself; the RESULTS DATABASE line
+        must not rename it."""
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.set_text(page, page.cmd_text.get_text().replace(
+            'DRC RESULTS DATABASE "svdb"',
+            'DRC RESULTS DATABASE "lvs.db"'))
+        self.click(page, "Rve")
+        self.assertIn("calibre -turbo 8 -rve -lvs svdb", self.run_script())
 
     def test_rve_uses_the_calibre_version_picked_on_env(self):
         env = self.open_tab("ENV")

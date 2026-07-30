@@ -637,10 +637,10 @@ class VerifyPage(BasePage):
         return m.group(1) if m else "%s.rep" % self.module
 
     def _results_db(self):
+        """The DRC-family results database, whose name the command file picks.
+        LVS and XRC do not go through here: they always write svdb."""
         m = _RE_RESULTS_DB.search(self._text())
-        if m:
-            return m.group(1)
-        return "svdb" if self.module in ("LVS", "XRC") else "%s_RES.db" % self.module
+        return m.group(1) if m else "%s_RES.db" % self.module
 
     # --- DRC class ---
     def _run_script_drc(self):
@@ -706,13 +706,14 @@ class VerifyPage(BasePage):
         return self._run_script_drc()
 
     def _run_script_rve(self):
-        """Open the results in RVE. LVS and XRC read the svdb directory and need
-        to be told which view to open (-lvs / -pex); the DRC family opens its
-        results database directly."""
+        """Open the results in RVE. LVS and XRC read the svdb directory -- always
+        that name, since calibre writes it, not the command file -- and need to be
+        told which view to open (-lvs / -pex). The DRC family opens the results
+        database its command file names."""
         if self.module == "LVS":
-            view = "calibre -turbo 8 -rve -lvs %s" % self._results_db()
+            view = "calibre -turbo 8 -rve -lvs svdb"
         elif self.module == "XRC":
-            view = "calibre -turbo 8 -rve -pex %s" % self._results_db()
+            view = "calibre -turbo 8 -rve -pex svdb"
         else:
             view = "calibre -rve %s" % self._results_db()
         return (

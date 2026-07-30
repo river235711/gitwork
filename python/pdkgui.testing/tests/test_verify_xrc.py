@@ -192,6 +192,12 @@ class XrcOptions(GuiTestCase):
         self.assertIn("calibre -turbo 8 -rve -pex svdb", script)
         self.assertIn("module load %s" % self.app.env["calibre"], script)
 
+    def test_rve_reads_svdb_whatever_the_command_file_says(self):
+        self.set_text(self.page, self.page.cmd_text.get_text() +
+                      '\nDRC RESULTS DATABASE "other.db"\n')
+        self.click(self.page, "Rve")
+        self.assertIn("calibre -turbo 8 -rve -pex svdb", self.run_script())
+
     # --- netlist naming -----------------------------------------------
     def test_source_primary_renames_the_netlist_files(self):
         self.set_entry(self.page, "SourcePrimary", "new_top")
