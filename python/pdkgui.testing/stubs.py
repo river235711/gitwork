@@ -27,6 +27,11 @@ class Installer(object):
         self.dialogs = []
         self.answers = []
         self.files = []
+        # what a probed process prints: {argv[-1] fragment or host: (out, err)},
+        # plus a default for anything not listed. The LOADING tab reads its
+        # subprocess' output, so it needs more than a recorded argv.
+        self.outputs = {}
+        self.default_output = ("", "")
         self._patches = []
 
     # ------------------------------------------------------------------
@@ -78,8 +83,18 @@ class Installer(object):
         setattr(obj, name, value)
 
     def _popen(self, cmd, *a, **kw):
-        self.spawned.append(list(cmd) if isinstance(cmd, (list, tuple)) else [cmd])
-        return _FakeProcess()
+        argv = list(cmd) if isinstance(cmd, (list, tuple)) else [cmd]
+        self.spawned.append(argv)
+        return _FakeProcess(self._output_for(argv))
+
+    def _output_for(self, argv):
+        """The (stdout, stderr) a test wants this command to produce, matched on
+        any outputs key appearing in the argv (a host name, say). A value of None
+        means the process never finishes, for testing a machine that hangs."""
+        for key, value in self.outputs.items():
+            if any(key in part for part in argv):
+                return value
+        return self.default_output
 
     def _stub_messagebox(self, mod):
         box = getattr(mod, "messagebox", None)
@@ -119,11 +134,25 @@ class Installer(object):
 
 
 class _FakeProcess(object):
-    """Stand-in for what Popen returns; nothing in pdkgui inspects it."""
+    """Stand-in for what Popen returns.
+
+    Most callers ignore it; the LOADING tab polls it and reads its output, so it
+    can be given canned output -- or None, to act like a process that never
+    finishes."""
     returncode = 0
+
+    def __init__(self, output=("", "")):
+        self._output = output
+        self.killed = False
 
     def wait(self, *a, **kw):
         return 0
 
     def poll(self):
-        return 0
+        return None if self._output is None else 0
+
+    def communicate(self, *a, **kw):
+        return ("", "") if self._output is None else self._output
+
+    def kill(self):
+        self.killed = True

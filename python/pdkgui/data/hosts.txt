@@ -1,0 +1,12 @@
+# Machines the LOADING tab watches, one per line ('#' starts a comment).
+#
+# Each is probed with
+#     ssh -o BatchMode=yes -o ConnectTimeout=3 <host> '<read /proc>'
+# except the machine pdkgui itself runs on, which is read directly. So a host
+# listed here needs passwordless ssh from wherever users start pdkgui;
+# one that does not answer is shown as such rather than holding up the others.
+sirius01
+sirius02
+sirius05
+sirius06
+sirius07

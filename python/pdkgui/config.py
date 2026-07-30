@@ -313,7 +313,7 @@ KLAYOUT_BIN = os.environ.get("PDKGUI_KLAYOUT", "/usr/bin/klayout")
 # Left-hand menu items (screenshot order)
 MENU_ITEMS = [
     "PROCESS", "ENV", "DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO",
-    "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "SYSTEM",
+    "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "LOADING", "SYSTEM",
 ]
 
 # Modules that use the "verification flow" page template
@@ -326,6 +326,7 @@ PAGE_FILES = {
     "SYSTEM":  "system.txt",     # revision history (ships with the release)
     "PROCESS": "process.txt",    # selectable process / design list (one per line)
     "ENV":     "env.txt",        # tool version settings
+    "LOADING": "hosts.txt",      # machines whose load the LOADING tab watches
     # SKIPPER / KLAYOUT have no entry on purpose: their GDS lists come from the
     # user's own session, and seeding them from a file only put an example path
     # nobody wants in front of everyone.
@@ -490,6 +491,7 @@ _ENV_OVERRIDES = {
     "SYSTEM":  "PDKGUI_SYSTEM_FILE",
     "PROCESS": "PDKGUI_PROCESS_FILE",
     "ENV":     "PDKGUI_ENV_FILE",
+    "LOADING": "PDKGUI_LOADING_FILE",
 }
 
 

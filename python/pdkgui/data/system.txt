@@ -2,6 +2,10 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.073001  2026/07/30    * [Function] New function of LOADING to show the loading of every sirius machine
+                           * [Function] LVS and XRC of RVE always open svdb
+                           * [Function] Choosing LayoutPath or SourcePath fills in the cellname, .gds.gz strips both extensions
+                           * [Function] Run terminal title shows the process and the function name
 2026.0720    2026/07/20    * [Commandfile] t22 lvs deck from v1.2i to v1.2k in LVS and XRC of t22_4x1z1u and t22_5x1z1u
 2026.0615    2026/06/15    * [Function] New function of Bump
                            * [Function] New function of DOC/t22,t40/Bump/CALIBRE DRC COMMAND FILE FOR TSMC 0.13UM ~ 6NM CU ROUND BUMP ON PAD FLIP CHIP WITH BUILD UP SUBSTR

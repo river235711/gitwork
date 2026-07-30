@@ -29,6 +29,7 @@ _SPECIAL = {
     "SKIPPER": ("skipper", "SkipperPage"),
     "KLAYOUT": ("klayout", "KlayoutPage"),
     "DOC": ("doc", "DocPage"),
+    "LOADING": ("loading", "LoadingPage"),
     "SYSTEM": ("system", "SystemPage"),
 }
 

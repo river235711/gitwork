@@ -1,7 +1,8 @@
 # pdkgui
 
 A Tkinter GUI modeled on an internal EDA flow manager (PROCESS / ENV / DRC / ANT
-/ WB / BUMP / DMDV / DPDO / LVS / XRC / JIVARO / SKIPPER / KLAYOUT / DOC / SYSTEM).
+/ WB / BUMP / DMDV / DPDO / LVS / XRC / JIVARO / SKIPPER / KLAYOUT / DOC /
+LOADING / SYSTEM).
 
 ## File layout
 
@@ -18,9 +19,10 @@ config.py           central settings (which file each tab reads, paths, constant
 widgets.py          shared widgets (ScrolledText with two scrollbars, LogoPanel)
 pages/              per-tab pages
     base.py  process.py  env.py  verify.py  skipper.py
-    klayout.py  doc.py  system.py  __init__.py (page registry)
+    klayout.py  doc.py  loading.py  system.py  __init__.py (page registry)
 data/               files that ship with the release
-                    (system.txt / process.txt / env.txt / verify/*.com)
+                    (system.txt / process.txt / env.txt / hosts.txt /
+                     verify/*.com)
 ```
 
 **Decryption, needed at run time** -- also shipped, and necessarily plaintext,
@@ -104,7 +106,8 @@ Two sources, and the split is deliberate:
 
 - **`data/`, shipped inside each release** -- `system.txt` (the revision
   history), `process.txt` (the selectable processes), `env.txt` (tool versions),
-  and the fallback `verify/*.com` templates. These describe *the program*, so
+  `hosts.txt` (the machines the LOADING tab watches), and the fallback
+  `verify/*.com` templates. These describe *the program*, so
   each release carries its own: `pdkgui v2026.0737` shows the history as of that
   release, and someone on an older one is not told about features it lacks.
   Changing them means a release.
@@ -169,6 +172,43 @@ document = add its line to `DOC.txt` + drop the PDFs in the matching directory.
 Set env `PDKGUI_DOC_ROOT` only if the PDF tree must live on another share (the
 `<DESIGN>/doc/...` structure below it is unchanged).
 
+## LOADING tab (which machine to use)
+
+Users share a handful of hosts, so before starting a verification the question is
+always "which one is free". The tab answers it directly:
+
+```
+Machine loading                                       [Refresh]
+Best right now: sirius05  (12% CPU, 210 GB free)
+
+  sirius01   CPU ██████░░░░  58%   MEM ███░░░░░░░  79 GB free   busy
+  sirius05   CPU ██░░░░░░░░  12%   MEM █░░░░░░░░░ 210 GB free   idle
+  sirius07   no answer (ssh: connect to host sirius07 port 22: No route to host)
+```
+
+The machines come from `data/hosts.txt` (one per line, `#` comments; override
+with `PDKGUI_LOADING_FILE`). Each is asked for its figures with one command that
+reads `/proc` only -- no scheduler, no tool that might not be installed:
+
+```
+cat /proc/loadavg; nproc; awk '/^Mem(Total|Available):/{print $1, $2}' /proc/meminfo
+```
+
+- The machine pdkgui runs on is read directly; the rest over
+  `ssh -o BatchMode=yes -o ConnectTimeout=3`, so a host without a key fails at
+  once instead of waiting on a password prompt, and the row shows ssh's own
+  reason (a host key never accepted looks just like a machine that is down).
+- **CPU% = 1-minute load average / core count**, which is what a load figure
+  means once you know the machine: load 8 on 32 cores is idle.
+- The verdict is the **worse** of cpu and free memory -- an idle machine with
+  2 GB left cannot run a verification, so it is not offered as the best pick
+  either (`_contention` in `pages/loading.py`).
+- All the probes go out together and are collected by a poll on the Tk event
+  loop (no threads); each row fills in as its own machine answers, one that
+  hangs is given up on after `PROBE_TIMEOUT`, and the recommendation appears from
+  whatever has answered so far. Leaving the tab cancels the poll and kills any
+  ssh still running (`flush()`, called by `pdkgui_app._flush_page`).
+
 ## Deployment layout (versioned install + shared central)
 
 Users always run one stable entry point; releases are switched by repointing a
@@ -208,6 +248,24 @@ a launcher *copied* elsewhere.
 Keeping `central/` outside the version directories is deliberate: a deck update
 is just an edit to one `.inc` and needs no release, and rolling the program back
 does not silently roll the decks back with it.
+
+### Revision history convention (`data/system.txt`)
+
+Every change to the program gets a line at the **top** of the table, so users on
+the SYSTEM tab can see what the release they are running actually changed:
+
+```
+Revision     Date          Description
+----------   ----------    ---------------------------------------------------
+2026.073001  2026/07/30    * [Function] New function of LOADING ...
+                           * [Function] LVS and XRC of RVE always open svdb
+```
+
+- Revision = `<YYYY>.<MMDD>` for the first entry of a day, then `01`, `02` ...
+  appended for further ones the same day (`2026.073001`).
+- A software change needs only `[Function]` items. `[Commandfile]` is for a deck
+  swap, which is a central `.inc` edit rather than a release.
+- Column widths: revision 13, date 14, continuation lines indented 27.
 
 ### Telling users a new release is out
 

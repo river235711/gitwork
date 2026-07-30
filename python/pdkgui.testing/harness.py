@@ -68,6 +68,10 @@ class GuiTestCase(unittest.TestCase):
                        lambda self, v: self.stubs.answers.__setitem__(slice(None), v))
     files = property(lambda self: self.stubs.files,
                      lambda self, v: self.stubs.files.__setitem__(slice(None), v))
+    # what a subprocess should print, keyed on a fragment of its argv
+    outputs = property(lambda self: self.stubs.outputs,
+                       lambda self, v: self.stubs.outputs.clear() or
+                       self.stubs.outputs.update(v))
 
     def tearDown(self):
         try:
