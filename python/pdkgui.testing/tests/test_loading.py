@@ -379,5 +379,111 @@ class LoadingTab(GuiTestCase):
         self.fail("no %s button on the %s row" % (label, host))
 
 
+class CommandLine(unittest.TestCase):
+    """`pdkgui -l` -- the machine chooser on its own."""
+
+    def test_no_arguments_opens_the_full_window(self):
+        import pdkgui_app
+        self.assertEqual(pdkgui_app.parse_argv([]), (None, None, 0))
+
+    def test_both_spellings_ask_for_the_chooser(self):
+        import pdkgui_app
+        for flag in ("-l", "--loading"):
+            self.assertEqual(pdkgui_app.parse_argv([flag]), ("LOADING", None, 0))
+
+    def test_help_prints_and_stops(self):
+        import pdkgui_app
+        only, message, status = pdkgui_app.parse_argv(["--help"])
+        self.assertIsNone(only, "--help must not open a window")
+        self.assertIn("-l, --loading", message)
+        self.assertEqual(status, 0)
+
+    def test_an_unknown_option_is_refused_rather_than_ignored(self):
+        import pdkgui_app
+        for argv in (["-x"], ["-l", "extra"], ["--loading", "-x"]):
+            only, message, status = pdkgui_app.parse_argv(argv)
+            self.assertIsNone(only, argv)
+            self.assertEqual(status, 2, argv)
+            self.assertIn("unknown option", message)
+
+
+class ChooserWindow(GuiTestCase):
+    """The window `pdkgui -l` opens: one page, and none of a session's state."""
+
+    def setUp(self):
+        super(ChooserWindow, self).setUp()
+        listing = os.path.join(self.paths["work"], "hosts.txt")
+        with open(listing, "w", encoding="utf-8") as f:
+            f.write("hostA\nhostB\n")
+        os.environ["PDKGUI_LOADING_FILE"] = listing
+        self.addCleanup(os.environ.pop, "PDKGUI_LOADING_FILE", None)
+        config.clear_cache()
+
+    def _chooser(self):
+        """Replace the harness window with a chooser one, so tearDown closes it
+        (two live Tk interpreters in one process interfere with each other)."""
+        self.app.destroy()
+        self.app = self.pdkgui_app.PdkGui(only="LOADING")
+        self.app.withdraw()
+        self.app.update()
+        return self.app._page
+
+    def test_it_shows_the_loading_page_and_nothing_else(self):
+        page = self._chooser()
+        self.assertEqual(page.module, "LOADING")
+        self.assertEqual(self.app._menu_buttons, {},
+                         "the chooser should have no menu")
+        labels = [b.cget("text") for b in self.widgets(self.app, "Button")]
+        for tab in ("DRC", "LVS", "XRC", "SYSTEM", "PROCESS"):
+            self.assertNotIn(tab, labels, "a tab button leaked into the chooser")
+        self.assertIn("Refresh", labels, "this is not the loading page")
+
+    def test_the_title_says_what_the_window_is_for(self):
+        self._chooser()
+        title = self.app.title()
+        self.assertIn("loading", title)
+        self.assertNotIn(config.DESIGN_NAME, title,
+                         "choosing a machine has nothing to do with a process")
+
+    def test_the_page_knows_it_is_on_screen(self):
+        """_auto_refresh stops rescheduling unless app._page is the page, so
+        without this the chooser would never update itself again."""
+        page = self._chooser()
+        self.assertIs(self.app._page, page)
+        self.assertIsNotNone(page._refresh_job)
+
+    def test_closing_it_does_not_move_the_full_window_to_this_page(self):
+        ui = config.user_global_file("UI")
+        config.save_json(ui, {"module": "XRC"})
+
+        self._chooser()
+        self.app._on_close()
+        self.app = self.pdkgui_app.PdkGui()      # for tearDown
+        self.app.withdraw()
+
+        self.assertEqual(config.load_json(ui).get("module"), "XRC",
+                         "the chooser overwrote the remembered tab")
+
+    def test_the_machine_buttons_open_the_full_pdkgui_not_another_chooser(self):
+        page = self._chooser()
+        self.spawned = []
+        row = str(page._rows["hostB"]["verdict"].grid_info().get("row"))
+        for b in self.widgets(page, "Button"):
+            info = b.grid_info()
+            if (b.cget("text") == "pdkgui" and info
+                    and str(info.get("row")) == row):
+                b.invoke()
+                break
+        else:
+            self.fail("no pdkgui button on the hostB row")
+
+        # the launcher is invoked with no arguments at all, so what opens on the
+        # other machine is the full window and not a second chooser
+        # (the trailing "exec $SHELL -l" is the login shell, not a pdkgui flag)
+        command = self.spawned[-1][-1]
+        self.assertIn("pdkgui >/dev/null 2>&1 &", command)
+        self.assertNotIn("--loading", command)
+
+
 if __name__ == "__main__":
     unittest.main()

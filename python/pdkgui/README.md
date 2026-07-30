@@ -229,6 +229,31 @@ Two buttons on each row, from `shell_command()`:
 
 The machine pdkgui is already on gets a plain local shell, no ssh.
 
+### `pdkgui -l` -- the chooser on its own
+
+Choosing a machine comes *before* deciding to work anywhere, so it should not
+need the whole window:
+
+```bash
+pdkgui -l          # or --loading
+```
+
+opens the LOADING page alone -- white, no menu down the side, sized to its own
+content -- and the `pdkgui` button on the machine you pick starts the **full**
+window there. Implemented as `PdkGui(only="LOADING")`; what that mode skips is as
+much the point as what it does:
+
+- **the open tab is not saved on close** (`_save_ui_state`), or the full pdkgui
+  would open on LOADING next time instead of where the user left it;
+- the ENV/PROCESS session is not read (this page uses neither, and the title says
+  `- loading` rather than a design);
+- the legacy migration does not run -- a chooser has no business rewriting the
+  user's files;
+- `pages.verify` is not warmed up, since no tab in this window can reach it.
+
+`pdkgui --help` lists the options; an unknown one exits 2 rather than being
+ignored.
+
 ## Deployment layout (versioned install + shared central)
 
 Users always run one stable entry point; releases are switched by repointing a

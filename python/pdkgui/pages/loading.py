@@ -206,11 +206,12 @@ class LoadingPage(BasePage):
                           % config.page_file(self.module)
                      ).grid(row=3, column=0, sticky="w")
 
+        # The legend stays, but not the path of the host list: that is an admin's
+        # business, and it is a long path in front of every user, every time.
         tk.Label(self, bg=self.bg, fg=_GREY, anchor="w", justify="left",
                  font=config.ui_font(-1),
                  text="CPU is the 1-minute load average over the core count; "
-                      "MEM is free memory.\nEdit %s to change the list."
-                      % config.page_file(self.module)
+                      "MEM is free memory."
                  ).grid(row=4, column=0, sticky="w", pady=(12, 0))
 
     def _build_row(self, table, index, host):

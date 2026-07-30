@@ -59,4 +59,4 @@ _report("import pdkgui_app", _t)
 if __name__ == "__main__":
     if _TIMING:
         os.environ["PDKGUI_START"] = str(_T0)    # so the app can report the total
-    pdkgui_app.main()
+    sys.exit(pdkgui_app.main())

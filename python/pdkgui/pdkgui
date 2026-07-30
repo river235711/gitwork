@@ -19,7 +19,11 @@
 #   PDKGUI_MODULE   python to module-load (default python/3.6.3)
 #   PDKGUI_PYTHON   python executable to use directly (skips module-load detection)
 #
-# All arguments are forwarded to pdkgui.py, which runs in the background (&).
+# All arguments are forwarded to pdkgui.py, which runs in the background (&):
+#   pdkgui           the full window, on the tab it was last left on
+#   pdkgui -l        the machine chooser only (LOADING on its own), to see which
+#                    machine is free and start pdkgui there
+#   pdkgui --help    the option list
 #==============================================================================
 
 # --- Built-in default install path (used when $PDKGUI_HOME is unset and the

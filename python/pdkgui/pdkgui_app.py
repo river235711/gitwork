@@ -21,9 +21,35 @@ from pages import build_page
 
 
 class PdkGui(tk.Tk):
-    def __init__(self):
-        super().__init__()
+    """The pdkgui window.
 
+    `only` names a single module to show on its own, with no menu down the side
+    (`pdkgui -l` -> only="LOADING", the machine chooser). Such a window is a
+    means to an end -- pick a machine, open pdkgui there -- so it deliberately
+    neither reads nor writes the state that belongs to a working session."""
+
+    def __init__(self, only=None):
+        super().__init__()
+        self.only = only
+
+        self._apply_fonts()
+        # Working directory pdkgui was launched from (default for verify RunFolder)
+        self.launch_dir = os.getcwd()
+        self._page = None
+        self._pages = {}               # built pages, kept for the next visit
+        self._menu_buttons = {}        # empty without a sidebar
+        self._update_ack = False       # "run anyway" chosen on the Run prompt
+        self.current_module = tk.StringVar(value=only or config.MENU_ITEMS[0])
+
+        with config.timed("build window"):
+            if only:
+                self._build_single(only)
+            else:
+                self._build_full()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._report_startup()
+
+    def _build_full(self):
         # First start after the upgrade: convert the old
         # ~/.pdkgui/.pdkgui.<tab><design>.{commandfile,gui} files into the
         # session layout
@@ -34,14 +60,10 @@ class PdkGui(tk.Tk):
         if saved_design:
             config.DESIGN_NAME = saved_design
 
-        self._apply_fonts()
         self.title(config.window_title())
         self.geometry(config.window_geometry())
         self.configure(bg="#d9d9d9")
 
-        # Working directory pdkgui was launched from (default for verify RunFolder)
-        self.launch_dir = os.getcwd()
-        self.current_module = tk.StringVar(value=config.MENU_ITEMS[0])
         # Tool / editor picked on the ENV tab (defaults, then restore saved ones),
         # shared with other tabs
         # imported here, not at module level: it would pull pages/__init__ and
@@ -54,20 +76,29 @@ class PdkGui(tk.Tk):
             for k, v in saved_env.items():
                 if v:
                     self.env[k] = v
-        self._page = None
-        self._pages = {}               # built pages, kept for the next visit
-        self._update_ack = False       # "run anyway" chosen on the Run prompt
 
-        with config.timed("build window"):
-            self._build_sidebar()
-            self._build_content_area()
-            self.show_module(self._restore_module())
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._report_startup()
+        self._build_sidebar()
+        self._build_content_area()
+        self.show_module(self._restore_module())
         # The window is up and responsive now, so spend the idle moment loading
         # the verify page module: it is the biggest one, and without this the
         # first DRC/LVS/XRC click pays for it.
         self.after_idle(self._warm_up)
+
+    def _build_single(self, module):
+        """One page, no menu: the window is that page.
+
+        No geometry is set -- Tk sizes the window to the page, so a chooser does
+        not open as a mostly empty full-size window. What is skipped is as much
+        the point as what is done: the ENV/PROCESS session is not read (this page
+        uses neither), the legacy migration is not run (a chooser has no business
+        rewriting the user's files) and the open tab is not saved on close, which
+        would otherwise make the *full* pdkgui open on this page next time."""
+        self.title(config.window_title(subject=module.lower()))
+        self.configure(bg="white")
+        self._build_content_area()
+        self.content.configure(bg="white")
+        self.show_module(module)
 
     def _warm_up(self):
         with config.timed("warm up verify module"):
@@ -149,7 +180,7 @@ class PdkGui(tk.Tk):
             self._menu_buttons[name] = btn
 
     def _highlight_selected(self, name):
-        for n, btn in self._menu_buttons.items():
+        for n, btn in self._menu_buttons.items():      # nothing to do without a menu
             btn.configure(bg="#e0e0e0" if n == name else "#bcdff0")
 
     # ------------------------------------------------------------------
@@ -208,7 +239,12 @@ class PdkGui(tk.Tk):
     def _save_ui_state(self):
         """Remember the open tab. Written when leaving rather than on every tab
         switch, which was an NFS write per click; the worst a crash costs is
-        reopening on the previous tab."""
+        reopening on the previous tab.
+
+        A single-page window has no tab to remember, and writing one would send
+        the full pdkgui to that page on its next start."""
+        if self.only:
+            return
         config.save_json(config.user_global_file("UI"),
                          {"module": self.current_module.get()})
 
@@ -264,5 +300,35 @@ class PdkGui(tk.Tk):
         self.destroy()
 
 
-def main():
-    PdkGui().mainloop()
+USAGE = """usage: pdkgui [-l]
+
+  -l, --loading   open the machine chooser only: the LOADING page on its own,
+                  to see which machine is free and start pdkgui there
+  -h, --help      this message
+
+With no options the full window opens on the tab it was last left on.
+"""
+
+
+def parse_argv(argv):
+    """(only, message, status): which module to show on its own, and whether to
+    print something and stop instead of opening a window."""
+    if not argv:
+        return None, None, 0
+    if len(argv) == 1:
+        if argv[0] in ("-l", "--loading"):
+            return "LOADING", None, 0
+        if argv[0] in ("-h", "--help"):
+            return None, USAGE, 0
+    return None, "pdkgui: unknown option %s\n\n%s" % (" ".join(argv), USAGE), 2
+
+
+def main(argv=None):
+    import sys
+    only, message, status = parse_argv(
+        list(sys.argv[1:] if argv is None else argv))
+    if message:
+        (sys.stderr if status else sys.stdout).write(message)
+        return status
+    PdkGui(only=only).mainloop()
+    return 0

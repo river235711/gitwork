@@ -222,15 +222,18 @@ def hostname():
         return ""
 
 
-def window_title():
+def window_title(subject=None):
     """'pdkgui v<release> - <design> (on <host>)'.
 
     The release and the host are each left out when they cannot be determined
     (not started from a release directory, e.g. a source checkout; no host
-    name), so the title never shows an empty field or an invented version."""
+    name), so the title never shows an empty field or an invented version.
+
+    `subject` replaces the design, for a window that is not about one -- the
+    machine chooser (`pdkgui -l`) passes "loading"."""
     release = running_release()
     title = "pdkgui v%s" % release if release else "pdkgui"
-    title += " - %s" % DESIGN_NAME
+    title += " - %s" % (subject or DESIGN_NAME)
     host = hostname()
     if host:
         title += " (on %s)" % host
