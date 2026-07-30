@@ -205,6 +205,15 @@ class XrcOptions(GuiTestCase):
             self.assertIn('"new_top.%s"' % kind.lower().replace("distributed", "dist")
                           .replace("lumped", "lump"), line)
 
+    def test_browsing_a_source_netlist_renames_them_too(self):
+        """The cell name parsed from the file drives the netlist names, exactly as
+        typing it into SourcePrimary does."""
+        self.browse(self.page, "SourcePath",
+                    os.path.join(self.paths["work"], "browsed_top.spi"))
+        self.assertEqual(self.page.entries["SourcePrimary"].get(), "browsed_top")
+        for line in self._netlist_lines():
+            self.assertIn('"browsed_top.', line)
+
     def test_editing_source_primary_in_the_text_renames_them_too(self):
         text = self.page.cmd_text.get_text().replace(
             'SOURCE PRIMARY "%s"' % self.page.entries["SourcePrimary"].get(),

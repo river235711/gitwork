@@ -92,6 +92,40 @@ class DrcFamily(GuiTestCase):
                       'LAYOUT PRIMARY "real"\n')
         self.assertEqual(page.entries["LayoutPrimary"].get(), "real")
 
+    # --- browsing ------------------------------------------------------
+    def test_browsing_a_layout_fills_in_the_cell_name(self):
+        for module in DRC_CLASS:
+            page = self.open_tab(module)
+            self.browse(page, "LayoutPath",
+                        os.path.join(self.paths["work"], "tx_fe_top_II_2G_v4_ulvt.gds"))
+            self.assertEqual(page.entries["LayoutPrimary"].get(),
+                             "tx_fe_top_II_2G_v4_ulvt", "%s did not parse it" % module)
+
+    def test_a_compressed_layout_loses_both_extensions(self):
+        page = self.open_tab("DRC")
+        self.browse(page, "LayoutPath",
+                    os.path.join(self.paths["work"], "tx_fe_top_II_2G_v4_ulvt.gds.gz"))
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "tx_fe_top_II_2G_v4_ulvt")
+
+    def test_browsing_writes_both_lines_into_the_command_text(self):
+        """The run reads the text, not the fields, so a browsed path that stopped
+        at the field would be silently ignored."""
+        page = self.open_tab("DRC")
+        gds = os.path.join(self.paths["work"], "block_top.gds")
+        self.browse(page, "LayoutPath", gds)
+        text = page.cmd_text.get_text()
+        self.assertIn('LAYOUT PATH "%s"' % os.path.realpath(gds),
+                      self.active_lines(text, "LAYOUT PATH")[0])
+        self.assertIn('LAYOUT PRIMARY "block_top"',
+                      self.active_lines(text, "LAYOUT PRIMARY")[0])
+
+    def test_browsing_a_run_folder_leaves_the_cell_name_alone(self):
+        page = self.open_tab("DRC")
+        self.set_entry(page, "LayoutPrimary", "kept")
+        self.browse(page, "RunFolder", self.paths["work"])
+        self.assertEqual(page.entries["RunFolder"].get(), self.paths["work"])
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "kept")
+
     # --- files ---------------------------------------------------------
     def test_load_default_reads_the_central_command_file(self):
         page = self.open_tab("DRC")
@@ -174,11 +208,43 @@ class DrcFamily(GuiTestCase):
                          "/tools/mentor/calibre/2021.1/lib",
                          "pdkgui's own environment must be left alone")
 
+    def test_the_run_terminal_says_which_process_and_tab_it_is(self):
+        """Several run windows are open at once; '(on <host>)' is the window
+        manager's own suffix."""
+        page = self.open_tab("DRC")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.click(page, "Run")
+        self.assertIn("\\033]0;.pdkgui_run.sh - %s - DRC\\007" % config.DESIGN_NAME,
+                      self.run_wrapper())
+
     def test_view_opens_the_layout_in_skipper(self):
         page = self.open_tab("DRC")
         self.set_entry(page, "LayoutPath", os.path.join(self.paths["work"], "top.gds"))
         self.click(page, "View")
         self.assertTrue(self.spawned, "View launched nothing")
+
+
+class CellNameFromPath(unittest.TestCase):
+    """The rule browsing uses: strip the directory and the extension, and strip
+    two extensions when the second is .gz."""
+
+    def test_the_cases_that_come_up(self):
+        from pages.verify import _cell_name
+        cases = {
+            "/p/verify/tx_fe_top_II_2G_v4_ulvt/tx_fe_top_II_2G_v4_ulvt.gds":
+                "tx_fe_top_II_2G_v4_ulvt",
+            "/p/verify/tx_fe_top_II_2G_v4_ulvt/tx_fe_top_II_2G_v4_ulvt.gds.gz":
+                "tx_fe_top_II_2G_v4_ulvt",
+            "/p/SYLINCOM/TRX_ABB_TOP_6G_SYLINCOM_v1.spi": "TRX_ABB_TOP_6G_SYLINCOM_v1",
+            "/p/top.cdl": "top",
+            "/p/top.oas": "top",
+            "/p/TOP.GDS.GZ": "TOP",              # the check is case-insensitive
+            "/p/top.v1.gds": "top.v1",           # only the last extension goes
+            "/p/no_extension": "no_extension",
+            "/p/spaced name.gds": "spaced name",
+        }
+        for path, expected in cases.items():
+            self.assertEqual(_cell_name(path), expected, path)
 
 
 class LvsTab(GuiTestCase):
@@ -211,6 +277,22 @@ class LvsTab(GuiTestCase):
                       'SOURCE PATH "%s"\n' % cdl)
         self.assertEqual(page.entries["SourcePrimary"].get(), "src_top")
         self.assertEqual(page.entries["SourcePath"].get(), os.path.realpath(cdl))
+
+    def test_browsing_a_source_netlist_fills_in_its_cell_name(self):
+        page = self.open_tab("LVS")
+        spi = os.path.join(self.paths["work"], "TRX_ABB_TOP_6G_SYLINCOM_v1.spi")
+        self.browse(page, "SourcePath", spi)
+        self.assertEqual(page.entries["SourcePrimary"].get(),
+                         "TRX_ABB_TOP_6G_SYLINCOM_v1")
+        self.assertIn('SOURCE PRIMARY "TRX_ABB_TOP_6G_SYLINCOM_v1"',
+                      self.active_lines(page.cmd_text.get_text(), "SOURCE PRIMARY")[0])
+
+    def test_the_layout_and_source_cell_names_are_parsed_independently(self):
+        page = self.open_tab("LVS")
+        self.browse(page, "LayoutPath", os.path.join(self.paths["work"], "lay_top.gds"))
+        self.browse(page, "SourcePath", os.path.join(self.paths["work"], "src_top.cdl"))
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "lay_top")
+        self.assertEqual(page.entries["SourcePrimary"].get(), "src_top")
 
     def test_rve_opens_the_lvs_view_of_the_svdb(self):
         page = self.open_tab("LVS")

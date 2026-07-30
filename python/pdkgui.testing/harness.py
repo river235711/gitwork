@@ -150,6 +150,19 @@ class GuiTestCase(unittest.TestCase):
         page._schedule_save()
         self.app.update()
 
+    def browse(self, page, key, path):
+        """Pick a path for a field by pressing the Open button on its row."""
+        self.files = [path]
+        row = str(page.entries[key].grid_info().get("row"))
+        for b in self.widgets(page, "Button"):
+            info = b.grid_info()
+            if (b.cget("text") == "Open" and info
+                    and str(info.get("row")) == row):
+                b.invoke()
+                self.app.update()
+                return
+        self.fail("no Open button on the %s row" % key)
+
     def set_text(self, page, content):
         """Replace the command text as if typed."""
         page.cmd_text.set_text(content)
@@ -163,6 +176,10 @@ class GuiTestCase(unittest.TestCase):
     def run_script(self):
         """Contents of the run script the last Run wrote."""
         return self._read(os.path.join(self.run_folder(), "run"))
+
+    def run_wrapper(self):
+        """Contents of the wrapper the terminal was opened on."""
+        return self._read(os.path.join(self.run_folder(), ".pdkgui_run.sh"))
 
     def com_file(self, module):
         name = "calibre_%s_%s.com" % (self.config.DESIGN_NAME, module.lower())

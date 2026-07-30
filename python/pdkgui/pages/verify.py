@@ -75,6 +75,9 @@ _FIELD_KEYWORDS = {
     "SourcePrimary": ("SOURCE PRIMARY", _RE_SOURCE_PRIMARY, False),
 }
 
+# Browsing for a path fills in the cell name next to it
+_PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary"}
+
 _TERMINALS = (
     ["xterm", "-fg", "white", "-bg", "black", "-e"],
     ["gnome-terminal", "--"], ["konsole", "-e"],
@@ -85,6 +88,17 @@ _TERMINALS = (
 def _strip_comment_lines(text):
     """Drop whole lines starting with '//', return the joined remainder."""
     return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("//"))
+
+
+def _cell_name(path):
+    """The cell a layout or netlist file is named after: the basename without
+    its extension. A compressed layout loses both (top.gds.gz -> top), since
+    .gz alone would leave 'top.gds'."""
+    name = os.path.basename(path.strip())
+    root, ext = os.path.splitext(name)
+    if ext.lower() == ".gz":
+        root = os.path.splitext(root)[0] or root
+    return root or name
 
 
 class VerifyPage(BasePage):
@@ -142,10 +156,10 @@ class VerifyPage(BasePage):
         self.entries[key] = var
 
     def _open_btn(self, key):
-        return ("Open", lambda: self._browse_file(self.entries[key]))
+        return ("Open", lambda: self._browse_path(key))
 
     def _opendir_btn(self, key):
-        return ("Open", lambda: self._browse_dir(self.entries[key]))
+        return ("Open", lambda: self._browse_path(key, directory=True))
 
     def _action_buttons(self, row):
         bf = tk.Frame(self, bg=self.bg)
@@ -882,8 +896,11 @@ class VerifyPage(BasePage):
         try:
             with open(wrapper, "w", encoding="utf-8") as f:
                 f.write('#!/bin/bash -l\n'
-                        # set terminal foreground white / background black (OSC 10/11)
-                        "printf '\\033]10;white\\007\\033]11;black\\007'\n"
+                        # foreground white / background black (OSC 10/11) and the
+                        # window title (OSC 0). An escape sequence rather than a
+                        # per-terminal flag: gnome-terminal dropped --title.
+                        "printf '\\033]10;white\\007\\033]11;black\\007"
+                        "\\033]0;%s\\007'\n" % self._terminal_title() +
                         'cd "$(dirname "$0")"\n'
                         './run\n'
                         'echo\n'
@@ -902,6 +919,14 @@ class VerifyPage(BasePage):
                     continue
         messagebox.showerror("pdkgui",
                              "No usable terminal found. Run it manually:\n%s/run" % folder)
+
+    def _terminal_title(self):
+        """Title for the run window, so several of them stay tellable apart:
+        '.pdkgui_run.sh - <PROCESS> - <TAB>'. The window manager adds the
+        '(on <host>)' suffix. Quotes and percent signs would upset the printf
+        that emits it, so they are dropped."""
+        title = ".pdkgui_run.sh - %s - %s" % (config.DESIGN_NAME, self.module)
+        return title.replace("'", "").replace("%", "")
 
     def _on_view(self):
         # open the layout GDS with skipper (same flow as the SKIPPER tab)
@@ -938,17 +963,27 @@ class VerifyPage(BasePage):
         messagebox.showinfo("pdkgui", not_found_msg)
 
     # ------------------------------------------------------------------
-    def _browse_file(self, entry_widget):
-        path = filedialog.askopenfilename()
-        if path:
-            entry_widget.delete(0, tk.END)
-            entry_widget.insert(0, path)
+    def _browse_path(self, key, directory=False):
+        """Fill a path field from the file dialog.
 
-    def _browse_dir(self, entry_widget):
-        path = filedialog.askdirectory()
-        if path:
-            entry_widget.delete(0, tk.END)
-            entry_widget.insert(0, path)
+        Picking a layout or a source netlist also fills in the cell name beside
+        it, since the file is named after the cell. Both changes go down into the
+        command text the same way typing them would -- the run reads the text,
+        not the fields."""
+        path = filedialog.askdirectory() if directory else filedialog.askopenfilename()
+        if not path:
+            return
+        self._fill_entry(key, path)
+        primary = _PRIMARY_OF.get(key)
+        if primary in self.entries:
+            self._fill_entry(primary, _cell_name(path))
+            self._on_field_change(primary)
+        self._on_field_change(key)
+
+    def _fill_entry(self, key, value):
+        w = self.entries[key]
+        w.delete(0, tk.END)
+        w.insert(0, value)
 
     # ==================================================================
     # JIVARO etc.: existing simple layout
@@ -964,7 +999,7 @@ class VerifyPage(BasePage):
             self.entries[label] = ent
             if has_open:
                 tk.Button(self, text="Open",
-                          command=lambda e=ent: self._browse_file(e)).grid(row=row, column=3, padx=2)
+                          command=lambda k=label: self._browse_path(k)).grid(row=row, column=3, padx=2)
             row += 1
         self.grid_columnconfigure(1, weight=1)
         self._action_buttons(row); row += 1
