@@ -18,12 +18,19 @@ so one without a key fails at once instead of waiting on a password prompt.
 
 All the probes are started at the same time and collected by a poll on the Tk
 event loop, so a slow or dead machine delays nothing but its own row.
+
+Each row also has two buttons: Terminal opens a shell on that machine, pdkgui
+opens one with pdkgui already starting in it.
 """
 
+import os
 import time
+import shutil
+import shlex
 import subprocess
 
 import tkinter as tk
+from tkinter import messagebox
 
 from .base import BasePage
 import config
@@ -60,6 +67,33 @@ def probe_command(host):
     if host == config.hostname():
         return ["bash", "-c", _PROBE]
     return ["ssh"] + list(_SSH_OPTS) + [host, _PROBE]
+
+
+def shell_command(host, launcher=None, workdir=None):
+    """The argv for a terminal working on `host`.
+
+    The shell is left interactive (`exec $SHELL -l`) so the window is a place to
+    work, not a one-shot command. With a launcher it starts pdkgui there first,
+    in the background, so one click gives both.
+
+    A login shell matters: the EDA tools come from Environment Modules, which a
+    plain `ssh host command` shell has never sourced."""
+    # each statement carries its own terminator: '&' already ends a command, and
+    # following it with ';' is a bash syntax error
+    parts = []
+    if workdir:
+        # not being able to cd is no reason to refuse the terminal
+        parts.append("cd %s 2>/dev/null;" % shlex.quote(workdir))
+    if launcher:
+        parts.append("%s >/dev/null 2>&1 &" % shlex.quote(launcher))
+    parts.append("exec $SHELL -l")
+    inner = " ".join(parts)
+
+    if host == config.hostname():
+        return ["bash", "-c", inner]
+    # -X forwards the display (pdkgui and the calibre viewers are X programs);
+    # -t forces a pty, which ssh does not allocate when given a command
+    return ["ssh", "-X", "-t", host, inner]
 
 
 def parse_probe(text):
@@ -161,7 +195,7 @@ class LoadingPage(BasePage):
         self._rows = {}
         table = tk.Frame(self, bg=self.bg)
         table.grid(row=2, column=0, sticky="nsew")
-        table.grid_columnconfigure(5, weight=1)
+        table.grid_columnconfigure(8, weight=1)   # slack goes on the right
         self.grid_rowconfigure(2, weight=1)
         for i, host in enumerate(self.hosts):
             self._rows[host] = self._build_row(table, i, host)
@@ -195,10 +229,52 @@ class LoadingPage(BasePage):
         row["mem"] = tk.Label(table, bg=self.bg, width=14, anchor="w",
                               font=config.mono_font())
         row["mem"].grid(row=index, column=4, padx=(0, 18))
-        row["verdict"] = tk.Label(table, bg=self.bg, anchor="w",
+        row["verdict"] = tk.Label(table, bg=self.bg, anchor="w", width=22,
                                   font=config.ui_font(0, "bold"))
         row["verdict"].grid(row=index, column=5, sticky="w")
+        tk.Button(table, text="Terminal", width=9,
+                  command=lambda h=host: self._open_terminal(h)
+                  ).grid(row=index, column=6, padx=(0, 4))
+        tk.Button(table, text="pdkgui", width=9,
+                  command=lambda h=host: self._open_terminal(h, with_pdkgui=True)
+                  ).grid(row=index, column=7)
         return row
+
+    # ------------------------------------------------------------------
+    def _open_terminal(self, host, with_pdkgui=False):
+        """Open a terminal on that machine, optionally starting pdkgui in it."""
+        launcher = self._launcher() if with_pdkgui else None
+        if with_pdkgui and not launcher:
+            messagebox.showerror("pdkgui", "Could not find the pdkgui launcher "
+                                           "to start on %s." % host)
+            return
+        command = shell_command(host, launcher=launcher,
+                                workdir=getattr(self.app, "launch_dir", None))
+        for term in config.terminals():
+            if shutil.which(term[0]):
+                try:
+                    # a terminal emulator is a desktop program: see desktop_env
+                    subprocess.Popen(term + command, env=config.desktop_env())
+                    return
+                except Exception:
+                    continue
+        messagebox.showerror("pdkgui", "No usable terminal found. Run it "
+                                       "manually:\n%s" % " ".join(command))
+
+    @staticmethod
+    def _launcher():
+        """The pdkgui to start on the other machine.
+
+        The current release first, so a machine opened from a superseded window
+        still gets the new pdkgui; otherwise the launcher beside this code. Both
+        are absolute paths on the shared filesystem, so they mean the same thing
+        on every machine -- no site path is hard-coded here."""
+        candidates = [config.live_launcher(),
+                      os.path.join(config.BASE_DIR, "pdkgui")]
+        for path in candidates:
+            if path and os.path.isfile(path):
+                return path
+        return None
 
     # ------------------------------------------------------------------
     def on_show(self):

@@ -120,6 +120,51 @@ class ProbeCommand(unittest.TestCase):
         self.assertIn("/proc/meminfo", command)
 
 
+class ShellCommand(unittest.TestCase):
+    """What the Terminal / pdkgui buttons on each row launch."""
+
+    def test_a_remote_terminal_forwards_the_display_and_takes_a_pty(self):
+        argv = loading.shell_command("sirius05")
+        self.assertEqual(argv[:4], ["ssh", "-X", "-t", "sirius05"])
+
+    def test_the_shell_is_left_interactive(self):
+        """The window is somewhere to work, not a command that exits."""
+        self.assertIn("exec $SHELL -l", loading.shell_command("sirius05")[-1])
+
+    def test_a_terminal_on_this_machine_does_not_go_through_ssh(self):
+        argv = loading.shell_command(config.hostname())
+        self.assertEqual(argv[:2], ["bash", "-c"])
+        self.assertNotIn("ssh", argv)
+
+    def test_without_a_launcher_nothing_is_started(self):
+        self.assertNotIn("&", loading.shell_command("sirius05")[-1])
+
+    def test_with_a_launcher_pdkgui_starts_in_the_background(self):
+        command = loading.shell_command("sirius05", launcher="/tools/pdkgui")[-1]
+        self.assertIn("/tools/pdkgui >/dev/null 2>&1 &", command)
+        self.assertTrue(command.endswith("exec $SHELL -l"),
+                        "the shell must outlive the launcher")
+
+    def test_it_opens_in_the_directory_this_window_was_started_from(self):
+        command = loading.shell_command("sirius05", workdir="/p/my project")[-1]
+        self.assertIn("cd '/p/my project' 2>/dev/null", command)
+        self.assertTrue(command.startswith("cd "), "cd has to come first")
+
+    def test_what_it_builds_is_valid_shell(self):
+        """'cmd &' followed by ';' is a syntax error, and every combination of
+        workdir and launcher is assembled from the same pieces."""
+        import subprocess
+        for workdir in (None, "/p/my project"):
+            for launcher in (None, "/tools/pdkgui"):
+                command = loading.shell_command(
+                    "sirius05", launcher=launcher, workdir=workdir)[-1]
+                check = subprocess.run(["bash", "-n", "-c", command],
+                                       stderr=subprocess.PIPE,
+                                       universal_newlines=True)
+                self.assertEqual(check.returncode, 0,
+                                 "%s\n%s" % (command, check.stderr))
+
+
 class LoadingTab(GuiTestCase):
     HOSTS = ("hostA", "hostB", "hostC")
 
@@ -248,6 +293,56 @@ class LoadingTab(GuiTestCase):
         self.assertIsNone(page._refresh_job)
         self.assertFalse(page._running, "an ssh was left running")
 
+    # --- the per-machine buttons --------------------------------------
+    def test_every_machine_has_its_own_two_buttons(self):
+        page = self.open_tab("LOADING")
+        for label, expected in (("Terminal", len(self.HOSTS)),
+                                ("pdkgui", len(self.HOSTS))):
+            found = [b for b in self.widgets(page, "Button")
+                     if b.cget("text") == label]
+            self.assertEqual(len(found), expected,
+                             "expected one %s button per machine" % label)
+
+    def test_the_terminal_button_opens_a_shell_on_that_machine(self):
+        page = self.open_tab("LOADING")
+        self.spawned = []
+        self._press(page, "hostB", "Terminal")
+
+        argv = self.spawned[-1]
+        self.assertIn("ssh", argv)
+        self.assertIn("hostB", argv)
+        self.assertNotIn("&", argv[-1], "nothing should be started in it")
+        self.assertFalse(self.dialogs, "the button complained: %s" % self.dialogs)
+
+    def test_the_pdkgui_button_starts_it_on_that_machine(self):
+        page = self.open_tab("LOADING")
+        self.spawned = []
+        self._press(page, "hostC", "pdkgui")
+
+        command = self.spawned[-1][-1]
+        self.assertIn("hostC", self.spawned[-1])
+        self.assertIn("pdkgui >/dev/null 2>&1 &", command)
+        self.assertIn("exec $SHELL -l", command)
+
+    def test_the_pdkgui_it_starts_is_a_launcher_that_exists(self):
+        """An absolute path on the shared filesystem, so it means the same thing
+        on the other machine."""
+        launcher = loading.LoadingPage._launcher()
+        self.assertTrue(os.path.isabs(launcher), launcher)
+        self.assertTrue(os.path.isfile(launcher), launcher)
+
+    def test_the_terminal_emulator_comes_from_the_shared_list(self):
+        page = self.open_tab("LOADING")
+        self.spawned = []
+        self._press(page, "hostA", "Terminal")
+        self.assertEqual(self.spawned[-1][:len(config.TERMINALS[0])],
+                         list(config.TERMINALS[0]))
+
+    def test_a_chosen_terminal_is_used(self):
+        os.environ["PDKGUI_TERMINAL"] = "mate-terminal"
+        self.addCleanup(os.environ.pop, "PDKGUI_TERMINAL", None)
+        self.assertEqual(config.terminals(), (["mate-terminal", "-e"],))
+
     def test_an_empty_list_says_so_instead_of_looking_broken(self):
         listing = os.path.join(self.paths["work"], "none.txt")
         with open(listing, "w", encoding="utf-8") as f:
@@ -270,6 +365,18 @@ class LoadingTab(GuiTestCase):
     # ------------------------------------------------------------------
     def _cell(self, page, host, key):
         return page._rows[host][key].cget("text")
+
+    def _press(self, page, host, label):
+        """The button with this label on that machine's row."""
+        row = str(page._rows[host]["verdict"].grid_info().get("row"))
+        for b in self.widgets(page, "Button"):
+            info = b.grid_info()
+            if (b.cget("text") == label and info
+                    and str(info.get("row")) == row):
+                b.invoke()
+                self.app.update()
+                return
+        self.fail("no %s button on the %s row" % (label, host))
 
 
 if __name__ == "__main__":

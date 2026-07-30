@@ -3,6 +3,7 @@ pdkgui @SIRIUS
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
 2026.073001  2026/07/30    * [Function] New function of LOADING to show the loading of every sirius machine
+                           * [Function] In LOADING, Terminal opens a shell on that machine and pdkgui opens one with pdkgui started in it
                            * [Function] LVS and XRC of RVE always open svdb
                            * [Function] Choosing LayoutPath or SourcePath fills in the cellname, .gds.gz strips both extensions
                            * [Function] Run terminal title shows the process and the function name

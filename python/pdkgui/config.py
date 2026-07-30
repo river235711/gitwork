@@ -292,6 +292,31 @@ def file_managers():
     return (forced,) if forced else FILE_MANAGERS
 
 
+# Terminal emulators to try, best first, each with the flag that means "run this
+# command". Shared by the Run buttons (a verification in its own window) and the
+# LOADING tab (a shell on another machine).
+# PDKGUI_TERMINAL forces one, e.g. PDKGUI_TERMINAL=mate-terminal.
+TERMINALS = (
+    ["xterm", "-fg", "white", "-bg", "black", "-e"],
+    ["gnome-terminal", "--"], ["konsole", "-e"],
+    ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
+)
+
+
+def terminals():
+    """Terminal emulators to try, best first; PDKGUI_TERMINAL wins.
+
+    A forced one is given "-e", which every emulator here but gnome-terminal
+    understands; use PDKGUI_TERMINAL only to pick between the known ones."""
+    forced = os.environ.get("PDKGUI_TERMINAL")
+    if not forced:
+        return TERMINALS
+    for term in TERMINALS:
+        if term[0] == forced:
+            return (term,)
+    return ([forced, "-e"],)
+
+
 def desktop_env():
     """Environment for launching an ordinary desktop application.
 

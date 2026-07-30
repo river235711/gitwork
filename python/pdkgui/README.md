@@ -178,12 +178,12 @@ Users share a handful of hosts, so before starting a verification the question i
 always "which one is free". The tab answers it directly:
 
 ```
-Machine loading                                       [Refresh]
+Machine loading                                                    [Refresh]
 Best right now: sirius05  (12% CPU, 210 GB free)
 
-  sirius01   CPU ██████░░░░  58%   MEM ███░░░░░░░  79 GB free   busy
-  sirius05   CPU ██░░░░░░░░  12%   MEM █░░░░░░░░░ 210 GB free   idle
-  sirius07   no answer (ssh: connect to host sirius07 port 22: No route to host)
+  sirius01  ██████░░░░  58%  ███░░░░░░░  79 GB free  busy    [Terminal] [pdkgui]
+  sirius05  ██░░░░░░░░  12%  █░░░░░░░░░ 210 GB free  idle    [Terminal] [pdkgui]
+  sirius07  no answer (ssh: connect to host sirius07 port 22: No route to host)
 ```
 
 The machines come from `data/hosts.txt` (one per line, `#` comments; override
@@ -208,6 +208,26 @@ cat /proc/loadavg; nproc; awk '/^Mem(Total|Available):/{print $1, $2}' /proc/mem
   hangs is given up on after `PROBE_TIMEOUT`, and the recommendation appears from
   whatever has answered so far. Leaving the tab cancels the poll and kills any
   ssh still running (`flush()`, called by `pdkgui_app._flush_page`).
+- Refreshed on tab open, on **Refresh**, and every `REFRESH_EVERY` (30 s) while
+  this tab is the one on screen -- switching away stops it, so nothing keeps
+  ssh-ing in the background. 30 s because the load average is itself a 1-minute
+  mean; asking faster cannot make the number fresher.
+
+Two buttons on each row, from `shell_command()`:
+
+- **Terminal** -- `ssh -X -t <host> 'exec $SHELL -l'` in a terminal emulator
+  (`config.terminals()`, the same list the Run buttons use). A *login* shell,
+  because the EDA tools come from Environment Modules, which a plain
+  `ssh host command` shell has never sourced; `-t` because ssh allocates no pty
+  when it is given a command.
+- **pdkgui** -- the same, with pdkgui started in the background first, so one
+  click gives both a shell and a window. The launcher is
+  `config.live_launcher()` (the current release), falling back to the one beside
+  the running code: an absolute path on the shared filesystem, so it means the
+  same thing on the other machine and no site path is hard-coded. Both open in
+  the directory this window was started from.
+
+The machine pdkgui is already on gets a plain local shell, no ssh.
 
 ## Deployment layout (versioned install + shared central)
 

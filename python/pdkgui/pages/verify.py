@@ -78,11 +78,7 @@ _FIELD_KEYWORDS = {
 # Browsing for a path fills in the cell name next to it
 _PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary"}
 
-_TERMINALS = (
-    ["xterm", "-fg", "white", "-bg", "black", "-e"],
-    ["gnome-terminal", "--"], ["konsole", "-e"],
-    ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
-)
+# the terminal emulators live in config: the LOADING tab opens one too
 
 
 def _strip_comment_lines(text):
@@ -910,7 +906,7 @@ class VerifyPage(BasePage):
         except OSError as e:
             messagebox.showerror("pdkgui", "Failed to create run wrapper:\n%s" % e)
             return
-        for term in _TERMINALS:
+        for term in config.terminals():
             if shutil.which(term[0]):
                 try:
                     subprocess.Popen(term + [wrapper])
