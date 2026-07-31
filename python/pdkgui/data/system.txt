@@ -2,6 +2,7 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.073109  2026/07/31    * [Function] Choosing a file with Open re-parses the cellname even when the same file is picked again, so a LayoutPrimary/SourcePrimary changed or emptied by hand is put back
 2026.073108  2026/07/31    * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
                            * [Function] Emptying LAYOUT/SOURCE PRIMARY or PATH in the command file text now empties the field above it too
 2026.073107  2026/07/31    * [Function] LVL of RVE opens xor.rules.asc
