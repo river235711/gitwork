@@ -161,9 +161,16 @@ class ShellCommand(unittest.TestCase):
         """The window is somewhere to work, not a command that exits."""
         self.assertIn("exec $SHELL -l", loading.shell_command("sirius05")[-1])
 
+    @staticmethod
+    def _inner(argv):
+        """What the far machine is asked to run, unwrapped from its bash -lc."""
+        import shlex
+        command = argv[-1]
+        return shlex.split(command)[-1] if command.startswith("bash -lc ") else command
+
     def test_a_terminal_on_this_machine_does_not_go_through_ssh(self):
         argv = loading.shell_command(config.hostname())
-        self.assertEqual(argv[:2], ["bash", "-c"])
+        self.assertEqual(argv[:2], ["bash", "-lc"])
         self.assertNotIn("ssh", argv)
 
     def test_a_terminal_on_a_machine_behind_a_jump_host_hops_through_it(self):
@@ -181,18 +188,68 @@ class ShellCommand(unittest.TestCase):
         self.assertEqual(loading.probe_command(machine)[0], "ssh")
 
     def test_without_a_launcher_nothing_is_started(self):
-        self.assertNotIn("&", loading.shell_command("sirius05")[-1])
+        self.assertNotIn("&", self._inner(loading.shell_command("sirius05")))
 
     def test_with_a_launcher_pdkgui_starts_in_the_background(self):
-        command = loading.shell_command("sirius05", launcher="/tools/pdkgui")[-1]
+        command = self._inner(
+            loading.shell_command("sirius05", launcher="/tools/pdkgui"))
         self.assertIn("/tools/pdkgui >/dev/null 2>&1 &", command)
         self.assertTrue(command.endswith("exec $SHELL -l"),
                         "the shell must outlive the launcher")
 
     def test_it_opens_in_the_directory_this_window_was_started_from(self):
-        command = loading.shell_command("sirius05", workdir="/p/my project")[-1]
+        command = self._inner(
+            loading.shell_command("sirius05", workdir="/p/my project"))
         self.assertIn("cd '/p/my project' 2>/dev/null", command)
         self.assertTrue(command.startswith("cd "), "cd has to come first")
+
+    def test_it_does_not_assume_the_login_shell_is_bash(self):
+        """`ssh host '<cmd>'` hands the command to the login shell, and on these
+        machines that is tcsh, which has no `2>` redirect: it read
+        `cd <dir> 2>/dev/null` as `cd <dir> 2` and answered "cd: Too many
+        arguments", then never started pdkgui."""
+        argv = loading.shell_command("sirius05", launcher="/tools/pdkgui",
+                                     workdir="/p/work")
+        self.assertTrue(argv[-1].startswith("bash -lc "), argv[-1])
+        # the interactive shell at the end is still the user's own
+        self.assertIn("exec $SHELL -l", argv[-1])
+
+    def test_the_remote_command_runs_under_tcsh_as_well_as_bash(self):
+        """Not a syntax check -- the launcher has to actually start."""
+        import shutil
+        import subprocess
+        import tempfile
+        import time
+        for shell in ("tcsh", "bash"):
+            if not shutil.which(shell):
+                self.skipTest("%s is not installed here" % shell)
+
+        work = tempfile.mkdtemp()
+        self.addCleanup(lambda: __import__("shutil").rmtree(work, ignore_errors=True))
+        launcher = os.path.join(work, "launcher")
+        with open(launcher, "w") as f:
+            f.write("#!/bin/bash\ntouch started\n")
+        os.chmod(launcher, 0o755)
+
+        # the string the far machine's login shell is handed
+        command = loading.shell_command("somewhere", launcher=launcher,
+                                        workdir=work)[-1]
+        for shell in ("tcsh", "bash"):
+            started = os.path.join(work, "started")
+            if os.path.exists(started):
+                os.remove(started)
+            run = subprocess.run([shell, "-c", command], stdin=subprocess.DEVNULL,
+                                 stderr=subprocess.PIPE, universal_newlines=True,
+                                 timeout=30)
+            self.assertEqual(run.returncode, 0, "%s: %s" % (shell, run.stderr))
+            self.assertEqual(run.stderr, "", "%s complained" % shell)
+            # it was started in the background, so the shell can exit first
+            for _ in range(50):
+                if os.path.exists(started):
+                    break
+                time.sleep(0.1)
+            self.assertTrue(os.path.exists(started),
+                            "%s did not start the launcher" % shell)
 
     def test_what_it_builds_is_valid_shell(self):
         """'cmd &' followed by ';' is a syntax error, and every combination of

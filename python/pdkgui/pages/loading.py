@@ -119,9 +119,15 @@ def shell_command(host, launcher=None, workdir=None):
     in the background, so one click gives both.
 
     A login shell matters: the EDA tools come from Environment Modules, which a
-    plain `ssh host command` shell has never sourced."""
+    plain `ssh host command` shell has never sourced.
+
+    Our own plumbing runs in an explicit `bash -lc`, because `ssh host '<cmd>'`
+    hands the command to the *login* shell, and here that is tcsh -- which has no
+    `2>` redirect at all. It read `cd <dir> 2>/dev/null` as `cd <dir> 2` and said
+    "cd: Too many arguments", then never started pdkgui. The interactive shell at
+    the end is still $SHELL, so the window is the one the user knows."""
     # each statement carries its own terminator: '&' already ends a command, and
-    # following it with ';' is a bash syntax error
+    # following it with ';' is a syntax error
     parts = []
     if workdir:
         # not being able to cd is no reason to refuse the terminal
@@ -133,12 +139,12 @@ def shell_command(host, launcher=None, workdir=None):
 
     machine = _machine(host)
     if machine.name == config.hostname() and not machine.jump:
-        return ["bash", "-c", inner]
+        return ["bash", "-lc", inner]
     # -X forwards the display (pdkgui and the calibre viewers are X programs);
     # -t forces a pty, which ssh does not allocate when given a command.
     # Through a jump host the display still comes back here: -J tunnels, it does
     # not re-forward from the machine in the middle.
-    return _ssh(machine, "-X", "-t") + [inner]
+    return _ssh(machine, "-X", "-t") + ["bash -lc " + shlex.quote(inner)]
 
 
 def parse_probe(text):

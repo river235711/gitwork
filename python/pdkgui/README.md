@@ -235,6 +235,11 @@ Two buttons on each row, from `shell_command()`:
   because the EDA tools come from Environment Modules, which a plain
   `ssh host command` shell has never sourced; `-t` because ssh allocates no pty
   when it is given a command.
+- Our own plumbing is wrapped in **`bash -lc`**. `ssh host '<cmd>'` hands the
+  command to the *login* shell, and on these machines that is tcsh, which has no
+  `2>` redirect: it read `cd <dir> 2>/dev/null` as `cd <dir> 2`, answered
+  `cd: Too many arguments`, and never started pdkgui. The interactive shell at
+  the end is still `$SHELL`, so the window is the one the user knows.
 - **pdkgui** -- the same, with pdkgui started in the background first, so one
   click gives both a shell and a window. The launcher is
   `config.live_launcher()` (the current release), falling back to the one beside
