@@ -74,10 +74,16 @@ class DrcFamily(GuiTestCase):
         page = self.open_tab("DRC")
         gds = os.path.join(self.paths["work"], "top.gds")
         self.set_text(page,
+                      'LAYOUT PRIMARY "top"\n'
+                      'LAYOUT PATH "%s"\n' % gds)
+        self.assertEqual(page.entries["LayoutPath"].get(), os.path.realpath(gds))
+
+        # renaming the cell alone: the layout is the same file, so the name is
+        # the user's to choose and it reaches the field
+        self.set_text(page,
                       'LAYOUT PRIMARY "block_a"\n'
                       'LAYOUT PATH "%s"\n' % gds)
         self.assertEqual(page.entries["LayoutPrimary"].get(), "block_a")
-        self.assertEqual(page.entries["LayoutPath"].get(), os.path.realpath(gds))
 
     def test_editing_a_field_updates_the_text(self):
         page = self.open_tab("DRC")
@@ -173,23 +179,54 @@ class DrcFamily(GuiTestCase):
         self.assertLess(lines.index('LAYOUT PRIMARY "chip_a"'),
                         [i for i, ln in enumerate(lines) if "LAYOUT PATH" in ln][0])
 
-    def test_a_cell_the_file_does_name_is_left_alone(self):
-        """The top cell is often not what the file it sits in is called."""
+    def test_loading_names_the_cell_after_the_file_it_points_at(self):
+        """Even when the file carries a name of its own: the cell is named after
+        the layout, and a loaded .com brings a new layout with it."""
         page = self.open_tab("DRC")
-        self._load_com(page, 'LAYOUT PRIMARY "CHIP_TOP_v2"\n'
-                             'LAYOUT PATH "/p/x/chip_top.gds"\n')
-        self.assertEqual(page.entries["LayoutPrimary"].get(), "CHIP_TOP_v2")
-        self.assertIn('LAYOUT PRIMARY "CHIP_TOP_v2"', page.cmd_text.get_text())
+        self._load_com(page, 'LAYOUT PRIMARY "SOME_OLD_NAME"\n'
+                             'LAYOUT PATH "/p/d/loaded_cell.gds"\n')
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "loaded_cell")
+        self.assertIn('LAYOUT PRIMARY "loaded_cell"', page.cmd_text.get_text())
 
-    def test_a_name_can_still_be_cleared_by_hand(self):
-        """The filling happens on load, not on every keystroke -- otherwise the
-        name would come back as fast as it could be deleted."""
+    def test_typing_a_path_into_the_field_renames_the_cell(self):
         page = self.open_tab("DRC")
-        self._load_com(page, 'LAYOUT PRIMARY "block"\n'
-                             'LAYOUT PATH "/p/x/block.gds"\n')
-        self.set_text(page, 'LAYOUT PRIMARY ""\n'
-                            'LAYOUT PATH "/p/x/block.gds"\n')
-        self.assertIn('LAYOUT PRIMARY ""', page.cmd_text.get_text())
+        self.set_entry(page, "LayoutPath", "/p/b/other_block.gds")
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "other_block")
+        self.assertIn('LAYOUT PRIMARY "other_block"', page.cmd_text.get_text())
+
+    def test_editing_the_path_line_in_the_text_renames_the_cell(self):
+        page = self.open_tab("DRC")
+        self.set_text(page, 'LAYOUT PRIMARY "stale"\n'
+                            'LAYOUT PATH "/p/c/typed_in_text.gds.gz"\n')
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "typed_in_text")
+        self.assertIn('LAYOUT PRIMARY "typed_in_text"', page.cmd_text.get_text())
+
+    def test_a_name_typed_by_hand_stands_until_the_file_changes(self):
+        """Only a path that actually moved renames the cell, so a name chosen on
+        purpose is not overwritten by the next unrelated keystroke."""
+        page = self.open_tab("DRC")
+        self.set_entry(page, "LayoutPath", "/p/x/block.gds")
+        self.set_entry(page, "LayoutPrimary", "MY_OWN_TOPCELL")
+
+        self.set_text(page, page.cmd_text.get_text() + "\n// unrelated\n")
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "MY_OWN_TOPCELL")
+
+        self.set_entry(page, "LayoutPath", "/p/e/final_block.gds")
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "final_block",
+                         "changing the layout must rename the cell again")
+
+    def test_reopening_the_tab_keeps_the_name_that_was_saved(self):
+        """Restoring a session is not a path change; whatever was left there
+        comes back."""
+        page = self.open_tab("DRC")
+        self.set_entry(page, "LayoutPath", "/p/x/block.gds")
+        self.set_entry(page, "LayoutPrimary", "MY_OWN_TOPCELL")
+        page.flush()
+
+        self.open_tab("LVS")
+        self.app._drop_cached_pages()          # force a rebuild from the session
+        again = self.open_tab("DRC")
+        self.assertEqual(again.entries["LayoutPrimary"].get(), "MY_OWN_TOPCELL")
 
     def test_load_and_save_use_the_file_dialogs(self):
         page = self.open_tab("DRC")
@@ -322,10 +359,15 @@ class LvsTab(GuiTestCase):
         page = self.open_tab("LVS")
         cdl = os.path.join(self.paths["work"], "top.cdl")
         self.set_text(page,
+                      'SOURCE PRIMARY "top"\n'
+                      'SOURCE PATH "%s"\n' % cdl)
+        self.assertEqual(page.entries["SourcePath"].get(), os.path.realpath(cdl))
+
+        # the netlist is unchanged, so this name is the user's own
+        self.set_text(page,
                       'SOURCE PRIMARY "src_top"\n'
                       'SOURCE PATH "%s"\n' % cdl)
         self.assertEqual(page.entries["SourcePrimary"].get(), "src_top")
-        self.assertEqual(page.entries["SourcePath"].get(), os.path.realpath(cdl))
 
     def test_browsing_a_source_netlist_fills_in_its_cell_name(self):
         page = self.open_tab("LVS")

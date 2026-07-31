@@ -117,6 +117,7 @@ class VerifyPage(BasePage):
         self.cmd_text = None       # JIVARO has no command box (guards in state/bind)
         self._syncing = False      # prevent field<->text feedback loops
         self._save_job = None       # after() id for the debounced save
+        self._path_seen = {}        # PATH each PRIMARY was named after
         if self.module == "LVS":
             self._build_lvs()
         elif self.module == "XRC":
@@ -195,7 +196,7 @@ class VerifyPage(BasePage):
             # text, so derive the Layout/Source fields from it (for a full
             # session this is a no-op -- fields and text are kept in sync).
             self._sync_fields_from_text()
-            self._name_the_unnamed_cells()
+            self._follow_paths(fill_blank=True, rename=False)
         else:
             self._load_default()
 
@@ -404,20 +405,24 @@ class VerifyPage(BasePage):
         finally:
             self._syncing = False
 
-    def _name_the_unnamed_cells(self):
-        """After a command file is loaded, name the cells it does not name.
+    def _follow_paths(self, fill_blank=False, rename=True):
+        """Keep each PRIMARY named after the file its PATH points at.
 
-        A file with `LAYOUT PRIMARY ""` -- or without the line at all -- used to
-        leave the field showing the *previous* file's cell: the field and the
-        text disagreed, and the Run wrote out the empty name. The cell name comes
-        from that file's own PATH line, the same rule the Open button uses.
+        The cell is named after the file it sits in, so pointing at another file
+        renames the cell -- wherever the new path came from: the Open button, the
+        field typed into, the PATH line edited in the text, or a loaded command
+        file. Both the field and the text line are written, since the Run writes
+        the text.
 
-        Only what the file leaves blank is filled in. A command file that names a
-        cell means it; the top cell of a layout is often not what the file it
-        sits in is called, and overwriting that would be worse than the bug.
+        Only a path that actually *moved* triggers a rename, which is what lets a
+        name typed by hand stand: it survives until the file changes under it.
 
-        Deliberately not called from _sync_fields_from_text: that runs on every
-        keystroke, and would refill the name as fast as it could be deleted."""
+        fill_blank additionally names a cell the command file leaves unnamed
+        (`LAYOUT PRIMARY ""`, or no such line). For loads only -- on a keystroke
+        it would refill the name as fast as it could be deleted.
+
+        rename=False only seeds the memory, for restoring a saved session: what
+        the user left there is what they get back."""
         if self.cmd_text is None:
             return
         lines = self.cmd_text.get_text().split("\n")
@@ -426,24 +431,40 @@ class VerifyPage(BasePage):
         for primary_key, regex in _RE_PRIMARY_ANY.items():
             if primary_key not in self.entries:
                 continue                       # DRC-family pages have no source
-            path_widget = self.entries.get(_PATH_OF[primary_key])
-            name = _cell_name(path_widget.get()) if path_widget else ""
+            path_key = _PATH_OF[primary_key]
+            path_widget = self.entries.get(path_key)
+            if path_widget is None:
+                continue
+            path = path_widget.get().strip()
+            moved = path != self._path_seen.get(path_key)
+            self._path_seen[path_key] = path
+
+            name = _cell_name(path)
             if not name:
                 continue                       # no path to take a name from
 
             index = self._active_line(lines, regex)
+            named = index is not None and regex.match(lines[index]).group(2).strip()
+            if rename and moved:
+                pass                     # the file changed: the name follows it
+            elif fill_blank and not named:
+                pass                     # a load, and the file names no cell
+            else:
+                # nothing moved; a blank name here is one being typed, and
+                # refilling it would make it impossible to delete
+                continue
+
             if index is None:
                 # no such line: put one where it belongs, beside its PATH line
-                path_at = self._active_line(
-                    lines, _FIELD_KEYWORDS[_PATH_OF[primary_key]][1])
+                path_at = self._active_line(lines, _FIELD_KEYWORDS[path_key][1])
                 if path_at is None:
                     continue
                 lines.insert(path_at, '%s "%s"'
                              % (_PRIMARY_KEYWORD[primary_key], name))
-            elif regex.match(lines[index]).group(2).strip():
-                continue                       # the file names it; leave it alone
             else:
                 m = regex.match(lines[index])
+                if m.group(2) == name:
+                    continue                   # already right
                 lines[index] = m.group(1) + name + m.group(3)
             changed = True
             self._fill_entry(primary_key, name)
@@ -601,12 +622,14 @@ class VerifyPage(BasePage):
 
     def _on_field_change(self, key):
         self._sync_text_from_field(key)
+        self._follow_paths()            # a new path renames the cell
         if self.module == "XRC":
             self._xrc_sync_from_field(key)
         self._schedule_save()
 
     def _on_text_change(self):
         self._sync_fields_from_text()
+        self._follow_paths()            # the PATH line may have been edited
         # editing SOURCE PRIMARY in the text must also rename the PEX NETLIST
         # output files (same rule as editing the SourcePrimary field). Use the
         # raw field value: while it is empty mid-edit, leave the names alone.
@@ -927,7 +950,7 @@ class VerifyPage(BasePage):
         else:
             self.cmd_text.load_file(config.page_file(self.module))
         self._sync_fields_from_text()
-        self._name_the_unnamed_cells()
+        self._follow_paths(fill_blank=True)
 
     def _on_load_default(self):
         self._load_default()
@@ -939,7 +962,7 @@ class VerifyPage(BasePage):
         if path:
             self.cmd_text.load_file(path)
             self._sync_fields_from_text()
-            self._name_the_unnamed_cells()
+            self._follow_paths(fill_blank=True)
             self._schedule_save()
 
     def _on_save(self):
@@ -1043,10 +1066,8 @@ class VerifyPage(BasePage):
         if not path:
             return
         self._fill_entry(key, path)
-        primary = _PRIMARY_OF.get(key)
-        if primary in self.entries:
-            self._fill_entry(primary, _cell_name(path))
-            self._on_field_change(primary)
+        # _on_field_change writes it down into the text and, since the path has
+        # moved, renames the cell after the new file (_follow_paths)
         self._on_field_change(key)
 
     def _fill_entry(self, key, value):

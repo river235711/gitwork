@@ -6,7 +6,7 @@ Revision     Date          Description
                            * [Function] In LOADING, Terminal opens a shell on that machine and pdkgui opens one with pdkgui started in it
                            * [Function] pdkgui -l opens the LOADING page on its own, to choose a machine before starting the environment on it
                            * [Function] In LOADING, a machine reachable only through another one is written "<host> via <user@jumphost>" in hosts.txt, e.g. sirius03 via wswillhuang
-                           * [Function] Load a command file whose LAYOUT/SOURCE PRIMARY is empty or missing, and the cellname is filled in from its own PATH line, in both the field and the text
+                           * [Function] LAYOUT/SOURCE PRIMARY follows the file its PATH points at, wherever the path changes: Open, a path typed in the field, the PATH line edited in the text, or a loaded command file. A name typed by hand stands until the file changes again
                            * [Function] LVS and XRC of RVE always open svdb
                            * [Function] Choosing LayoutPath or SourcePath fills in the cellname, .gds.gz strips both extensions
                            * [Function] Run terminal title shows the process and the function name
