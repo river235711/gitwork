@@ -2,16 +2,14 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
-2026.073108  2026/07/31    * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
+2026.0731    2026/07/31    * [Function] New function of LVL to compare two layouts: dbdiff writes the xor rules and calibre runs them, Rve opens xor.rules.asc
+                           * [Function] LAYOUT/SOURCE PRIMARY follows the file its PATH points at, wherever the path changes: Open, a path typed in the field, the PATH line edited in the text, or a loaded command file. A name typed by hand stands until the file changes again
+                           * [Function] Any change to LayoutPath/LayoutPrimary/SourcePath/SourcePrimary always reaches the command file text: typed, pasted, emptied and filled again, or a line the command file does not have yet
                            * [Function] Emptying LAYOUT/SOURCE PRIMARY or PATH in the command file text now empties the field above it too
-2026.073107  2026/07/31    * [Function] LVL of RVE opens xor.rules.asc
-2026.073106  2026/07/31    * [Function] New function of LVL to compare two layouts: dbdiff writes the xor rules and calibre runs them, Rve opens xor.rules.ascii
-2026.073105  2026/07/31    * [Function] Any change to LayoutPath/LayoutPrimary/SourcePath/SourcePrimary now always reaches the command file text, including a field emptied and filled again, and a line the command file does not have yet
-2026.073104  2026/07/31    * [Function] Fixed a pasted LayoutPrimary/SourcePrimary/path not reaching the command file text (a middle-click paste sends no key event)
-2026.073103  2026/07/31    * [Function] LOADING says how to open it on its own: Machine loading (command: pdkgui -l)
-2026.073102  2026/07/31    * [Function] Fixed the LOADING pdkgui button not starting pdkgui when the login shell is tcsh
-2026.073101  2026/07/31    * [Function] LAYOUT/SOURCE PRIMARY follows the file its PATH points at, wherever the path changes: Open, a path typed in the field, the PATH line edited in the text, or a loaded command file. A name typed by hand stands until the file changes again
-2026.0731    2026/07/31    * [Function] In LOADING, a machine reachable only through another one can be written "<host> via <user@jumphost>" in hosts.txt
+                           * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
+                           * [Function] In LOADING, a machine reachable only through another one can be written "<host> via <user@jumphost>" in hosts.txt
+                           * [Function] LOADING says how to open it on its own: Machine loading (command: pdkgui -l)
+                           * [Function] Fixed the LOADING pdkgui button not starting pdkgui when the login shell is tcsh
 2026.0730    2026/07/30    * [Function] New function of LOADING to show the loading of every sirius machine
                            * [Function] In LOADING, Terminal opens a shell on that machine and pdkgui opens one with pdkgui started in it
                            * [Function] pdkgui -l opens the LOADING page on its own, to choose a machine before starting the environment on it
