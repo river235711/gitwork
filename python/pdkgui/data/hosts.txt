@@ -5,8 +5,15 @@
 # except the machine pdkgui itself runs on, which is read directly. So a host
 # listed here needs passwordless ssh from wherever users start pdkgui;
 # one that does not answer is shown as such rather than holding up the others.
+#
+# A machine that can only be reached through another one gets a route:
+#     <host> via <user@jumphost>
+# which becomes `ssh -J <user@jumphost> <host>` -- one command, no logging in
+# twice, and the display still comes back to where pdkgui is running. Put the
+# login in front of the host name if it differs there too: user@host via ...
 sirius01
 sirius02
+sirius03  via will.huang@wswillhuang
 sirius05
 sirius06
 sirius07

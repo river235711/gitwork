@@ -99,6 +99,29 @@ class Verdict(unittest.TestCase):
         self.assertEqual(loading.verdict(90, None)[0], "loaded")
 
 
+class HostList(unittest.TestCase):
+    """hosts.txt: a name per line, plus a route for a machine behind another."""
+
+    def test_a_plain_name(self):
+        m = loading.parse_host_line("sirius02")
+        self.assertEqual((m.name, m.target, m.jump), ("sirius02", "sirius02", None))
+
+    def test_a_machine_reached_through_a_jump_host(self):
+        m = loading.parse_host_line("sirius03 via will.huang@wswillhuang")
+        self.assertEqual((m.name, m.target, m.jump),
+                         ("sirius03", "sirius03", "will.huang@wswillhuang"))
+
+    def test_a_login_that_differs_is_not_shown_as_the_machine_name(self):
+        m = loading.parse_host_line("will.huang@sirius03 via will.huang@wswillhuang")
+        self.assertEqual(m.name, "sirius03", "the row is labelled with the machine")
+        self.assertEqual(m.target, "will.huang@sirius03")
+
+    def test_blank_and_junk_lines(self):
+        self.assertIsNone(loading.parse_host_line("   "))
+        # 'via' with nothing after it is not a route; the machine still works
+        self.assertEqual(loading.parse_host_line("sirius03 via").jump, None)
+
+
 class ProbeCommand(unittest.TestCase):
     def test_the_local_machine_is_not_reached_over_ssh(self):
         """It always works, keys or no keys."""
@@ -112,6 +135,13 @@ class ProbeCommand(unittest.TestCase):
         self.assertIn("BatchMode=yes", argv)
         self.assertIn("ConnectTimeout=3", argv)
         self.assertIn("sirius05", argv)
+
+    def test_a_machine_behind_a_jump_host_is_probed_through_it(self):
+        machine = loading.parse_host_line("sirius03 via will.huang@wswillhuang")
+        argv = loading.probe_command(machine)
+        self.assertEqual(argv[:4], ["ssh", "-J", "will.huang@wswillhuang", "-o"])
+        self.assertIn("BatchMode=yes", argv, "the hop must not stop for a password")
+        self.assertIn("sirius03", argv)
 
     def test_it_reads_proc_and_nothing_else(self):
         """No tool that may not be installed, no scheduler."""
@@ -135,6 +165,20 @@ class ShellCommand(unittest.TestCase):
         argv = loading.shell_command(config.hostname())
         self.assertEqual(argv[:2], ["bash", "-c"])
         self.assertNotIn("ssh", argv)
+
+    def test_a_terminal_on_a_machine_behind_a_jump_host_hops_through_it(self):
+        machine = loading.parse_host_line("sirius03 via will.huang@wswillhuang")
+        argv = loading.shell_command(machine, launcher="/tools/pdkgui")
+        self.assertEqual(argv[:6], ["ssh", "-J", "will.huang@wswillhuang",
+                                    "-X", "-t", "sirius03"])
+        self.assertIn("/tools/pdkgui", argv[-1])
+
+    def test_a_jump_host_route_is_used_even_for_this_machine_s_own_name(self):
+        """The row is only there because the direct path does not work."""
+        machine = loading._machine(config.hostname())._replace(
+            jump="will.huang@wswillhuang")
+        self.assertEqual(loading.shell_command(machine)[0], "ssh")
+        self.assertEqual(loading.probe_command(machine)[0], "ssh")
 
     def test_without_a_launcher_nothing_is_started(self):
         self.assertNotIn("&", loading.shell_command("sirius05")[-1])
@@ -358,9 +402,14 @@ class LoadingTab(GuiTestCase):
     def test_the_shipped_list_is_the_sirius_machines(self):
         os.environ.pop("PDKGUI_LOADING_FILE")
         config.clear_cache()
-        hosts = config.read_lines(config.page_file("LOADING"))
-        self.assertEqual(hosts, ["sirius01", "sirius02", "sirius05",
-                                 "sirius06", "sirius07"])
+        machines = [loading.parse_host_line(ln) for ln in
+                    config.read_lines(config.page_file("LOADING"))]
+        self.assertEqual([m.name for m in machines],
+                         ["sirius01", "sirius02", "sirius03", "sirius05",
+                          "sirius06", "sirius07"])
+        # sirius03 is only reachable through the workstation
+        routed = {m.name: m.jump for m in machines if m.jump}
+        self.assertEqual(routed, {"sirius03": "will.huang@wswillhuang"})
 
     # ------------------------------------------------------------------
     def _cell(self, page, host, key):

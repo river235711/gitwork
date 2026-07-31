@@ -26,6 +26,7 @@ opens one with pdkgui already starting in it.
 import os
 import time
 import shutil
+import collections
 import shlex
 import subprocess
 
@@ -59,14 +60,55 @@ _BAR_WIDTH = 130
 _BAR_HEIGHT = 12
 
 
+Machine = collections.namedtuple("Machine", "name target jump")
+
+
+def parse_host_line(line):
+    """One line of hosts.txt -> a Machine.
+
+        sirius02                              reached directly
+        sirius03 via will.huang@wswillhuang   reached through a jump host
+        will.huang@sirius03 via ...           when the login differs there too
+
+    A machine behind a jump host is not otherwise reachable, so the route has to
+    live beside the name rather than in every user's ~/.ssh/config."""
+    parts = line.split()
+    if not parts:
+        return None
+    target = parts[0]
+    jump = None
+    if len(parts) >= 3 and parts[1] in ("via", "through"):
+        jump = parts[2]
+    # the name is what the row is labelled with: the machine, not the login
+    return Machine(target.split("@")[-1], target, jump)
+
+
+def _machine(host):
+    """Accept a plain host name as well as a Machine."""
+    return host if isinstance(host, Machine) else Machine(host, host, None)
+
+
+def _ssh(machine, *opts):
+    """`ssh` plus the options that reach this machine.
+
+    -J hops through the jump host in one command; the session to the target is
+    still end to end, so BatchMode, the timeout and X11 forwarding all apply to
+    it and not merely to the hop."""
+    argv = ["ssh"]
+    if machine.jump:
+        argv += ["-J", machine.jump]
+    return argv + list(opts) + [machine.target]
+
+
 def probe_command(host):
     """The argv that prints one machine's figures.
 
     The machine we are on is read directly: no ssh, so the tab still works when
     keys are not set up, and the local row is always right."""
-    if host == config.hostname():
+    machine = _machine(host)
+    if machine.name == config.hostname() and not machine.jump:
         return ["bash", "-c", _PROBE]
-    return ["ssh"] + list(_SSH_OPTS) + [host, _PROBE]
+    return _ssh(machine, *_SSH_OPTS) + [_PROBE]
 
 
 def shell_command(host, launcher=None, workdir=None):
@@ -89,11 +131,14 @@ def shell_command(host, launcher=None, workdir=None):
     parts.append("exec $SHELL -l")
     inner = " ".join(parts)
 
-    if host == config.hostname():
+    machine = _machine(host)
+    if machine.name == config.hostname() and not machine.jump:
         return ["bash", "-c", inner]
     # -X forwards the display (pdkgui and the calibre viewers are X programs);
-    # -t forces a pty, which ssh does not allocate when given a command
-    return ["ssh", "-X", "-t", host, inner]
+    # -t forces a pty, which ssh does not allocate when given a command.
+    # Through a jump host the display still comes back here: -J tunnels, it does
+    # not re-forward from the machine in the middle.
+    return _ssh(machine, "-X", "-t") + [inner]
 
 
 def parse_probe(text):
@@ -172,7 +217,11 @@ class LoadingPage(BasePage):
     bg = "white"
 
     def build(self):
-        self.hosts = config.read_lines(config.page_file(self.module))
+        self.machines = [m for m in
+                         (parse_host_line(ln) for ln in
+                          config.read_lines(config.page_file(self.module)))
+                         if m]
+        self.hosts = [m.name for m in self.machines]     # what the rows are keyed on
         self._running = {}          # host -> (Popen, started_at)
         self._results = {}          # host -> (cpu, mem_percent, mem_gb) or None
         self._poll_job = None
@@ -197,10 +246,10 @@ class LoadingPage(BasePage):
         table.grid(row=2, column=0, sticky="nsew")
         table.grid_columnconfigure(8, weight=1)   # slack goes on the right
         self.grid_rowconfigure(2, weight=1)
-        for i, host in enumerate(self.hosts):
-            self._rows[host] = self._build_row(table, i, host)
+        for i, machine in enumerate(self.machines):
+            self._rows[machine.name] = self._build_row(table, i, machine)
 
-        if not self.hosts:
+        if not self.machines:
             tk.Label(self, bg=self.bg, fg=_GREY, justify="left", anchor="w",
                      text="No machines listed in\n%s"
                           % config.page_file(self.module)
@@ -214,10 +263,10 @@ class LoadingPage(BasePage):
                       "MEM is free memory."
                  ).grid(row=4, column=0, sticky="w", pady=(12, 0))
 
-    def _build_row(self, table, index, host):
+    def _build_row(self, table, index, machine):
         """One machine's row; the widgets are filled in as answers arrive."""
         row = {}
-        tk.Label(table, text=host, bg=self.bg, anchor="w",
+        tk.Label(table, text=machine.name, bg=self.bg, anchor="w",
                  font=config.mono_font()).grid(row=index, column=0, sticky="w",
                                                padx=(4, 12), pady=3)
         row["cpu_bar"] = _Bar(table, self.bg)
@@ -234,22 +283,23 @@ class LoadingPage(BasePage):
                                   font=config.ui_font(0, "bold"))
         row["verdict"].grid(row=index, column=5, sticky="w")
         tk.Button(table, text="Terminal", width=9,
-                  command=lambda h=host: self._open_terminal(h)
+                  command=lambda m=machine: self._open_terminal(m)
                   ).grid(row=index, column=6, padx=(0, 4))
         tk.Button(table, text="pdkgui", width=9,
-                  command=lambda h=host: self._open_terminal(h, with_pdkgui=True)
+                  command=lambda m=machine: self._open_terminal(m, with_pdkgui=True)
                   ).grid(row=index, column=7)
         return row
 
     # ------------------------------------------------------------------
-    def _open_terminal(self, host, with_pdkgui=False):
+    def _open_terminal(self, machine, with_pdkgui=False):
         """Open a terminal on that machine, optionally starting pdkgui in it."""
+        machine = _machine(machine)
         launcher = self._launcher() if with_pdkgui else None
         if with_pdkgui and not launcher:
             messagebox.showerror("pdkgui", "Could not find the pdkgui launcher "
-                                           "to start on %s." % host)
+                                           "to start on %s." % machine.name)
             return
-        command = shell_command(host, launcher=launcher,
+        command = shell_command(machine, launcher=launcher,
                                 workdir=getattr(self.app, "launch_dir", None))
         for term in config.terminals():
             if shutil.which(term[0]):
@@ -297,19 +347,19 @@ class LoadingPage(BasePage):
         self._cancel_jobs()
         self._kill_running()
 
-        self._best.configure(text="Checking %d machines..." % len(self.hosts),
+        self._best.configure(text="Checking %d machines..." % len(self.machines),
                              fg=_GREY)
-        for host in self.hosts:
-            self._results.pop(host, None)
-            self._show_message(host, "checking...", _GREY)
+        for machine in self.machines:
+            self._results.pop(machine.name, None)
+            self._show_message(machine.name, "checking...", _GREY)
             try:
                 proc = subprocess.Popen(
-                    probe_command(host), stdout=subprocess.PIPE,
+                    probe_command(machine), stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE, universal_newlines=True)
             except Exception as e:
-                self._show_message(host, "cannot run ssh (%s)" % e, _RED)
+                self._show_message(machine.name, "cannot run ssh (%s)" % e, _RED)
                 continue
-            self._running[host] = (proc, time.time())
+            self._running[machine.name] = (proc, time.time())
 
         if self._running:
             self._poll_job = self.after(_POLL_EVERY, self._collect)

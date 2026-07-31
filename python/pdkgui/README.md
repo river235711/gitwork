@@ -187,8 +187,23 @@ Best right now: sirius05  (12% CPU, 210 GB free)
 ```
 
 The machines come from `data/hosts.txt` (one per line, `#` comments; override
-with `PDKGUI_LOADING_FILE`). Each is asked for its figures with one command that
-reads `/proc` only -- no scheduler, no tool that might not be installed:
+with `PDKGUI_LOADING_FILE`). A machine that can only be reached through another
+one carries its route:
+
+```
+sirius02
+sirius03  via will.huang@wswillhuang        # -> ssh -J will.huang@wswillhuang sirius03
+will.huang@sirius03 via ...                 # when the login differs there too
+```
+
+`-J` makes the hop in one command: the session to the machine is still end to
+end, so `BatchMode`, the timeout and X11 forwarding apply to *it* and not merely
+to the host in the middle -- a window opened on sirius03 still appears where
+pdkgui is running. (`-J` needs OpenSSH 7.3+ on the machine pdkgui runs on;
+`ssh -V` says.) The row is labelled with the machine, never the login.
+
+Each machine is asked for its figures with one command that reads `/proc` only
+-- no scheduler, no tool that might not be installed:
 
 ```
 cat /proc/loadavg; nproc; awk '/^Mem(Total|Available):/{print $1, $2}' /proc/meminfo
