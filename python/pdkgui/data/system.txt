@@ -2,7 +2,8 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
-2026.0731    2026/07/31    * [Function] Fixed the LOADING pdkgui button not starting pdkgui when the login shell is tcsh
+2026.0731    2026/07/31    * [Function] Fixed a pasted LayoutPrimary/SourcePrimary/path not reaching the command file text (a middle-click paste sends no key event)
+                           * [Function] Fixed the LOADING pdkgui button not starting pdkgui when the login shell is tcsh
                            * [Function] LOADING says how to open it on its own: Machine loading (command: pdkgui -l)
                            * [Function] LAYOUT/SOURCE PRIMARY follows the file its PATH points at, wherever the path changes: Open, a path typed in the field, the PATH line edited in the text, or a loaded command file. A name typed by hand stands until the file changes again
                            * [Function] In LOADING, a machine reachable only through another one can be written "<host> via <user@jumphost>" in hosts.txt

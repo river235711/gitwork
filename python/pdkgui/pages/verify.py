@@ -298,6 +298,7 @@ class VerifyPage(BasePage):
         # text change -> update the fields above + save (JIVARO has no text box)
         if self.cmd_text is not None:
             self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
+            self._bind_paste(self.cmd_text.text, self._on_text_change)
         # field change -> push down to the text (Layout/Source) + save
         for key, w in self.entries.items():
             if isinstance(w, tk.BooleanVar):
@@ -306,6 +307,27 @@ class VerifyPage(BasePage):
                 w.bind("<<ComboboxSelected>>", lambda e, k=key: self._on_field_change(k))
             else:
                 w.bind("<KeyRelease>", lambda e, k=key: self._on_field_change(k))
+                self._bind_paste(w, self._on_field_change, key)
+
+    def _bind_paste(self, widget, handler, *args):
+        """React to text arriving by paste, not just by keyboard.
+
+        Pasting with the middle mouse button is an X11 selection paste: it sends
+        no key event at all, so a field filled that way never reached the command
+        text below -- the name was deleted (a keystroke, which did propagate) and
+        pasted back (which did not), leaving the text with an empty one.
+
+        after_idle because these bindings run *before* Tk's own class binding
+        does the inserting, so the widget still holds its old value here."""
+        for sequence in ("<<Paste>>",            # Ctrl-V, and the Tk paste event
+                         "<ButtonRelease-2>"):   # X11 middle-click paste
+            widget.bind(sequence,
+                        lambda e, h=handler, a=args: self.after_idle(h, *a),
+                        add="+")
+        # last resort: anything else that changed the value is picked up when
+        # the field is left (drag-and-drop, an input method, a paste menu)
+        widget.bind("<FocusOut>",
+                    lambda e, h=handler, a=args: h(*a), add="+")
 
     # ==================================================================
     # Per-family layouts
