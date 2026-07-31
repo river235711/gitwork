@@ -91,6 +91,50 @@ class DrcFamily(GuiTestCase):
         self.assertIn('LAYOUT PRIMARY "block_b"',
                       self.active_lines(page.cmd_text.get_text(), "LAYOUT PRIMARY")[0])
 
+    def test_a_field_emptied_and_filled_again_reaches_the_text(self):
+        """Once the line held nothing, the value regexes stopped matching it, so
+        the next thing typed had nowhere to go and the text kept the empty one --
+        and the Run writes the text."""
+        page = self.open_tab("DRC")
+        self.set_text(page, 'LAYOUT PRIMARY "abc"\nLAYOUT PATH "/p/x/abc.gds"\n')
+
+        self.set_entry(page, "LayoutPrimary", "")
+        self.assertIn('LAYOUT PRIMARY ""', page.cmd_text.get_text())
+
+        self.set_entry(page, "LayoutPrimary", "NEW_NAME")
+        self.assertIn('LAYOUT PRIMARY "NEW_NAME"', page.cmd_text.get_text())
+
+    def test_every_field_survives_being_emptied_and_filled_again(self):
+        page = self.open_tab("LVS")
+        self.set_text(page, 'LAYOUT PRIMARY "a"\nLAYOUT PATH "/p/a.gds"\n'
+                            'SOURCE PRIMARY "b"\nSOURCE PATH "/p/b.cdl"\n')
+        for key, keyword, value in (("LayoutPrimary", "LAYOUT PRIMARY", "L1"),
+                                    ("LayoutPath", "LAYOUT PATH", "/p/z/L2.gds"),
+                                    ("SourcePrimary", "SOURCE PRIMARY", "S1"),
+                                    ("SourcePath", "SOURCE PATH", "/p/z/S2.cdl")):
+            self.set_entry(page, key, "")
+            self.set_entry(page, key, value)
+            self.assertIn('%s "%s"' % (keyword, value), page.cmd_text.get_text(),
+                          "%s did not reach the text" % key)
+
+    def test_a_line_that_is_not_there_is_written(self):
+        """A value with nowhere to go would be dropped without a word."""
+        page = self.open_tab("LVS")
+        self.set_text(page, 'LAYOUT PRIMARY "abc"\n')
+        self.set_entry(page, "LayoutPath", "/p/y/newlayout.gds")
+
+        lines = self.active_lines(page.cmd_text.get_text())
+        self.assertIn('LAYOUT PATH "/p/y/newlayout.gds"', [ln.strip() for ln in lines])
+        # and in the order these files are written: PRIMARY, then PATH
+        self.assertLess([i for i, ln in enumerate(lines) if "LAYOUT PRIMARY" in ln][0],
+                        [i for i, ln in enumerate(lines) if "LAYOUT PATH" in ln][0])
+
+    def test_a_field_with_neither_line_present_still_lands_in_the_text(self):
+        page = self.open_tab("LVS")
+        self.set_text(page, '// nothing here\nLVS REPORT "lvs.rep"\n')
+        self.set_entry(page, "SourcePrimary", "src_cell")
+        self.assertIn('SOURCE PRIMARY "src_cell"', page.cmd_text.get_text())
+
     def test_commented_lines_are_left_alone(self):
         page = self.open_tab("DRC")
         self.set_text(page,

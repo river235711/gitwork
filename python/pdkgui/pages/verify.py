@@ -79,14 +79,21 @@ _FIELD_KEYWORDS = {
 _PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary"}
 _PATH_OF = {primary: path for path, primary in _PRIMARY_OF.items()}
 
-# The PRIMARY lines again, this time matching an *empty* name as well -- the
-# field regexes above require a name, so a command file carrying
-# LAYOUT PRIMARY "" reads to them as no line at all.
-_RE_PRIMARY_ANY = {
+# The same four lines, this time matching an *empty* value as well, split into
+# (prefix, value, rest) so the value can be swapped.
+#
+# The regexes above require a value, which is right when reading one *out* of the
+# text -- an empty name is not a name -- but wrong when writing one *in*: a line
+# emptied a moment ago (LAYOUT PRIMARY "") was invisible to them, so the next
+# thing typed or pasted into the field never reached the text at all.
+_RE_FIELD_ANY = {
+    "LayoutPath": re.compile(r'^(\s*LAYOUT\s+PATH\s+")([^"]*)(".*)$', re.IGNORECASE),
     "LayoutPrimary": re.compile(r'^(\s*LAYOUT\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
+    "SourcePath": re.compile(r'^(\s*SOURCE\s+PATH\s+")([^"]*)(".*)$', re.IGNORECASE),
     "SourcePrimary": re.compile(r'^(\s*SOURCE\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
 }
-_PRIMARY_KEYWORD = {"LayoutPrimary": "LAYOUT PRIMARY", "SourcePrimary": "SOURCE PRIMARY"}
+_RE_PRIMARY_ANY = {key: _RE_FIELD_ANY[key]
+                   for key in ("LayoutPrimary", "SourcePrimary")}
 
 # the terminal emulators live in config: the LOADING tab opens one too
 
@@ -478,11 +485,8 @@ class VerifyPage(BasePage):
 
             if index is None:
                 # no such line: put one where it belongs, beside its PATH line
-                path_at = self._active_line(lines, _FIELD_KEYWORDS[path_key][1])
-                if path_at is None:
-                    continue
-                lines.insert(path_at, '%s "%s"'
-                             % (_PRIMARY_KEYWORD[primary_key], name))
+                lines.insert(self._insert_at(lines, primary_key), '%s "%s"'
+                             % (_FIELD_KEYWORDS[primary_key][0], name))
             else:
                 m = regex.match(lines[index])
                 if m.group(2) == name:
@@ -508,27 +512,48 @@ class VerifyPage(BasePage):
         return None
 
     def _sync_text_from_field(self, key):
-        """When a field changes, write its value back to the matching text line
-        (ignoring '//' lines)."""
+        """When a field changes, write its value into the matching text line
+        (ignoring '//' lines).
+
+        The line is written even when it currently holds nothing, and created
+        when it is not there at all. The Run reads the text, not the fields, so a
+        value with nowhere to go would be silently dropped -- which is what used
+        to happen to a name deleted and then typed back."""
         if self._syncing or key not in _FIELD_KEYWORDS:
             return
-        _kw, regex, real = _FIELD_KEYWORDS[key]
+        keyword, _regex, real = _FIELD_KEYWORDS[key]
+        regex = _RE_FIELD_ANY[key]
         val = self.entries[key].get()
         if real and val:
             val = os.path.realpath(val)
 
         lines = self.cmd_text.get_text().split("\n")
-        changed = False
-        for i, ln in enumerate(lines):
-            if ln.lstrip().startswith("//"):
-                continue
-            if regex.search(ln):
-                lines[i] = regex.sub(
-                    lambda m: m.group(0)[:m.start(1) - m.start()] + val + '"', ln, count=1)
-                changed = True
-                break
-        if changed:
-            self._set_text_keep_cursor("\n".join(lines))
+        index = self._active_line(lines, regex)
+        if index is not None:
+            m = regex.match(lines[index])
+            if m.group(2) == val:
+                return                       # already says this
+            lines[index] = m.group(1) + val + m.group(3)
+        else:
+            lines.insert(self._insert_at(lines, key), '%s "%s"' % (keyword, val))
+        self._set_text_keep_cursor("\n".join(lines))
+
+    def _insert_at(self, lines, key):
+        """Where a missing line goes: beside its partner, keeping the order these
+        command files are written in -- PRIMARY then PATH -- or after the last
+        line of the file when there is no partner either."""
+        if key in _PRIMARY_OF:                       # a path: after its primary
+            at = self._active_line(lines, _RE_FIELD_ANY[_PRIMARY_OF[key]])
+            if at is not None:
+                return at + 1
+        elif key in _PATH_OF:                        # a primary: before its path
+            at = self._active_line(lines, _RE_FIELD_ANY[_PATH_OF[key]])
+            if at is not None:
+                return at
+        end = len(lines)
+        while end and not lines[end - 1].strip():    # not after the trailing blanks
+            end -= 1
+        return end
 
     def _set_text_keep_cursor(self, new_text):
         """Replace the command text without moving the caret (used by every
