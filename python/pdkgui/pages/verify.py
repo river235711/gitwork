@@ -101,7 +101,7 @@ _RE_PRIMARY_ANY = {key: _RE_FIELD_ANY[key]
 # that produced. Fixed names -- there is no command file to say otherwise.
 _LVL_TAB = "lvl"
 _LVL_RULES = "xor.rules"
-_LVL_RESULTS = "xor.rules.ascii"
+_LVL_RESULTS = "xor.rules.asc"
 
 # the terminal emulators live in config: the LOADING tab opens one too
 

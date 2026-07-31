@@ -98,7 +98,7 @@ class LvlTab(GuiTestCase):
         self.assertEqual(self.run_script(),
                          "#!/bin/bash -l\n"
                          "module load %s\n"
-                         "calibre -rve xor.rules.ascii\n" % self.app.env["calibre"])
+                         "calibre -rve xor.rules.asc\n" % self.app.env["calibre"])
 
     def test_both_scripts_use_the_calibre_picked_on_env(self):
         env = self.open_tab("ENV")

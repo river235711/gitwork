@@ -169,7 +169,7 @@ dbdiff describes the difference between the two layouts as rules; calibre then
 runs them, so the XOR arrives as DRC results. **Rve** opens what that produced:
 
 ```bash
-calibre -rve xor.rules.ascii
+calibre -rve xor.rules.asc
 ```
 
 The three names are fixed (`_LVL_TAB`, `_LVL_RULES`, `_LVL_RESULTS` in
