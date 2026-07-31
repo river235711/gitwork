@@ -448,26 +448,33 @@ class VerifyPage(BasePage):
     # Parse fields from the text (ignoring lines starting with '//')
     # ==================================================================
     def _sync_fields_from_text(self):
+        """Read the four values out of the command text into the fields.
+
+        A line emptied by hand (`LAYOUT PRIMARY ""`) empties its field too. The
+        value regexes require a value, which used to leave the field showing a
+        name the command file no longer had -- and the Run writes the text, so
+        the field was quietly lying about what would be run."""
         if self._syncing:
             return
         self._syncing = True
         try:
-            body = _strip_comment_lines(self.cmd_text.get_text())
+            lines = _strip_comment_lines(self.cmd_text.get_text()).split("\n")
 
-            def fill(regex, key, real=False):
+            for key, (_kw, _regex, real) in _FIELD_KEYWORDS.items():
                 w = self.entries.get(key)
                 if w is None or not hasattr(w, "delete"):
-                    return
-                m = regex.search(body)
-                if m:
-                    val = os.path.realpath(m.group(1)) if real else m.group(1)
-                    w.delete(0, tk.END)
-                    w.insert(0, val)
-
-            fill(_RE_LAYOUT_PATH, "LayoutPath", real=True)
-            fill(_RE_LAYOUT_PRIMARY, "LayoutPrimary")
-            fill(_RE_SOURCE_PATH, "SourcePath", real=True)
-            fill(_RE_SOURCE_PRIMARY, "SourcePrimary")
+                    continue
+                regex = _RE_FIELD_ANY[key]
+                index = self._active_line(lines, regex)
+                if index is None:
+                    continue
+                val = regex.match(lines[index]).group(2)
+                # realpath("") is the current directory, which is not what an
+                # empty path means
+                if real and val:
+                    val = os.path.realpath(val)
+                w.delete(0, tk.END)
+                w.insert(0, val)
         finally:
             self._syncing = False
 

@@ -135,6 +135,25 @@ class DrcFamily(GuiTestCase):
         self.set_entry(page, "SourcePrimary", "src_cell")
         self.assertIn('SOURCE PRIMARY "src_cell"', page.cmd_text.get_text())
 
+    def test_emptying_a_name_in_the_text_empties_the_field(self):
+        """The other direction of the same rule: the field must not go on showing
+        a name the command file no longer has, since the Run writes the text."""
+        page = self.open_tab("DRC")
+        self.set_text(page, 'LAYOUT PRIMARY "abc"\nLAYOUT PATH "/p/x/abc.gds"\n')
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "abc")
+
+        self.set_text(page, 'LAYOUT PRIMARY ""\nLAYOUT PATH "/p/x/abc.gds"\n')
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "",
+                         "the field kept a name the command file dropped")
+
+    def test_emptying_a_path_in_the_text_does_not_leave_the_current_directory(self):
+        """realpath("") is the directory pdkgui happens to be in -- an empty path
+        means empty."""
+        page = self.open_tab("DRC")
+        self.set_text(page, 'LAYOUT PATH "/p/x/abc.gds"\n')
+        self.set_text(page, 'LAYOUT PATH ""\n')
+        self.assertEqual(page.entries["LayoutPath"].get(), "")
+
     def test_commented_lines_are_left_alone(self):
         page = self.open_tab("DRC")
         self.set_text(page,
@@ -447,6 +466,16 @@ class LvsTab(GuiTestCase):
             'DRC RESULTS DATABASE "lvs.db"'))
         self.click(page, "Rve")
         self.assertIn("calibre -turbo 8 -rve -lvs svdb", self.run_script())
+
+    def test_emptying_the_source_name_in_the_text_empties_its_field(self):
+        page = self.open_tab("LVS")
+        # named after its own file, so introducing it renames nothing
+        cdl = "/p/net/keep.cdl"
+        self.set_text(page, 'SOURCE PRIMARY "keep"\nSOURCE PATH "%s"\n' % cdl)
+        self.assertEqual(page.entries["SourcePrimary"].get(), "keep")
+
+        self.set_text(page, 'SOURCE PRIMARY ""\nSOURCE PATH "%s"\n' % cdl)
+        self.assertEqual(page.entries["SourcePrimary"].get(), "")
 
     def test_loading_names_the_layout_and_the_source_cell_separately(self):
         page = self.open_tab("LVS")
