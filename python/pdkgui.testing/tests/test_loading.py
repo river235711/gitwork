@@ -283,6 +283,10 @@ class LoadingTab(GuiTestCase):
         self.assertIn("LOADING", items)
         self.assertEqual(items.index("LOADING") + 1, items.index("SYSTEM"))
 
+    def test_the_heading_says_how_to_open_this_page_on_its_own(self):
+        page = self.open_tab("LOADING")
+        self.assertIn("(command: pdkgui -l)", self.labels(page))
+
     def test_every_listed_machine_is_probed_at_once(self):
         """All together, so the slowest one sets the wait, not their sum."""
         self.outputs = {}
@@ -543,6 +547,10 @@ class ChooserWindow(GuiTestCase):
         for tab in ("DRC", "LVS", "XRC", "SYSTEM", "PROCESS"):
             self.assertNotIn(tab, labels, "a tab button leaked into the chooser")
         self.assertIn("Refresh", labels, "this is not the loading page")
+
+    def test_it_does_not_tell_you_the_command_you_just_typed(self):
+        page = self._chooser()
+        self.assertNotIn("(command: pdkgui -l)", self.labels(page))
 
     def test_the_title_says_what_the_window_is_for(self):
         self._chooser()

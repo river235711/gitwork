@@ -240,6 +240,12 @@ class LoadingPage(BasePage):
         head.grid_columnconfigure(1, weight=1)
         tk.Label(head, text="Machine loading", bg=self.bg, anchor="w",
                  font=config.ui_font(1, "bold")).grid(row=0, column=0, sticky="w")
+        if not getattr(self.app, "only", None):
+            # how to get to this page without the rest of pdkgui -- not worth
+            # saying in the window that command already opened
+            tk.Label(head, text="(command: pdkgui -l)", bg=self.bg, fg=_GREY,
+                     anchor="w", font=config.ui_font(-1)
+                     ).grid(row=0, column=1, sticky="w", padx=(10, 0))
         tk.Button(head, text="Refresh", width=10,
                   command=self.refresh).grid(row=0, column=2, sticky="e")
 
