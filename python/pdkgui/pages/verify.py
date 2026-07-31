@@ -97,6 +97,15 @@ _RE_FIELD_ANY = {
 _RE_PRIMARY_ANY = {key: _RE_FIELD_ANY[key]
                    for key in ("LayoutPrimary", "SourcePrimary")}
 
+# Which kind of file each Open dialog should offer (see config.FILE_TYPES).
+# JIVARO's field is called File: it takes the *extracted* netlist, so it sees the
+# XRC output (.dist/.lump/.dspf) as well as the schematic netlist names.
+_FILE_KIND = {
+    "LayoutPath": "layout", "LayoutPath1": "layout", "LayoutPath2": "layout",
+    "SourcePath": "source",
+    "File": "extracted",
+}
+
 # LVL: dbdiff writes the comparison rules, calibre runs them, RVE opens what
 # that produced. Fixed names -- there is no command file to say otherwise.
 _LVL_TAB = "lvl"
@@ -1192,7 +1201,11 @@ class VerifyPage(BasePage):
         it, since the file is named after the cell. Both changes go down into the
         command text the same way typing them would -- the run reads the text,
         not the fields."""
-        path = filedialog.askdirectory() if directory else filedialog.askopenfilename()
+        if directory:
+            path = filedialog.askdirectory()
+        else:
+            path = filedialog.askopenfilename(
+                filetypes=config.file_types(_FILE_KIND.get(key)))
         if not path:
             return
         self._fill_entry(key, path)

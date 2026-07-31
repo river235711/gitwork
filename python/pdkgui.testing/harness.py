@@ -68,6 +68,10 @@ class GuiTestCase(unittest.TestCase):
                        lambda self, v: self.stubs.answers.__setitem__(slice(None), v))
     files = property(lambda self: self.stubs.files,
                      lambda self, v: self.stubs.files.__setitem__(slice(None), v))
+    # every file dialog opened, as (kind, kwargs)
+    file_dialogs = property(
+        lambda self: self.stubs.file_dialogs,
+        lambda self, v: self.stubs.file_dialogs.__setitem__(slice(None), v))
     # what a subprocess should print, keyed on a fragment of its argv
     outputs = property(lambda self: self.stubs.outputs,
                        lambda self, v: self.stubs.outputs.clear() or

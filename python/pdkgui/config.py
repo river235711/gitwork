@@ -295,6 +295,35 @@ def file_managers():
     return (forced,) if forced else FILE_MANAGERS
 
 
+# --------------------------------------------------------------------------
+# What each Open dialog offers in its "files of type" list. Kept here because
+# the layout list is wanted by two different pages (the verify tabs and the GDS
+# viewers), and because these are the site's naming habits rather than logic:
+# netlists are not named consistently enough to filter on an extension, so the
+# patterns match anywhere in the name.
+#
+# The first entry is what the dialog opens on; "All types" is always last so a
+# file that follows no convention is still reachable.
+# --------------------------------------------------------------------------
+_ALL_TYPES = ("All types", "*")
+FILE_TYPES = {
+    # layouts: the compressed ones do not match *.gds, hence the second entry
+    "layout": [("*.gds", "*.gds"), ("*.gds.gz", "*.gds.gz"), _ALL_TYPES],
+    # schematic netlists for LVS/XRC
+    "source": [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
+               _ALL_TYPES],
+    # JIVARO reduces an extracted netlist, so it sees the XRC output too
+    "extracted": [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
+                  ("*dist*", "*dist*"), ("*dspf*", "*dspf*"), ("*lump*", "*lump*"),
+                  _ALL_TYPES],
+}
+
+
+def file_types(kind):
+    """The 'files of type' list for an Open dialog; () when anything goes."""
+    return FILE_TYPES.get(kind, ())
+
+
 # Terminal emulators to try, best first, each with the flag that means "run this
 # command". Shared by the Run buttons (a verification in its own window) and the
 # LOADING tab (a shell on another machine).

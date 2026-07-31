@@ -32,6 +32,9 @@ class Installer(object):
         # subprocess' output, so it needs more than a recorded argv.
         self.outputs = {}
         self.default_output = ("", "")
+        # every file dialog as (kind, kwargs) -- what it offered, not just that
+        # it was opened
+        self.file_dialogs = []
         self._patches = []
 
     # ------------------------------------------------------------------
@@ -129,6 +132,7 @@ class Installer(object):
     def _chooser(self, kind):
         def choose(**kw):
             self.dialogs.append((kind, None))
+            self.file_dialogs.append((kind, kw))
             return self.files.pop(0) if self.files else ""
         return choose
 

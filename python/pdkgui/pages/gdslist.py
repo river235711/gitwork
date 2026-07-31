@@ -64,7 +64,7 @@ class GdsListPage(BasePage):
 
     def _on_open(self, entry):
         path = filedialog.askopenfilename(
-            filetypes=[("GDS", "*.gds *.gds.gz"), ("All files", "*")])
+            filetypes=config.file_types("layout"))
         if path:
             entry.delete(0, tk.END)
             entry.insert(0, path)

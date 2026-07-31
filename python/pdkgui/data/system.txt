@@ -2,6 +2,7 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.073109  2026/07/31    * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
 2026.073108  2026/07/31    * [Function] Emptying LAYOUT/SOURCE PRIMARY or PATH in the command file text now empties the field above it too
 2026.073107  2026/07/31    * [Function] LVL of RVE opens xor.rules.asc
 2026.073106  2026/07/31    * [Function] New function of LVL to compare two layouts: dbdiff writes the xor rules and calibre runs them, Rve opens xor.rules.ascii
