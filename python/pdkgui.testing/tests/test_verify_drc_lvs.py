@@ -142,6 +142,55 @@ class DrcFamily(GuiTestCase):
         includes = self.active_lines(page.cmd_text.get_text(), "include")
         self.assertEqual(includes[0].strip(), "include %s" % deck)
 
+    # --- loading a command file that names no cell -----------------------
+    def _load_com(self, page, body, name="loaded.com"):
+        path = os.path.join(self.paths["work"], name)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(body)
+        self.files = [path]
+        self.click(page, "Load")
+
+    def test_loading_a_file_with_an_empty_primary_names_the_cell(self):
+        """`LAYOUT PRIMARY ""` used to leave the field showing the *previous*
+        file's cell while the text stayed empty -- and the Run writes the text."""
+        page = self.open_tab("DRC")
+        self.set_entry(page, "LayoutPrimary", "from_the_last_file")
+        self._load_com(page, 'LAYOUT PRIMARY ""\n'
+                             'LAYOUT PATH "/p/other/top_block.gds"\n')
+
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "top_block")
+        self.assertIn('LAYOUT PRIMARY "top_block"',
+                      self.active_lines(page.cmd_text.get_text(), "LAYOUT PRIMARY")[0])
+
+    def test_loading_a_file_with_no_primary_line_gets_one(self):
+        page = self.open_tab("DRC")
+        self._load_com(page, 'LAYOUT PATH "/p/third/chip_a.gds.gz"\n')
+
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "chip_a")
+        lines = self.active_lines(page.cmd_text.get_text())
+        self.assertIn('LAYOUT PRIMARY "chip_a"', [ln.strip() for ln in lines])
+        # and it reads in the usual order, beside the path it belongs with
+        self.assertLess(lines.index('LAYOUT PRIMARY "chip_a"'),
+                        [i for i, ln in enumerate(lines) if "LAYOUT PATH" in ln][0])
+
+    def test_a_cell_the_file_does_name_is_left_alone(self):
+        """The top cell is often not what the file it sits in is called."""
+        page = self.open_tab("DRC")
+        self._load_com(page, 'LAYOUT PRIMARY "CHIP_TOP_v2"\n'
+                             'LAYOUT PATH "/p/x/chip_top.gds"\n')
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "CHIP_TOP_v2")
+        self.assertIn('LAYOUT PRIMARY "CHIP_TOP_v2"', page.cmd_text.get_text())
+
+    def test_a_name_can_still_be_cleared_by_hand(self):
+        """The filling happens on load, not on every keystroke -- otherwise the
+        name would come back as fast as it could be deleted."""
+        page = self.open_tab("DRC")
+        self._load_com(page, 'LAYOUT PRIMARY "block"\n'
+                             'LAYOUT PATH "/p/x/block.gds"\n')
+        self.set_text(page, 'LAYOUT PRIMARY ""\n'
+                            'LAYOUT PATH "/p/x/block.gds"\n')
+        self.assertIn('LAYOUT PRIMARY ""', page.cmd_text.get_text())
+
     def test_load_and_save_use_the_file_dialogs(self):
         page = self.open_tab("DRC")
         target = os.path.join(self.paths["work"], "saved.com")
@@ -312,6 +361,23 @@ class LvsTab(GuiTestCase):
             'DRC RESULTS DATABASE "lvs.db"'))
         self.click(page, "Rve")
         self.assertIn("calibre -turbo 8 -rve -lvs svdb", self.run_script())
+
+    def test_loading_names_the_layout_and_the_source_cell_separately(self):
+        page = self.open_tab("LVS")
+        path = os.path.join(self.paths["work"], "pair.com")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write('LAYOUT PRIMARY ""\n'
+                    'LAYOUT PATH "/p/gds/lay_top.gds"\n'
+                    'SOURCE PRIMARY ""\n'
+                    'SOURCE PATH "/p/net/src_top.spi"\n')
+        self.files = [path]
+        self.click(page, "Load")
+
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "lay_top")
+        self.assertEqual(page.entries["SourcePrimary"].get(), "src_top")
+        text = page.cmd_text.get_text()
+        self.assertIn('LAYOUT PRIMARY "lay_top"', text)
+        self.assertIn('SOURCE PRIMARY "src_top"', text)
 
     def test_rve_uses_the_calibre_version_picked_on_env(self):
         env = self.open_tab("ENV")

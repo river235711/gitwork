@@ -14,6 +14,7 @@ import unittest
 import config
 import sandbox
 from harness import GuiTestCase
+from pages.verify import _cell_name
 
 NETLIST_KINDS = ("DISTRIBUTED", "LUMPED", "SIMPLE")
 
@@ -213,6 +214,22 @@ class XrcOptions(GuiTestCase):
         self.assertEqual(self.page.entries["SourcePrimary"].get(), "browsed_top")
         for line in self._netlist_lines():
             self.assertIn('"browsed_top.', line)
+
+    def test_loading_a_file_that_names_no_cell_renames_the_netlists_too(self):
+        """The name filled in on load has to reach the PEX NETLIST files, the
+        same as one that is typed."""
+        path = os.path.join(self.paths["work"], "unnamed.com")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(self.page.cmd_text.get_text().replace(
+                'SOURCE PRIMARY "%s"' % self.page.entries["SourcePrimary"].get(),
+                'SOURCE PRIMARY ""'))
+        self.files = [path]
+        self.click(self.page, "Load")
+
+        self.assertEqual(self.page.entries["SourcePrimary"].get(),
+                         _cell_name(self.page.entries["SourcePath"].get()))
+        for line in self._netlist_lines():
+            self.assertIn('"%s.' % self.page.entries["SourcePrimary"].get(), line)
 
     def test_editing_source_primary_in_the_text_renames_them_too(self):
         text = self.page.cmd_text.get_text().replace(

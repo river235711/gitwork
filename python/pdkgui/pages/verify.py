@@ -77,6 +77,16 @@ _FIELD_KEYWORDS = {
 
 # Browsing for a path fills in the cell name next to it
 _PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary"}
+_PATH_OF = {primary: path for path, primary in _PRIMARY_OF.items()}
+
+# The PRIMARY lines again, this time matching an *empty* name as well -- the
+# field regexes above require a name, so a command file carrying
+# LAYOUT PRIMARY "" reads to them as no line at all.
+_RE_PRIMARY_ANY = {
+    "LayoutPrimary": re.compile(r'^(\s*LAYOUT\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
+    "SourcePrimary": re.compile(r'^(\s*SOURCE\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
+}
+_PRIMARY_KEYWORD = {"LayoutPrimary": "LAYOUT PRIMARY", "SourcePrimary": "SOURCE PRIMARY"}
 
 # the terminal emulators live in config: the LOADING tab opens one too
 
@@ -185,6 +195,7 @@ class VerifyPage(BasePage):
             # text, so derive the Layout/Source fields from it (for a full
             # session this is a no-op -- fields and text are kept in sync).
             self._sync_fields_from_text()
+            self._name_the_unnamed_cells()
         else:
             self._load_default()
 
@@ -392,6 +403,66 @@ class VerifyPage(BasePage):
             fill(_RE_SOURCE_PRIMARY, "SourcePrimary")
         finally:
             self._syncing = False
+
+    def _name_the_unnamed_cells(self):
+        """After a command file is loaded, name the cells it does not name.
+
+        A file with `LAYOUT PRIMARY ""` -- or without the line at all -- used to
+        leave the field showing the *previous* file's cell: the field and the
+        text disagreed, and the Run wrote out the empty name. The cell name comes
+        from that file's own PATH line, the same rule the Open button uses.
+
+        Only what the file leaves blank is filled in. A command file that names a
+        cell means it; the top cell of a layout is often not what the file it
+        sits in is called, and overwriting that would be worse than the bug.
+
+        Deliberately not called from _sync_fields_from_text: that runs on every
+        keystroke, and would refill the name as fast as it could be deleted."""
+        if self.cmd_text is None:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+
+        for primary_key, regex in _RE_PRIMARY_ANY.items():
+            if primary_key not in self.entries:
+                continue                       # DRC-family pages have no source
+            path_widget = self.entries.get(_PATH_OF[primary_key])
+            name = _cell_name(path_widget.get()) if path_widget else ""
+            if not name:
+                continue                       # no path to take a name from
+
+            index = self._active_line(lines, regex)
+            if index is None:
+                # no such line: put one where it belongs, beside its PATH line
+                path_at = self._active_line(
+                    lines, _FIELD_KEYWORDS[_PATH_OF[primary_key]][1])
+                if path_at is None:
+                    continue
+                lines.insert(path_at, '%s "%s"'
+                             % (_PRIMARY_KEYWORD[primary_key], name))
+            elif regex.match(lines[index]).group(2).strip():
+                continue                       # the file names it; leave it alone
+            else:
+                m = regex.match(lines[index])
+                lines[index] = m.group(1) + name + m.group(3)
+            changed = True
+            self._fill_entry(primary_key, name)
+
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
+            if self.module == "XRC":
+                self._xrc_rewrite_netlist_names(
+                    self.entries["SourcePrimary"].get().strip())
+
+    @staticmethod
+    def _active_line(lines, regex):
+        """Index of the first non-comment line the regex matches, else None."""
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            if regex.search(ln):
+                return i
+        return None
 
     def _sync_text_from_field(self, key):
         """When a field changes, write its value back to the matching text line
@@ -856,6 +927,7 @@ class VerifyPage(BasePage):
         else:
             self.cmd_text.load_file(config.page_file(self.module))
         self._sync_fields_from_text()
+        self._name_the_unnamed_cells()
 
     def _on_load_default(self):
         self._load_default()
@@ -867,6 +939,7 @@ class VerifyPage(BasePage):
         if path:
             self.cmd_text.load_file(path)
             self._sync_fields_from_text()
+            self._name_the_unnamed_cells()
             self._schedule_save()
 
     def _on_save(self):
