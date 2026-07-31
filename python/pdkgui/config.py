@@ -341,11 +341,13 @@ KLAYOUT_BIN = os.environ.get("PDKGUI_KLAYOUT", "/usr/bin/klayout")
 # Left-hand menu items (screenshot order)
 MENU_ITEMS = [
     "PROCESS", "ENV", "DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO",
-    "LVS", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "LOADING", "SYSTEM",
+    "LVS", "LVL", "XRC", "JIVARO", "SKIPPER", "KLAYOUT", "DOC", "LOADING",
+    "SYSTEM",
 ]
 
 # Modules that use the "verification flow" page template
-VERIFY_MODULES = ["DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO", "LVS", "XRC", "JIVARO"]
+VERIFY_MODULES = ["DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO", "LVS", "LVL",
+                  "XRC", "JIVARO"]
 
 # --------------------------------------------------------------------------
 # * Each tab -> the file it reads (path relative to data/) *

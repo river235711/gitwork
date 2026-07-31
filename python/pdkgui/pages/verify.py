@@ -75,8 +75,10 @@ _FIELD_KEYWORDS = {
     "SourcePrimary": ("SOURCE PRIMARY", _RE_SOURCE_PRIMARY, False),
 }
 
-# Browsing for a path fills in the cell name next to it
-_PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary"}
+# Which cell name goes with which path. LVL has two layouts and no command file,
+# so its pair exists only as fields.
+_PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary",
+               "LayoutPath1": "LayoutPrimary1", "LayoutPath2": "LayoutPrimary2"}
 _PATH_OF = {primary: path for path, primary in _PRIMARY_OF.items()}
 
 # The same four lines, this time matching an *empty* value as well, split into
@@ -94,6 +96,12 @@ _RE_FIELD_ANY = {
 }
 _RE_PRIMARY_ANY = {key: _RE_FIELD_ANY[key]
                    for key in ("LayoutPrimary", "SourcePrimary")}
+
+# LVL: dbdiff writes the comparison rules, calibre runs them, RVE opens what
+# that produced. Fixed names -- there is no command file to say otherwise.
+_LVL_TAB = "lvl"
+_LVL_RULES = "xor.rules"
+_LVL_RESULTS = "xor.rules.ascii"
 
 # the terminal emulators live in config: the LOADING tab opens one too
 
@@ -127,6 +135,8 @@ class VerifyPage(BasePage):
         self._path_seen = {}        # PATH each PRIMARY was named after
         if self.module == "LVS":
             self._build_lvs()
+        elif self.module == "LVL":
+            self._build_lvl()
         elif self.module == "XRC":
             self._build_xrc()
         elif self.module == "JIVARO":
@@ -386,6 +396,33 @@ class VerifyPage(BasePage):
         self._action_buttons(r); r += 1
         self._command_box(r)
 
+    def _build_lvl(self):
+        """LVL: layout against layout. Two layouts, no command file -- dbdiff
+        writes the comparison rules itself, so there is nothing for a user to
+        edit and nothing to load from central."""
+        self._title()
+        r = 1
+        for n in ("1", "2"):
+            self._entry_row(r, "LayoutPath" + n,
+                            [self._open_btn("LayoutPath" + n),
+                             ("View", lambda k="LayoutPath" + n: self._view(k))]); r += 1
+            self._entry_row(r, "LayoutPrimary" + n); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"),
+                         ("FileManager", self._on_filemanager)]); r += 1
+
+        bf = tk.Frame(self, bg=self.bg)
+        bf.grid(row=r, column=0, columnspan=4, pady=10)
+        for text, cmd in (("Run", self._on_run), ("Rve", self._on_rve)):
+            tk.Button(bf, text=text, width=12, command=cmd).pack(side="left", padx=4)
+        r += 1
+        self.grid_columnconfigure(1, weight=1)
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+        self._load_state()
+        self._bind_changes()
+
     def _build_jivaro(self):
         """JIVARO: no command file. Pick a post-layout netlist (File), a
         RunFolder, and Run -> generate jivaro.xml + run script."""
@@ -452,15 +489,12 @@ class VerifyPage(BasePage):
 
         rename=False only seeds the memory, for restoring a saved session: what
         the user left there is what they get back."""
-        if self.cmd_text is None:
-            return
-        lines = self.cmd_text.get_text().split("\n")
+        lines = self.cmd_text.get_text().split("\n") if self.cmd_text else []
         changed = False
 
-        for primary_key, regex in _RE_PRIMARY_ANY.items():
+        for primary_key, path_key in _PATH_OF.items():
             if primary_key not in self.entries:
                 continue                       # DRC-family pages have no source
-            path_key = _PATH_OF[primary_key]
             path_widget = self.entries.get(path_key)
             if path_widget is None:
                 continue
@@ -471,6 +505,14 @@ class VerifyPage(BasePage):
             name = _cell_name(path)
             if not name:
                 continue                       # no path to take a name from
+
+            regex = _RE_FIELD_ANY.get(primary_key) if self.cmd_text else None
+            if regex is None:
+                # a pair that lives only as fields (LVL's two layouts): there is
+                # no command file for the name to be written into
+                if rename and moved:
+                    self._fill_entry(primary_key, name)
+                continue
 
             index = self._active_line(lines, regex)
             named = index is not None and regex.match(lines[index]).group(2).strip()
@@ -852,9 +894,28 @@ class VerifyPage(BasePage):
     def _run_script(self):
         if self.module == "LVS":
             return self._run_script_lvs()
+        if self.module == "LVL":
+            return self._run_script_lvl()
         if self.module == "XRC":
             return self._run_script_xrc()
         return self._run_script_drc()
+
+    # --- LVL ---
+    def _run_script_lvl(self):
+        """dbdiff compares the two layouts and writes the rules that describe the
+        difference; calibre then runs those rules, so the XOR shows up as DRC
+        results. There is no command file -- dbdiff writes the only one."""
+        return (
+            "#!/bin/bash -l\n"
+            "module load %s\n"
+            "rm -rf %s.log %s*\n"
+            "dbdiff -system GDS -design %s %s -refdesign %s %s"
+            " -write_xor_rules %s -turbo\n"
+            "calibre -drc -hier -turbo -hyper -fx %s | tee %s.log\n"
+        ) % (self._calibre_env(), _LVL_TAB, _LVL_RULES,
+             self._entry("LayoutPath1"), self._entry("LayoutPrimary1"),
+             self._entry("LayoutPath2"), self._entry("LayoutPrimary2"),
+             _LVL_RULES, _LVL_RULES, _LVL_TAB)
 
     def _run_script_rve(self):
         """Open the results in RVE. LVS and XRC read the svdb directory -- always
@@ -865,6 +926,9 @@ class VerifyPage(BasePage):
             view = "calibre -turbo 8 -rve -lvs svdb"
         elif self.module == "XRC":
             view = "calibre -turbo 8 -rve -pex svdb"
+        elif self.module == "LVL":
+            # the results of running dbdiff's rules, named after them
+            view = "calibre -rve %s" % _LVL_RESULTS
         else:
             view = "calibre -rve %s" % self._results_db()
         return (
@@ -904,6 +968,15 @@ class VerifyPage(BasePage):
             return
         if self.module == "JIVARO":
             self._run_jivaro(folder)
+            return
+        if self.module == "LVL":
+            # no command file: dbdiff writes the rules the run then uses
+            try:
+                self._write_run(folder, self._run_script())
+            except OSError as e:
+                messagebox.showerror("pdkgui", "Failed to write run:\n%s" % e)
+                return
+            self._launch_terminal(folder)
             return
         self._refresh_include()   # before Run, ensure include = latest central deck
         try:
@@ -1068,8 +1141,11 @@ class VerifyPage(BasePage):
         return title.replace("'", "").replace("%", "")
 
     def _on_view(self):
+        self._view("LayoutPath")
+
+    def _view(self, key):
         # open the layout GDS with skipper (same flow as the SKIPPER tab)
-        open_gds(self.app, self.entries["LayoutPath"].get())
+        open_gds(self.app, self.entries[key].get())
 
     def _on_edit_source(self):
         self._edit_entry("SourcePath")
@@ -1116,6 +1192,10 @@ class VerifyPage(BasePage):
         # _on_field_change writes it down into the text and, since the path has
         # moved, renames the cell after the new file (_follow_paths)
         self._on_field_change(key)
+
+    def _entry(self, key):
+        w = self.entries.get(key)
+        return w.get().strip() if w is not None else ""
 
     def _fill_entry(self, key, value):
         w = self.entries[key]

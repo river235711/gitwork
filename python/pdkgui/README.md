@@ -150,6 +150,33 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   rules include as `include <rules>/<corner>/rules` (corner from the XrcRCCorner
   field) and the deck include as `include <deck>`.
 
+## LVL tab (layout against layout)
+
+Two layouts, a run folder, **Run** and **Rve** -- and no command file, because
+dbdiff writes the only rules there are:
+
+```bash
+#!/bin/bash -l
+module load <the calibre picked on ENV>
+rm -rf lvl.log xor.rules*
+dbdiff -system GDS -design <LayoutPath1> <LayoutPrimary1> \
+                   -refdesign <LayoutPath2> <LayoutPrimary2> \
+                   -write_xor_rules xor.rules -turbo
+calibre -drc -hier -turbo -hyper -fx xor.rules | tee lvl.log
+```
+
+dbdiff describes the difference between the two layouts as rules; calibre then
+runs them, so the XOR arrives as DRC results. **Rve** opens what that produced:
+
+```bash
+calibre -rve xor.rules.ascii
+```
+
+The three names are fixed (`_LVL_TAB`, `_LVL_RULES`, `_LVL_RESULTS` in
+`pages/verify.py`) -- with no command file there is nothing to say otherwise.
+Choosing a layout names its cell, exactly as on the other tabs, and the two pairs
+are independent.
+
 ## DOC tab (document browser)
 
 Three linked columns driven by `<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt`, one line
