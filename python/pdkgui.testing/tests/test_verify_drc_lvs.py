@@ -203,6 +203,19 @@ class DrcFamily(GuiTestCase):
         self.assertEqual(page.entries["LayoutPrimary"].get(), "adcdac_slc")
         self.assertIn('LAYOUT PRIMARY "adcdac_slc"', page.cmd_text.get_text())
 
+    def test_choosing_the_same_file_again_fills_a_cleared_name(self):
+        """Same rule from the other end: the name was emptied rather than
+        changed, and the file it should come from has not moved."""
+        page = self.open_tab("DRC")
+        gds = os.path.join(self.paths["work"], "adcdac_slc.gds")
+        self.browse(page, "LayoutPath", gds)
+        self.set_entry(page, "LayoutPrimary", "")
+        self.assertIn('LAYOUT PRIMARY ""', page.cmd_text.get_text())
+
+        self.browse(page, "LayoutPath", gds)              # the very same file
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "adcdac_slc")
+        self.assertIn('LAYOUT PRIMARY "adcdac_slc"', page.cmd_text.get_text())
+
     def test_reopening_a_layout_leaves_the_source_cell_alone(self):
         """The force is one field, not all of them."""
         page = self.open_tab("LVS")
