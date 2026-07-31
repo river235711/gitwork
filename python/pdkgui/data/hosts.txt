@@ -13,7 +13,6 @@
 # login in front of the host name if it differs there too: user@host via ...
 sirius01
 sirius02
-sirius03  via will.huang@wswillhuang
 sirius05
 sirius06
 sirius07

@@ -466,11 +466,11 @@ class LoadingTab(GuiTestCase):
         machines = [loading.parse_host_line(ln) for ln in
                     config.read_lines(config.page_file("LOADING"))]
         self.assertEqual([m.name for m in machines],
-                         ["sirius01", "sirius02", "sirius03", "sirius05",
+                         ["sirius01", "sirius02", "sirius05",
                           "sirius06", "sirius07"])
-        # sirius03 is only reachable through the workstation
-        routed = {m.name: m.jump for m in machines if m.jump}
-        self.assertEqual(routed, {"sirius03": "will.huang@wswillhuang"})
+        # every one of them is reached directly; the `via` syntax is kept for a
+        # machine that needs it, but none of these do
+        self.assertEqual([m.name for m in machines if m.jump], [])
 
     # ------------------------------------------------------------------
     def _cell(self, page, host, key):
