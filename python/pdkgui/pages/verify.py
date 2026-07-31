@@ -487,7 +487,7 @@ class VerifyPage(BasePage):
         finally:
             self._syncing = False
 
-    def _follow_paths(self, fill_blank=False, rename=True):
+    def _follow_paths(self, fill_blank=False, rename=True, force=None):
         """Keep each PRIMARY named after the file its PATH points at.
 
         The cell is named after the file it sits in, so pointing at another file
@@ -498,6 +498,12 @@ class VerifyPage(BasePage):
 
         Only a path that actually *moved* triggers a rename, which is what lets a
         name typed by hand stand: it survives until the file changes under it.
+
+        force names one path field to rename anyway. Choosing a file in the Open
+        dialog is a deliberate "use this one", so it re-derives the name even when
+        the same file comes back -- otherwise a cell renamed by hand could only be
+        put right by picking some other file first. It is one field, not all of
+        them: opening a layout must not rename the source cell.
 
         fill_blank additionally names a cell the command file leaves unnamed
         (`LAYOUT PRIMARY ""`, or no such line). For loads only -- on a keystroke
@@ -515,7 +521,7 @@ class VerifyPage(BasePage):
             if path_widget is None:
                 continue
             path = path_widget.get().strip()
-            moved = path != self._path_seen.get(path_key)
+            moved = path != self._path_seen.get(path_key) or path_key == force
             self._path_seen[path_key] = path
 
             name = _cell_name(path)
@@ -725,9 +731,11 @@ class VerifyPage(BasePage):
                     self._set_text_keep_cursor("\n".join(lines))
                 break
 
-    def _on_field_change(self, key):
+    def _on_field_change(self, key, force=False):
         self._sync_text_from_field(key)
-        self._follow_paths()            # a new path renames the cell
+        # a new path renames the cell; force also when the same file is chosen
+        # again from the Open dialog
+        self._follow_paths(force=key if force else None)
         if self.module == "XRC":
             self._xrc_sync_from_field(key)
         self._schedule_save()
@@ -1209,9 +1217,10 @@ class VerifyPage(BasePage):
         if not path:
             return
         self._fill_entry(key, path)
-        # _on_field_change writes it down into the text and, since the path has
-        # moved, renames the cell after the new file (_follow_paths)
-        self._on_field_change(key)
+        # _on_field_change writes it down into the text and renames the cell
+        # after the chosen file -- force, so picking the same file again still
+        # puts a hand-edited name back
+        self._on_field_change(key, force=True)
 
     def _entry(self, key):
         w = self.entries.get(key)

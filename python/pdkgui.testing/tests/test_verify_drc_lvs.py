@@ -188,6 +188,33 @@ class DrcFamily(GuiTestCase):
         self.assertIn('LAYOUT PRIMARY "block_top"',
                       self.active_lines(text, "LAYOUT PRIMARY")[0])
 
+    def test_choosing_the_same_file_again_puts_the_name_back(self):
+        """Open is a deliberate "use this one", so it re-derives the name even
+        though the path did not move -- otherwise a cell renamed by hand could
+        only be put right by picking some other file first."""
+        page = self.open_tab("DRC")
+        gds = os.path.join(self.paths["work"], "adcdac_slc.gds")
+        self.browse(page, "LayoutPath", gds)
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "adcdac_slc")
+
+        self.set_entry(page, "LayoutPrimary", "adcdac_slcxxxxx")
+        self.browse(page, "LayoutPath", gds)              # the very same file
+
+        self.assertEqual(page.entries["LayoutPrimary"].get(), "adcdac_slc")
+        self.assertIn('LAYOUT PRIMARY "adcdac_slc"', page.cmd_text.get_text())
+
+    def test_reopening_a_layout_leaves_the_source_cell_alone(self):
+        """The force is one field, not all of them."""
+        page = self.open_tab("LVS")
+        gds = os.path.join(self.paths["work"], "lay.gds")
+        self.browse(page, "LayoutPath", gds)
+        self.browse(page, "SourcePath", os.path.join(self.paths["work"], "src.cdl"))
+        self.set_entry(page, "SourcePrimary", "KEEP_MY_SOURCE")
+
+        self.browse(page, "LayoutPath", gds)
+        self.assertEqual(page.entries["SourcePrimary"].get(), "KEEP_MY_SOURCE")
+        self.assertIn('SOURCE PRIMARY "KEEP_MY_SOURCE"', page.cmd_text.get_text())
+
     def test_browsing_a_run_folder_leaves_the_cell_name_alone(self):
         page = self.open_tab("DRC")
         self.set_entry(page, "LayoutPrimary", "kept")
