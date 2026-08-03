@@ -233,6 +233,51 @@ class TestPatterns(Base):
         self.assertCollected("ref/spef/b.spef")
 
 
+class TestSymlinks(Base):
+    """EDA trees are full of symlinks (ref -> /proj/.../ref).  Paths must be
+    mapped as written, not as resolved, or everything behind the link lands
+    outside the tree and is dropped as EXTERNAL."""
+
+    def link_ref_dir(self):
+        real = os.path.join(self.tmp, "elsewhere", "ref")
+        shutil.move(os.path.join(self.proj, "ref"), real)
+        os.symlink(real, os.path.join(self.proj, "ref"))
+
+    def test_symlinked_ref_dir_is_still_internal(self):
+        self.link_ref_dir()
+        code, _, _ = self.run_tool()
+        self.assertEqual(0, code)
+        self.assertNotIn("EXTERNAL", self.manifest())
+        self.assertCollected("ref/PRTF_Innovus_22nm.tlef")
+        self.assertCollected("ref/io/dblib/tphn22_m40c.lib")
+
+    def test_descends_through_a_symlinked_dir(self):
+        self.link_ref_dir()
+        self.run_tool()
+        # ref/WF_..._pt.sdc.0731 lives behind the link and sources a sibling
+        self.assertCollected("ref/da_max_delay.sdc")
+
+    def test_symlinked_input_path_is_kept(self):
+        os.symlink(self.proj, os.path.join(self.tmp, "proj_link"))
+        self.inp = os.path.join(self.tmp, "proj_link", "run1",
+                                "sylincom_top_0803.globals")
+        code, _, _ = self.run_tool()
+        self.assertEqual(0, code)
+        self.assertCollected("ref/PRTF_Innovus_22nm.tlef")
+
+    def test_symlinked_file_is_copied_as_a_real_file(self):
+        target = os.path.join(self.tmp, "elsewhere", "real.tlef")
+        write(target, "# real tlef\n")
+        link = os.path.join(self.proj, "ref", "PRTF_Innovus_22nm.tlef")
+        os.remove(link)
+        os.symlink(target, link)
+        self.run_tool()
+        dest = self.collected("ref/PRTF_Innovus_22nm.tlef")
+        self.assertFalse(os.path.islink(dest), "must be copied, not linked")
+        with open(dest) as fh:
+            self.assertEqual("# real tlef\n", fh.read())
+
+
 class TestSafety(Base):
     def test_source_cycle_terminates(self):
         write(os.path.join(self.proj, "script", "a.tcl"), "source b.tcl\n")

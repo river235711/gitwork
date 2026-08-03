@@ -105,7 +105,11 @@ def is_directive(tok):
 
 class Collector(object):
     def __init__(self, args):
-        self.in_file = os.path.realpath(args.input_file)
+        # Paths are kept as written (abspath, symlinks intact), never
+        # realpath'd: EDA trees routinely have ref -> /proj/.../ref, and
+        # resolving that would push every reference outside the tree.
+        # realpath is used only to recognise a file already visited.
+        self.in_file = os.path.abspath(args.input_file)
         self.in_dir = os.path.dirname(self.in_file)
         self.out_dir = os.path.abspath(args.output_dir)
         self.up_levels = args.up_levels
@@ -121,7 +125,7 @@ class Collector(object):
         self.whole_dir = args.whole_dir or []
 
         self.queue = deque()
-        self.seen = set()          # realpaths already queued
+        self.seen = set()          # realpaths already queued (cycle guard)
         self.copied = []           # (src, dest)
         self.dirs = []             # (src, dest, nfiles, nbytes)
         self.missing = []          # (where, line, token)
@@ -221,7 +225,7 @@ class Collector(object):
                             s, d, shallow=False):
                         shutil.copy2(s, d)
                 # already copied as part of the tree; queue only for scanning
-                self.enqueue(os.path.realpath(s), do_copy=False)
+                self.enqueue(s, do_copy=False)
         self.dirs.append((src, dest, nfiles, nbytes))
 
     # -- scanning ---------------------------------------------------------
@@ -314,7 +318,12 @@ class Collector(object):
                     declared = True
 
     def resolve(self, token, from_file):
-        """Resolve a token against the usual search order; None if not found."""
+        """Resolve a token against the usual search order.
+
+        Returns absolute paths with any symlink in them left alone, so that
+        a reference behind a linked directory still maps back to where it was
+        written (../ref/x.lib -> <out>/../ref/x.lib).
+        """
         if os.path.isabs(token):
             bases = [""]
         else:
@@ -323,6 +332,7 @@ class Collector(object):
         tried = []
         for base in bases:
             cand = token if base == "" else os.path.join(base, token)
+            cand = os.path.normpath(os.path.abspath(cand))
             if cand in tried:
                 continue
             tried.append(cand)
@@ -358,10 +368,11 @@ class Collector(object):
 
     # -- driver -----------------------------------------------------------
 
-    def enqueue(self, real, do_copy=True):
-        if real not in self.seen:
-            self.seen.add(real)
-            self.queue.append((real, do_copy))
+    def enqueue(self, path, do_copy=True):
+        key = os.path.realpath(path)
+        if key not in self.seen:
+            self.seen.add(key)
+            self.queue.append((path, do_copy))
 
     def process(self, path, do_copy=True):
         if do_copy:
@@ -391,19 +402,18 @@ class Collector(object):
                              % (self.rel_in(path), lineno, token))
                 continue
             for hit in hits:
-                real = os.path.realpath(hit)
-                if self.unsafe_target(real):
+                if self.unsafe_target(hit):
                     self.log("  ignored (unsafe target): %s" % token)
                     continue
-                if os.path.isdir(real) and "/" not in token:
+                if os.path.isdir(hit) and "/" not in token:
                     continue
-                real = self.widen_to_dir(real)
-                _, is_ext = self.dest_for(real)
+                hit = self.widen_to_dir(hit)
+                _, is_ext = self.dest_for(hit)
                 if is_ext and self.external_mode == "skip":
-                    self.note(self.external, path, lineno, real)
+                    self.note(self.external, path, lineno, hit)
                     continue
-                self.log("  -> %s" % self.rel_in(real))
-                self.enqueue(real)
+                self.log("  -> %s" % self.rel_in(hit))
+                self.enqueue(hit)
 
     def run(self):
         if not os.path.isfile(self.in_file):
@@ -458,6 +468,9 @@ class Collector(object):
                              ("unresolved $vars", self.unresolved)):
             if items:
                 print("  %-20s %d" % (label + ":", len(items)))
+        if self.external:
+            print("  ^ outside <output>/.. ; see the manifest, then use "
+                  "--external copy or --up-levels N to include them")
         for where, line, tok in self.missing:
             print("  MISSING  %s:%d  %s"
                   % (self.rel_in(where), line, tok), file=sys.stderr)
