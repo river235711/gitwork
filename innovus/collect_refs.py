@@ -396,7 +396,13 @@ class Collector(object):
         for lineno, token, declared in self.candidates(path):
             hits = self.resolve(token, path)
             if not hits:
-                if declared:
+                # Report a ref that cannot be found either when a directive
+                # introduced it (source x.sdc) or when it is unmistakably a
+                # file path -- a separator plus an extension.  That covers
+                #   -timing [list ../ref/io/dblib/x.lib]
+                # which no keyword announces, while leaving design objects
+                # such as [get_cells u_a/u_b/reg*] alone.
+                if declared or ("/" in token and EXT_RE.search(token)):
                     self.note(self.missing, path, lineno, token)
                     self.log("  MISSING %s:%d %s"
                              % (self.rel_in(path), lineno, token))

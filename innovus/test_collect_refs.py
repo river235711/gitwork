@@ -170,6 +170,26 @@ class TestReporting(Base):
         self.assertIn("nope.sdc", self.manifest())
         self.assertIn("MISSING", err)
 
+    def test_missing_reference_without_a_keyword(self):
+        # -timing [list ...] has no directive word in front of it, but an
+        # unfindable .lib there must still be reported, not dropped silently
+        write(os.path.join(self.proj, "script", "viewdefinition.tcl"),
+              VIEWDEF.replace("../ref/std/dblib/tcbn22_m40c.lib",
+                              "../ref/std/dblib/gone.lib"))
+        code, _, err = self.run_tool()
+        self.assertEqual(1, code)
+        self.assertIn("gone.lib", self.manifest())
+        self.assertIn("MISSING", err)
+
+    def test_design_objects_are_not_reported_as_missing(self):
+        write(self.inp, GLOBALS + """\
+set_max_delay 3 -from [get_cells u_iq_logger/u_iq_logger_rg/rg_mode_reg*]
+set_clock_groups -asynchronous -group [get_clocks {CLK_A CLK_B}]
+""")
+        code, _, _ = self.run_tool()
+        self.assertEqual(0, code)
+        self.assertNotIn("MISSING", self.manifest())
+
     def test_external_reference_is_skipped(self):
         outside = os.path.join(self.tmp, "outside", "vendor.lib")
         write(outside, "/* vendor */\n")
