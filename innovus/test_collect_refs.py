@@ -305,6 +305,62 @@ class TestSymlinks(Base):
         self.assertEqual(0, code)
         self.assertCollected("ref/QRC/RC_QRC_rcworst.tar.gz_FILE/extra.dat")
 
+    def test_keep_links_links_the_whole_tree_behind_it(self):
+        self.link_ref_dir()
+        code, out, _ = self.run_tool("--keep-links")
+        self.assertEqual(0, code)
+        link = self.collected("ref")
+        self.assertTrue(os.path.islink(link), "ref/ must be a symlink")
+        self.assertEqual(os.path.join(self.tmp, "elsewhere", "ref"),
+                         os.path.realpath(link))
+        self.assertIn("links kept", out)
+        self.assertIn("LINK ", self.manifest())
+        # nothing was copied behind the link ...
+        self.assertNotIn("xxx/ref/", self.manifest())
+        # ... yet every reference still reads back through it
+        self.assertCollected("ref/io/dblib/tphn22_m40c.lib")
+        self.assertCollected("ref/da_max_delay.sdc")
+        # and files outside the link are copied as usual
+        self.assertFalse(os.path.islink(self.collected("script")))
+        self.assertCollected("script/viewdefinition.tcl")
+
+    def test_keep_links_never_writes_through_a_link(self):
+        self.link_ref_dir()
+        self.run_tool("--keep-links")
+        # the originals behind the link must be untouched
+        real = os.path.join(self.tmp, "elsewhere", "ref")
+        self.assertEqual(sorted(os.listdir(real)),
+                         sorted(os.listdir(os.path.join(self.proj, "ref"))))
+        self.assertFalse(os.path.exists(os.path.join(real, "collect_refs.manifest")))
+
+    def test_keep_links_on_a_linked_file(self):
+        target = os.path.join(self.tmp, "elsewhere", "real.tlef")
+        write(target, "# real tlef\n")
+        link = os.path.join(self.proj, "ref", "PRTF_Innovus_22nm.tlef")
+        os.remove(link)
+        os.symlink(target, link)
+        self.run_tool("--keep-links")
+        dest = self.collected("ref/PRTF_Innovus_22nm.tlef")
+        self.assertTrue(os.path.islink(dest))
+        self.assertEqual(target, os.path.realpath(dest))
+
+    def test_keep_links_is_idempotent(self):
+        self.link_ref_dir()
+        self.run_tool("--keep-links")
+        code, _, err = self.run_tool("--keep-links")
+        self.assertEqual(0, code)
+        self.assertNotIn("warning", err)
+        self.assertTrue(os.path.islink(self.collected("ref")))
+
+    def test_keep_links_falls_back_when_a_real_dir_is_there(self):
+        self.link_ref_dir()
+        self.run_tool()                      # materialise first
+        code, _, err = self.run_tool("--keep-links")
+        self.assertEqual(0, code)
+        self.assertIn("exists as a real path", err)
+        self.assertFalse(os.path.islink(self.collected("ref")))
+        self.assertCollected("ref/io/dblib/tphn22_m40c.lib")
+
     def test_symlinked_file_is_copied_as_a_real_file(self):
         target = os.path.join(self.tmp, "elsewhere", "real.tlef")
         write(target, "# real tlef\n")

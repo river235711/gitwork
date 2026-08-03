@@ -120,6 +120,7 @@ class Collector(object):
         self.dry_run = args.dry_run
         self.verbose = args.verbose
         self.overwrite = args.overwrite
+        self.keep_links = args.keep_links
         self.manifest = os.path.abspath(args.manifest) if args.manifest else None
         self.search_dirs = [os.path.abspath(d) for d in (args.search or [])]
         self.whole_dir = args.whole_dir or []
@@ -128,6 +129,7 @@ class Collector(object):
         self.seen = set()          # realpaths already queued (cycle guard)
         self.copied = []           # (src, dest)
         self.dirs = []             # (src, dest, nfiles, nbytes)
+        self.links = []            # (dest, target)
         self.missing = []          # (where, line, token)
         self.external = []         # (where, line, path)
         self.skipped_scan = []     # (src, reason)
@@ -173,7 +175,48 @@ class Collector(object):
 
     # -- copying ----------------------------------------------------------
 
+    def first_link_component(self, src, dest):
+        """First component of the path that is a symlink, on both sides.
+
+        For ref -> /proj/.../ref this returns (<in>/ref, <out>/../ref), so one
+        link stands in for the whole tree behind it instead of copying it.
+        """
+        s, d = self.in_dir, self.out_dir
+        for part in os.path.relpath(src, self.in_dir).split(os.sep):
+            s = os.path.normpath(os.path.join(s, part))
+            d = os.path.normpath(os.path.join(d, part))
+            if part != os.pardir and os.path.islink(s):
+                return s, d
+        return None, None
+
+    def link_instead(self, src, dest):
+        """--keep-links: point at the original instead of copying it."""
+        s_link, d_link = self.first_link_component(src, dest)
+        if not s_link:
+            return False
+        if dest != d_link and not dest.startswith(d_link + os.sep):
+            return False        # dest was remapped (--external copy)
+        target = os.path.realpath(s_link)
+        if os.path.islink(d_link):
+            if os.path.realpath(d_link) == target:
+                return True     # already there, nothing under it to write
+            if not self.dry_run:
+                os.remove(d_link)
+        elif os.path.exists(d_link):
+            print("warning: %s exists as a real path, copying instead of "
+                  "linking" % d_link, file=sys.stderr)
+            return False
+        if not self.dry_run:
+            parent = os.path.dirname(d_link)
+            if parent and not os.path.isdir(parent):
+                os.makedirs(parent)
+            os.symlink(target, d_link)
+        self.links.append((d_link, target))
+        return True
+
     def copy_file(self, src, dest):
+        if self.keep_links and self.link_instead(src, dest):
+            return
         if os.path.exists(dest):
             if filecmp.cmp(src, dest, shallow=False):
                 self.log("  same, skip: %s" % dest)
@@ -222,6 +265,8 @@ class Collector(object):
 
     def copy_dir(self, src, dest):
         """Recursive copy that merges into an existing destination."""
+        if self.keep_links and self.link_instead(src, dest):
+            return
         nfiles, nbytes = self.dir_size(src)
         if nbytes > self.max_dir:
             print("warning: directory too large, skipped (%s > %s): %s"
@@ -461,6 +506,8 @@ class Collector(object):
         for src, dest, n, b in self.dirs:
             out.append("DIR       %s/  ->  %s/   (%d files, %s)"
                        % (src, dest, n, human(b)))
+        for dest, target in self.links:
+            out.append("LINK      %s  ->  %s" % (dest, target))
         for where, line, tok in self.missing:
             out.append("MISSING   %s:%d  %s" % (where, line, tok))
         for where, line, path in self.external:
@@ -481,9 +528,11 @@ class Collector(object):
             with open(manifest, "w") as fh:
                 fh.write(text)
 
-        print("%s%d files, %d directories copied to %s"
+        print("%s%d files, %d directories copied%s to %s"
               % ("[dry-run] " if self.dry_run else "",
-                 len(self.copied), len(self.dirs), self.out_dir))
+                 len(self.copied), len(self.dirs),
+                 ", %d links kept" % len(self.links) if self.links else "",
+                 self.out_dir))
         for label, items in (("missing", self.missing),
                              ("external (skipped)", self.external),
                              ("not scanned", self.skipped_scan),
@@ -527,6 +576,12 @@ def build_parser():
                         "(default 1, so everything lands under <output>/..)")
     p.add_argument("--external", choices=("skip", "copy"), default="skip",
                    help="what to do with refs outside that boundary")
+    p.add_argument("--keep-links", action="store_true",
+                   help="reproduce a symlink as a symlink to the original "
+                        "instead of copying what is behind it; the first "
+                        "linked component of a path stands in for the whole "
+                        "tree under it (fast and small, but the output only "
+                        "works where those originals are visible)")
     p.add_argument("--whole-dir", action="append", metavar="GLOB",
                    help="when a referenced file sits in a directory whose name "
                         "matches GLOB, copy that whole directory "
