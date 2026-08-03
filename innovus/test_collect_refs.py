@@ -285,6 +285,26 @@ class TestSymlinks(Base):
         self.assertEqual(0, code)
         self.assertCollected("ref/PRTF_Innovus_22nm.tlef")
 
+    def test_whole_dir_descends_into_a_linked_subdir(self):
+        qrc = os.path.join(self.proj, "ref", "QRC",
+                           "RC_QRC_rcworst.tar.gz_FILE")
+        target = os.path.join(self.tmp, "elsewhere", "icecaps")
+        write(os.path.join(target, "cap.dat"), "# caps\n")
+        os.symlink(target, os.path.join(qrc, "icecaps"))
+        self.run_tool("--whole-dir", "*_FILE")
+        self.assertCollected(
+            "ref/QRC/RC_QRC_rcworst.tar.gz_FILE/icecaps/cap.dat",
+            src_rel=os.path.relpath(os.path.join(target, "cap.dat"),
+                                    self.proj))
+
+    def test_directory_link_loop_terminates(self):
+        qrc = os.path.join(self.proj, "ref", "QRC",
+                           "RC_QRC_rcworst.tar.gz_FILE")
+        os.symlink(qrc, os.path.join(qrc, "self"))
+        code, _, _ = self.run_tool("--whole-dir", "*_FILE")
+        self.assertEqual(0, code)
+        self.assertCollected("ref/QRC/RC_QRC_rcworst.tar.gz_FILE/extra.dat")
+
     def test_symlinked_file_is_copied_as_a_real_file(self):
         target = os.path.join(self.tmp, "elsewhere", "real.tlef")
         write(target, "# real tlef\n")

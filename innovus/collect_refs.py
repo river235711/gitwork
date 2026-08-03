@@ -189,10 +189,26 @@ class Collector(object):
             shutil.copy2(src, dest)
         self.copied.append((src, dest))
 
+    def walk_tree(self, src):
+        """os.walk that descends into symlinked subdirectories.
+
+        Plain os.walk lists them but never enters them, which would drop
+        their contents silently.  Each real directory is visited once, so a
+        link pointing back up cannot loop.
+        """
+        visited = set()
+        for root, dirnames, filenames in os.walk(src, followlinks=True):
+            key = os.path.realpath(root)
+            if key in visited:
+                dirnames[:] = []
+                continue
+            visited.add(key)
+            yield root, filenames
+
     def dir_size(self, src):
         nfiles = 0
         nbytes = 0
-        for root, dirnames, filenames in os.walk(src):
+        for root, filenames in self.walk_tree(src):
             for name in filenames:
                 p = os.path.join(root, name)
                 nfiles += 1
@@ -212,7 +228,7 @@ class Collector(object):
                   % (human(nbytes), human(self.max_dir), src), file=sys.stderr)
             self.skipped_scan.append((src, "directory > max-dir-size"))
             return
-        for root, dirnames, filenames in os.walk(src):
+        for root, filenames in self.walk_tree(src):
             rel = os.path.relpath(root, src)
             target = dest if rel == "." else os.path.join(dest, rel)
             if not self.dry_run and not os.path.isdir(target):
