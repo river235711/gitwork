@@ -68,7 +68,8 @@ FILES = {
     "ref/WF_6T7R_A_DIE.vg.will": "module top; endmodule\n",
     "ref/WF_6T7R_A_DIE_pt.sdc.0731": SDC,
     "ref/da_max_delay.sdc": "set_max_delay 1 -from [get_ports A]\n",
-    "ref/commented_out.lef": "# never referenced for real\n",
+    "ref/commented_out.lef": "# referenced from a commented-out line\n",
+    "ref/never_mentioned.lef": "# not referenced anywhere\n",
     "ref/QRC/RC_QRC_rcworst.tar.gz_FILE/qrcTechFile": "# qrc tech\n",
     "ref/QRC/RC_QRC_rcworst.tar.gz_FILE/extra.dat": "# side car\n",
 }
@@ -149,10 +150,15 @@ class TestHierarchy(Base):
         self.assertCollected("ref/QRC/RC_QRC_rcworst.tar.gz_FILE/extra.dat")
         self.assertIn("DIR ", self.manifest())
 
-    def test_unreferenced_file_is_not_copied(self):
+    def test_commented_out_reference_is_collected(self):
+        # a step someone may switch back on still needs its file
         self.run_tool()
-        self.assertFalse(os.path.exists(self.collected("ref/commented_out.lef")),
-                         "a commented-out reference must not be collected")
+        self.assertCollected("ref/commented_out.lef")
+
+    def test_unmentioned_file_is_not_copied(self):
+        self.run_tool()
+        self.assertFalse(os.path.exists(self.collected("ref/never_mentioned.lef")),
+                         "only referenced files are collected")
 
     def test_manifest_lists_every_copy(self):
         self.run_tool()
@@ -372,6 +378,75 @@ class TestSymlinks(Base):
         self.assertFalse(os.path.islink(dest), "must be copied, not linked")
         with open(dest) as fh:
             self.assertEqual("# real tlef\n", fh.read())
+
+
+RUN_TCL = """\
+addRoutingHalo -bottom M1 -top AP -space 2 \\
+   -inst u_WF_TOP_A/u_WF_ATOP_TRI_2x2_FEM_SYLINCOM_v1
+#source ../script/routeBkg.tcl
+source ../script/skip_route.tcl
+
+saveDesign DBS/fp2.enc -compress
+
+## 22 =========================================================
+setMultiCpuUsage -localCpu 8
+checkDesign -all
+#vim checkDesign/immark1_top.main.htm.ascii
+check_timing
+timeDesign -preplace -expandedViews -outDir RPT/preplace
+"""
+
+
+class TestRunScript(Base):
+    """A run script mixes inputs, switched-off steps and results."""
+
+    def setUp(self):
+        Base.setUp(self)
+        write(os.path.join(self.proj, "run1", "20.22_viktor0624.tcl"), RUN_TCL)
+        write(os.path.join(self.proj, "script", "routeBkg.tcl"), "# halos\n")
+        write(os.path.join(self.proj, "script", "skip_route.tcl"), "# skip\n")
+        # results of an earlier run, sitting in the run directory
+        write(os.path.join(self.proj, "run1", "DBS", "fp2.enc"), "database\n")
+        write(os.path.join(self.proj, "run1", "RPT", "preplace", "t.rpt"),
+              "report\n")
+        write(self.inp, GLOBALS + "set extra_file {20.22_viktor0624.tcl}\n")
+
+    def test_commented_out_source_is_collected(self):
+        self.run_tool()
+        self.assertCollected("script/routeBkg.tcl")
+        self.assertCollected("script/skip_route.tcl")
+
+    def test_saved_design_is_not_collected(self):
+        self.run_tool()
+        self.assertFalse(os.path.exists(self.collected("run1/DBS/fp2.enc")),
+                         "saveDesign writes it, it is not an input")
+
+    def test_output_dir_flag_is_not_collected(self):
+        self.run_tool()
+        self.assertFalse(os.path.exists(self.collected("run1/RPT")),
+                         "-outDir names a result directory")
+
+    def test_restore_is_still_an_input(self):
+        write(os.path.join(self.proj, "run1", "20.22_viktor0624.tcl"),
+              RUN_TCL + "restoreDesign DBS/fp2.enc top\n")
+        self.run_tool()
+        self.assertCollected("run1/DBS/fp2.enc")
+
+    def test_commented_out_missing_file_is_not_an_error(self):
+        write(os.path.join(self.proj, "run1", "20.22_viktor0624.tcl"),
+              RUN_TCL + "#source ../script/deleted_long_ago.tcl\n")
+        code, _, _ = self.run_tool()
+        self.assertEqual(0, code, "a switched-off step is not a broken ref")
+        self.assertIn("MISSING#", self.manifest())
+        self.assertIn("deleted_long_ago.tcl", self.manifest())
+
+    def test_ignore_glob(self):
+        write(os.path.join(self.proj, "run1", "20.22_viktor0624.tcl"),
+              RUN_TCL + "#vim checkDesign/immark1_top.main.htm.ascii\n")
+        write(os.path.join(self.proj, "run1", "checkDesign",
+                           "immark1_top.main.htm.ascii"), "report\n")
+        self.run_tool("--ignore", "checkDesign/*")
+        self.assertFalse(os.path.exists(self.collected("run1/checkDesign")))
 
 
 class TestSafety(Base):

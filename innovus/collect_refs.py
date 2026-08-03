@@ -52,6 +52,19 @@ DIRECTIVE_WORDS = frozenset(
     ["source", "include", "`include", "file", "f", "read", "import"]
 )
 
+# Commands that *write* something.  Their paths are results of the run, not
+# inputs, so the whole line is left alone: saveDesign DBS/fp2.enc -compress
+# must not drag a previous run's database into the collection.  Matching is on
+# the leading command word, so restoreDesign / read_* / defIn stay inputs.
+OUTPUT_COMMANDS = frozenset(["redirect"])
+OUTPUT_PREFIXES = ("save", "write", "report", "dump", "stream", "gdsout",
+                   "defout", "rcout", "spefout", "lefout", "verilogout")
+
+# Flags whose value is a file or directory the run produces.
+OUTPUT_FLAGS = frozenset(
+    ["out", "o", "outdir", "outfile", "output", "report", "log", "logfile"]
+)
+
 # Not worth scanning for further references (binary or bulk data).
 BINARY_EXT = frozenset(
     """.gds .gds2 .gz .bz2 .xz .tar .tgz .zip .oa .db .dat .png .jpg .pdf
@@ -89,6 +102,15 @@ def looks_like_path(tok):
     return "/" in tok or EXT_RE.search(tok) is not None
 
 
+def is_output_command(tok):
+    t = tok.lower().lstrip("-")
+    return t in OUTPUT_COMMANDS or t.startswith(OUTPUT_PREFIXES)
+
+
+def is_output_flag(tok):
+    return tok.startswith("-") and tok.lower().lstrip("-") in OUTPUT_FLAGS
+
+
 def is_directive(tok):
     if "/" in tok or looks_like_path(tok):
         return False        # e.g. ../ref/RC_QRC_rcworst.tar.gz_FILE
@@ -121,6 +143,7 @@ class Collector(object):
         self.verbose = args.verbose
         self.overwrite = args.overwrite
         self.keep_links = args.keep_links
+        self.ignore = args.ignore or []
         self.manifest = os.path.abspath(args.manifest) if args.manifest else None
         self.search_dirs = [os.path.abspath(d) for d in (args.search or [])]
         self.whole_dir = args.whole_dir or []
@@ -131,6 +154,7 @@ class Collector(object):
         self.dirs = []             # (src, dest, nfiles, nbytes)
         self.links = []            # (dest, target)
         self.missing = []          # (where, line, token)
+        self.missing_off = []      # same, but from a commented-out line
         self.external = []         # (where, line, path)
         self.skipped_scan = []     # (src, reason)
         self.unresolved = []       # (where, line, token)
@@ -356,17 +380,28 @@ class Collector(object):
         return tok
 
     def candidates(self, path):
-        """Yield (lineno, token, declared) for every path-looking token."""
+        """Yield (lineno, token, declared, commented) for path-looking tokens.
+
+        Commented-out lines are read like any other: `#source ../script/x.tcl`
+        is a step someone may switch back on, so the file is collected -- but
+        it is not an error when it no longer exists.
+
+        Lines whose command writes something are skipped entirely, and so is
+        the value of an output flag; those paths are what the run produces.
+        """
         lines = list(self.logical_lines(path))
         table = self.var_map(lines)
         for lineno, line in lines:
             stripped = line.lstrip()
-            if stripped.startswith("#") or stripped.startswith("//"):
+            commented = stripped.startswith("#") or stripped.startswith("//")
+            if commented:
+                stripped = stripped.lstrip("#/").lstrip()
+            tokens = [t for t in TOKEN_SPLIT.split(stripped) if t]
+            if not tokens or is_output_command(tokens[0]):
                 continue
             declared = False
-            for tok in TOKEN_SPLIT.split(line):
-                if not tok:
-                    continue
+            skip_next = False
+            for tok in tokens:
                 if "$" in tok:
                     tok = self.substitute(tok, table)
                     if "$" in tok:
@@ -374,9 +409,19 @@ class Collector(object):
                             self.note(self.unresolved, path, lineno, tok)
                         continue
                 if looks_like_path(tok):
-                    yield lineno, tok, declared
+                    if skip_next or self.ignored(tok):
+                        skip_next = False
+                        continue
+                    yield lineno, tok, declared, commented
+                elif is_output_flag(tok):
+                    skip_next = True
                 elif is_directive(tok):
                     declared = True
+
+    def ignored(self, token):
+        return any(fnmatch.fnmatch(token, pat) or
+                   fnmatch.fnmatch(os.path.basename(token), pat)
+                   for pat in self.ignore)
 
     def resolve(self, token, from_file):
         """Resolve a token against the usual search order.
@@ -454,9 +499,14 @@ class Collector(object):
             return
 
         self.log("scanning %s" % self.rel_in(path))
-        for lineno, token, declared in self.candidates(path):
+        for lineno, token, declared, commented in self.candidates(path):
             hits = self.resolve(token, path)
             if not hits:
+                if commented:
+                    # a switched-off step that points at a file long gone is
+                    # worth listing, but it is not a broken reference
+                    self.note(self.missing_off, path, lineno, token)
+                    continue
                 # Report a ref that cannot be found either when a directive
                 # introduced it (source x.sdc) or when it is unmistakably a
                 # file path -- a separator plus an extension.  That covers
@@ -510,6 +560,9 @@ class Collector(object):
             out.append("LINK      %s  ->  %s" % (dest, target))
         for where, line, tok in self.missing:
             out.append("MISSING   %s:%d  %s" % (where, line, tok))
+        for where, line, tok in self.missing_off:
+            out.append("MISSING#  %s:%d  %s   (commented out)"
+                       % (where, line, tok))
         for where, line, path in self.external:
             out.append("EXTERNAL  %s:%d  %s" % (where, line, path))
         for src, reason in self.skipped_scan:
@@ -534,6 +587,7 @@ class Collector(object):
                  ", %d links kept" % len(self.links) if self.links else "",
                  self.out_dir))
         for label, items in (("missing", self.missing),
+                             ("missing (commented)", self.missing_off),
                              ("external (skipped)", self.external),
                              ("not scanned", self.skipped_scan),
                              ("unresolved $vars", self.unresolved)):
@@ -576,6 +630,10 @@ def build_parser():
                         "(default 1, so everything lands under <output>/..)")
     p.add_argument("--external", choices=("skip", "copy"), default="skip",
                    help="what to do with refs outside that boundary")
+    p.add_argument("--ignore", action="append", metavar="GLOB",
+                   help="never collect tokens matching GLOB, matched against "
+                        "the path as written and against its basename "
+                        "(e.g. --ignore 'RPT/*' --ignore '*.enc')")
     p.add_argument("--keep-links", action="store_true",
                    help="reproduce a symlink as a symlink to the original "
                         "instead of copying what is behind it; the first "
