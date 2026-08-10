@@ -252,21 +252,24 @@ svg {
 
 .service-icon svg { width: 32px; height: 32px; }
 
-/* Card headings run in the body serif, matching anthropic.com's card treatment. */
+/* Card headings in the display sans, body copy in the serif underneath --
+   anthropic.com's card treatment. */
 .service-card h3,
 .contact-card h3 {
-  font-family: var(--font-body);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-  margin: 0 0 12px;
-  font-size: 1.4rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0 0 10px;
+  font-size: 1.3rem;
 }
 
 .service-desc { color: var(--text-muted); font-size: 0.98rem; margin: 0 0 28px; }
 
 /* Label/value rows separated by hairlines, pinned to the bottom of the card so
-   the CTAs line up across a row of cards of unequal length. */
+   the CTAs line up across a row of cards of unequal length. Every card carries
+   the same three rows and each value is kept short enough to stay on one line --
+   wrapped values are what make a row of cards look ragged. */
 .card-meta {
   margin: auto 0 24px;
   padding: 0;
@@ -278,13 +281,13 @@ svg {
   justify-content: space-between;
   align-items: baseline;
   gap: 20px;
-  padding: 11px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--card-rule);
 }
 
 .meta-row dt {
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -294,7 +297,7 @@ svg {
 
 .meta-row dd {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   text-align: right;
 }
 
