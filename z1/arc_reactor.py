@@ -21,18 +21,32 @@ from tkinter import ttk
 
 DEFAULT_HOSTS = ["TE0037", "sirius01", "WilldeMacBook-Air.local"]
 
-# ---- 配色 ----------------------------------------------------------------
-BG = "#070c11"
-PANEL = "#0c141b"
-DIM = "#05090d"  # 變暗時要混向的底色
+# ---- 配色 (照參考圖：黑機械件 + 青/橘燈) ---------------------------------
+BG = "#05090d"
+PANEL = "#070d13"
+DIM = "#04070a"  # 變暗時要混向的底色
 TEXT = "#c8dbe6"
 MUTED = "#5e7686"
 ACCENT = "#3fd0f0"
 
-BAR_OFF = "#11242d"  # 光條沒亮的格子
-BAR_LOW = (0x2F, 0xE6, 0xFF)  # 低載：青
-BAR_MID = (0xFF, 0xC1, 0x3B)  # 中載：琥珀
+# 機械件
+BODY = "#080d12"  # 模組本體(黑)
+BODY_HI = "#101b23"  # 上蓋
+PLATE = "#0d151c"  # 底座
+EDGE = "#2b4150"  # 亮邊
+EDGE_DIM = "#1a2833"  # 暗邊
+GROOVE = "#0f1d26"  # 同心刻紋
+RING_LINE = "#14323f"
+
+LAMP_OFF = "#0b1116"  # 沒亮的燈
+TICK_OFF = "#0e1e26"  # 沒亮的細刻度
+
+BAR_LOW = (0x3A, 0xD2, 0xFF)  # 低載：青
+BAR_MID = (0xFF, 0x9A, 0x2E)  # 中載：橘
 BAR_HIGH = (0xFF, 0x3B, 0x4A)  # 高載：紅
+
+GLOW_CYAN = "#1fa6d4"
+GLOW_ORANGE = "#e0661c"
 
 # ---- 動畫參數 ------------------------------------------------------------
 FPS_MS = 33  # 動畫 tick (約 30fps)
@@ -41,7 +55,8 @@ FLICKER_F1 = 22.0  # 衝到最高的閃爍頻率 (Hz)
 FLICKER_RAMP = 2.5  # 幾秒內從 F0 拉到 F1
 FLICKER_LOW = 0.12  # 閃爍暗相的亮度
 
-SEGMENTS = 60  # 圓周光條格數
+MODULES = 24  # 外圈機械模組(粗顆粒燈)數量
+SEGMENTS = 60  # 內圈細刻度格數(精準讀值)
 SSH_TIMEOUT = 12
 
 
@@ -127,7 +142,7 @@ def probe(host):
 class Reactor(tk.Frame):
     """一台機器 = 一顆反應爐 + 底下的文字。"""
 
-    SIZE = 236
+    SIZE = 272
 
     def __init__(self, master, host, on_click):
         super().__init__(master, bg=PANEL, padx=10, pady=12)
@@ -165,70 +180,99 @@ class Reactor(tk.Frame):
 
         self._build()
 
-    # -- 畫出反應爐本體 --
+    # -- 畫出反應爐本體 (正面視角，全部用正圓，無透視) --
     def _build(self):
         c = self.canvas
         m = self.SIZE / 2
+        self.core = []  # (item, 基礎色) — 亮度由動畫控制
 
         def oval(r, **kw):
             return c.create_oval(m - r, m - r, m + r, m + r, **kw)
 
-        # 外殼
-        oval(112, fill="#0f171e", outline="#1e2d38", width=3)
-        oval(106, outline="#16222b", width=1)
+        def block(r0, r1, deg, half, **kw):
+            """一塊沿著圓周擺的機械件(內外兩條邊都是圓弧)。"""
+            pts = []
+            for j in range(6):
+                pts.extend(_pt(m, m, r1, deg - half + half * 2 * j / 5))
+            for j in range(6):
+                pts.extend(_pt(m, m, r0, deg + half - half * 2 * j / 5))
+            return c.create_polygon(pts, **kw)
 
-        # 圓周光條：60 格，從正上方順時針排
+        # 背後的散光暈(Tk 沒有 alpha，用幾層同心色階假裝)
+        for r, col in ((132, "#060b10"), (120, "#071119"), (104, "#08151e")):
+            oval(r, fill=col, outline="")
+
+        # --- 外圈：24 顆機械模組，每顆中間一盞方燈 ---
+        self.lamps = []
+        step = 360 / MODULES
+        for k in range(MODULES):
+            a = 90 - k * step  # 正上方開始順時針
+            big = k % 3 == 0  # 每三顆做一顆比較高的，做出參考圖的參差感
+            top = 126 if big else 119
+
+            block(96, 104, a, 6.8, fill=PLATE, outline=EDGE_DIM, width=1)
+            block(100, top, a, 5.4, fill=BODY, outline=EDGE, width=1)
+            block(top - 7, top, a, 3.6, fill=BODY_HI, outline=EDGE_DIM, width=1)
+            # 側邊斜切亮邊
+            block(102, top - 4, a - 4.6, 0.9, fill=EDGE_DIM, outline="")
+            block(102, top - 4, a + 4.6, 0.9, fill=EDGE_DIM, outline="")
+
+            block(105, 116, a, 3.4, fill="#050a0e", outline=EDGE_DIM, width=1)  # 燈座
+            self.lamps.append(block(106.5, 114.5, a, 2.6, fill=LAMP_OFF, outline=""))
+            if big:  # 大顆的頂上多一盞小燈
+                self.lamps.append(block(119, 124, a, 1.8, fill=LAMP_OFF, outline=""))
+
+        # --- 細刻度環：60 格，精準讀值 ---
         self.segs = []
-        step = 360 / SEGMENTS
+        st = 360 / SEGMENTS
         for i in range(SEGMENTS):
-            start = 90 - (i + 1) * step + step * 0.18
             self.segs.append(
                 c.create_arc(
-                    m - 98, m - 98, m + 98, m + 98,
-                    start=start, extent=step * 0.64,
-                    style=tk.ARC, width=13, outline=BAR_OFF,
+                    m - 88, m - 88, m + 88, m + 88,
+                    start=90 - (i + 1) * st + st * 0.22, extent=st * 0.56,
+                    style=tk.ARC, width=7, outline=TICK_OFF,
                 )
             )
+        oval(93, outline=RING_LINE, width=1)
+        oval(82, outline=RING_LINE, width=1)
 
-        oval(86, outline="#22323d", width=2)
+        # --- 內側斷續發光環：左上青、右下橘(照參考圖) ---
+        for i in range(30):
+            a0 = 90 - i * 12
+            col = GLOW_CYAN if 30 <= (a0 % 360) < 210 else GLOW_ORANGE
+            self.core.append((
+                c.create_arc(
+                    m - 74, m - 74, m + 74, m + 74,
+                    start=a0 - 11, extent=9.4,
+                    style=tk.ARC, width=9, outline=col,
+                ), col))
 
-        # 線圈之間的縫隙光(先畫一整圈亮環，等下用線圈蓋掉大部分)
-        self.gap_glow = oval(80, fill="#1c9ec2", outline="")
+        # --- 中段機械環：同心刻紋 + 細放射線 ---
+        oval(66, fill="#070c11", outline=EDGE_DIM, width=2)
+        for k in range(72):  # 細放射刻線
+            a = k * 5
+            x1, y1 = _pt(m, m, 57, a)
+            x2, y2 = _pt(m, m, 64, a)
+            c.create_line(x1, y1, x2, y2, fill=GROOVE, width=1)
+        oval(56, fill="#060a0f", outline=RING_LINE, width=1)
+        for r in (52, 48, 44):
+            oval(r, outline=GROOVE, width=1)
 
-        # 10 顆線圈
-        for k in range(10):
-            a0 = 90 + k * 36
-            half = 14.0
-            pts = []
-            for a in (a0 - half + half * 2 * j / 6 for j in range(7)):
-                pts.extend(_pt(m, m, 79, a))
-            for a in (a0 + half - half * 2 * j / 6 for j in range(7)):
-                pts.extend(_pt(m, m, 50, a))
-            c.create_polygon(pts, fill="#8d9dab", outline="#26343f", width=2)
-            c.create_polygon(
-                pts[:14] + list(_pt(m, m, 68, a0 + half)) + list(_pt(m, m, 68, a0 - half)),
-                fill="#b9c8d4", outline="",
-            )
+        # 內環上的一圈藍色細光(會跟著呼吸/閃爍)
+        self.core.append((oval(41, outline="#1a7fa4", width=2), "#1a7fa4"))
 
-        # 核心
-        oval(47, fill="#061019", outline="#2b3d49", width=2)
-        self.core = []  # (item, 基礎色) — 亮度由動畫控制
-        for r, col in ((42, "#0c5f7d"), (34, "#189fc4"), (26, "#5fd8f2")):
-            self.core.append((oval(r, fill=col, outline=""), col))
-
-        # 核心放射光芒
-        for k in range(12):
-            a = k * 30 + 15
-            x1, y1 = _pt(m, m, 15, a)
-            x2, y2 = _pt(m, m, 33, a)
-            self.core.append(
-                (c.create_line(x1, y1, x2, y2, fill="#d8f6ff", width=3), "#d8f6ff")
-            )
-
-        for r, col in ((15, "#a8ecff"), (8, "#ffffff")):
-            self.core.append((oval(r, fill=col, outline=""), col))
-
-        self.core.append((self.gap_glow, "#1c9ec2"))
+        # --- 核心：暗色，中間是深洞 ---
+        oval(38, fill="#05090d", outline=EDGE_DIM, width=1)
+        for k in range(36):  # 核心內的細紋路
+            a = k * 10
+            x1, y1 = _pt(m, m, 22, a)
+            x2, y2 = _pt(m, m, 36, a)
+            c.create_line(x1, y1, x2, y2, fill="#0a141b", width=1)
+        for r in (32, 27):
+            oval(r, outline="#0c1a22", width=1)
+        oval(20, fill="#03060a", outline="#0d2b38", width=1)
+        self.core.append((oval(13, outline="#176d8d", width=1), "#176d8d"))
+        oval(9, fill="#020508", outline="")
 
     # -- 外部呼叫 --
     def start_refresh(self):
@@ -272,21 +316,42 @@ class Reactor(tk.Frame):
             # 平常慢慢呼吸
             bright = 0.82 + 0.18 * math.sin(now * 2.2)
 
-        base = "#ff3b4a" if self.offline else None
+        # 核心那些件都是只有 outline 的圓弧/圓圈
         for item, col in self.core:
-            c = base if base else col
-            if not self.offline and self.percent > 60:
-                # 高載時核心偏紅
-                c = _mix(c, "#ff5a3c", (self.percent - 60) / 40 * 0.55)
-            self.canvas.itemconfig(item, fill=_dim(c, bright))
+            c = "#ff3b4a" if self.offline else col
+            if not self.offline and self.percent > 85:
+                c = _mix(c, "#ff4436", (self.percent - 85) / 15 * 0.7)  # 過載示警
+            self.canvas.itemconfig(item, outline=_dim(c, bright))
 
-        self._paint_bar(now, bright)
+        self._paint_lamps(now)
+        self._paint_ticks(now, bright)
 
-    def _paint_bar(self, now, bright):
+    def _paint_lamps(self, now):
+        """外圈 24 顆模組燈：粗顆粒的負載量。"""
+        n = len(self.lamps)
+        lit = int(round(self.percent / 100 * n))
+        for i, item in enumerate(self.lamps):
+            if self.offline:
+                col = "#3d1116" if i % 2 else "#6e2029"
+            elif self.busy:
+                d = (int(now * 14) % n - i) % n  # 一顆一顆跑的掃描光
+                if d < 3:
+                    col = _dim(_load_color(i / n), 1.0 - d * 0.3)
+                else:
+                    col = _dim(_load_color(i / n), 0.18) if i < lit else LAMP_OFF
+            elif i < lit:
+                # 慢慢起伏，讓燈看起來有在呼吸
+                k = 0.86 + 0.14 * math.sin(now * 1.7 + i * 0.5)
+                col = _dim(_load_color(i / n), k)
+            else:
+                col = LAMP_OFF
+            self.canvas.itemconfig(item, fill=col)
+
+    def _paint_ticks(self, now, bright):
+        """內圈 60 格細刻度：精準的負載讀值。"""
         lit = int(round(self.percent / 100 * SEGMENTS))
 
         if self.busy:
-            # refresh 中：光條跑一圈掃描光
             head = int(now * 42) % SEGMENTS
             for i, item in enumerate(self.segs):
                 d = (head - i) % SEGMENTS
@@ -295,7 +360,7 @@ class Reactor(tk.Frame):
                 elif i < lit:
                     col = _dim(_load_color(i / SEGMENTS), 0.30)
                 else:
-                    col = BAR_OFF
+                    col = TICK_OFF
                 self.canvas.itemconfig(item, outline=col)
             self._shown_pct = -1.0
             return
@@ -303,23 +368,22 @@ class Reactor(tk.Frame):
         if self.offline:
             if self._shown_pct != -2.0:
                 for i, item in enumerate(self.segs):
-                    self.canvas.itemconfig(
-                        item, outline="#3a1218" if i % 5 else "#7d2530"
-                    )
+                    self.canvas.itemconfig(item, outline="#2c1015" if i % 5 else "#6e2029")
                 self._shown_pct = -2.0
             return
 
         if self._shown_pct != self.percent:
             for i, item in enumerate(self.segs):
-                col = _load_color(i / SEGMENTS) if i < lit else BAR_OFF
-                self.canvas.itemconfig(item, outline=col)
+                self.canvas.itemconfig(
+                    item, outline=_load_color(i / SEGMENTS) if i < lit else TICK_OFF
+                )
             self._shown_pct = self.percent
 
-        # 最前端那格跟著核心一起呼吸，看起來比較活
+        # 最前端那格跟著核心一起呼吸
         if 0 < lit <= SEGMENTS:
-            head = self.segs[lit - 1]
             self.canvas.itemconfig(
-                head, outline=_dim(_load_color((lit - 1) / SEGMENTS), bright)
+                self.segs[lit - 1],
+                outline=_dim(_load_color((lit - 1) / SEGMENTS), bright),
             )
 
 
