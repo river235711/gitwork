@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CADSEMI | 半导体设计自动化顾问服务</title>
-<meta name="description" content="CADSEMI 提供 PDK 开发、电路验证(DRC/LVS/RC/EMIR)、IC 设计布局、模型与工具认证、自动化脚本顾问服务，横跨先进与成熟制程节点。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%22100%22 y2=%22100%22><stop offset=%220%22 stop-color=%22%232947d1%22/><stop offset=%221%22 stop-color=%22%236366f1%22/></linearGradient></defs><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22url(%23g)%22/><text x=%2250%22 y=%2270%22 font-family=%22Arial,Helvetica,sans-serif%22 font-size=%2264%22 font-weight=%22700%22 font-style=%22italic%22 fill=%22white%22 text-anchor=%22middle%22>C</text></svg>">
+<title>CADSEMI | Semiconductor Design Automation Consulting</title>
+<meta name="description" content="CADSEMI provides PDK development and porting, physical verification (DRC/LVS/RC/EMIR), Innovus APR physical design support, and CAD support across advanced and mature process nodes.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23d97757%22/><text x=%2250%22 y=%2270%22 font-family=%22Poppins,Arial,Helvetica,sans-serif%22 font-size=%2264%22 font-weight=%22600%22 fill=%22%23faf9f5%22 text-anchor=%22middle%22>C</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,21 +19,11 @@
       <span class="logo-text">Cadsemi</span>
     </a>
     <nav class="main-nav" id="mainNav">
-      <a href="#services" data-i18n="nav.services">服务项目</a>
-      <a href="#contact" data-i18n="nav.contact">联络我们</a>
+      <a href="#services">Services</a>
+      <a href="#contact">Contact</a>
     </nav>
-    <div class="lang-switch" id="langSwitch">
-      <button type="button" class="lang-trigger" id="langTrigger" aria-haspopup="true" aria-expanded="false" aria-label="选择语言 / Select language">
-        <svg class="lang-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18"/></svg>
-        <span class="lang-current" id="langCurrent">简体中文</span>
-        <svg class="lang-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <ul class="lang-menu" id="langMenu" role="menu">
-        <li><button type="button" role="menuitem" class="lang-item is-active" data-lang="zh">简体中文</button></li>
-        <li><button type="button" role="menuitem" class="lang-item" data-lang="en">English</button></li>
-      </ul>
-    </div>
-    <button class="nav-toggle" id="navToggle" aria-label="开启选单" aria-expanded="false">
+    <a href="#contact" class="btn btn-primary header-cta">Contact us</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -39,30 +32,25 @@
 <main>
   <section class="hero">
     <div class="container">
-      <div class="hero-card">
-        <div class="hero-text">
-          <p class="eyebrow" data-i18n="hero.eyebrow">半导体设计自动化顾问服务</p>
-          <h1 data-i18n="hero.title">从 PDK 到全晶片验证<br>您值得信赖的硅智财伙伴</h1>
-          <p class="hero-sub" data-i18n="hero.sub">PDK 开发移植、电路验证、客制化布局与自动化脚本开发，一站式技术顾问服务。</p>
-          <div class="hero-actions">
-            <a href="#contact" class="btn btn-outline-light"><span data-i18n="hero.ctaContact">联络我们</span></a>
-            <a href="#services" class="chevron-link chevron-link-light"><span data-i18n="hero.cta">查看服务项目</span> <span aria-hidden="true">&rsaquo;</span></a>
-          </div>
-          <ul class="hero-stats">
-            <li><strong data-i18n="hero.stat1Value">先进与成熟</strong><span data-i18n="hero.stat1">制程节点涵盖</span></li>
-            <li><strong>5</strong><span data-i18n="hero.stat2">核心服务领域</span></li>
-            <li><strong>12+</strong><span data-i18n="hero.stat3">核心 EDA 工具</span></li>
-          </ul>
-        </div>
-        <div class="hero-art" aria-hidden="true"><div class="circuit-pattern"></div></div>
+      <p class="eyebrow">Semiconductor Design Automation Consulting</p>
+      <h1>From PDK to full-chip signoff</h1>
+      <p class="hero-sub">PDK development and porting, physical verification, Innovus APR support, and CAD infrastructure &mdash; one partner across the back end of your design flow.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn btn-primary">Contact us</a>
+        <a href="#services" class="chevron-link">Our services <span aria-hidden="true">&rsaquo;</span></a>
       </div>
+      <ul class="hero-stats">
+        <li><strong>Advanced &amp; mature</strong><span>Process node coverage</span></li>
+        <li><strong>4</strong><span>Core service areas</span></li>
+        <li><strong>12+</strong><span>Core EDA tools</span></li>
+      </ul>
     </div>
   </section>
 
   <section class="section section-alt" id="services">
     <div class="container">
-      <h2 class="section-title"><span data-i18n="services.title">服务项目</span> <span class="section-title-en" data-i18n="services.titleEn">Services</span></h2>
-      <p class="section-sub" data-i18n="services.sub">涵盖 IC 设计流程中每一个关键环节，从前段开发到后段验证，提供一站式技术顾问服务。</p>
+      <h2 class="section-title">Our services</h2>
+      <p class="section-sub">Covering every critical step from PDK bring-up to physical signoff, as a one-stop technical consulting partner.</p>
 
       <div class="service-grid">
 
@@ -70,61 +58,53 @@
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg>
           </div>
-          <h3 data-i18n="pdk.title">PDK 开发与移植</h3>
-          <p class="service-en" data-i18n="pdk.en">PDK Development &amp; Porting</p>
-          <p class="service-desc" data-i18n="pdk.desc">提供 CDF 建置与 callback 开发、制程移植（Porting）、SKILL 语言开发与 PCELL 客制化，涵盖 TSMC・UMC・SMIC・GF・HLMC 等主流晶圆厂格式，加速 PDK 导入、QA 与跨制程移转。</p>
+          <h3>PDK Development &amp; Porting</h3>
+          <p class="service-desc">CDF setup and callback development, process porting, SKILL development, and PCELL customization across TSMC, UMC, SMIC, GF, and HLMC foundry formats &mdash; accelerating PDK bring-up, QA, and cross-node migration.</p>
           <ul class="tag-list">
             <li>CDF / Callback</li><li>Porting</li><li>SKILL Coding</li><li>PCELL Coding</li>
           </ul>
+          <p class="service-tools">Tools: Virtuoso</p>
         </article>
 
         <article class="service-card" id="verification">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg>
           </div>
-          <h3 data-i18n="verification.title">验证服务</h3>
-          <p class="service-en" data-i18n="verification.en">Verification</p>
-          <p class="service-desc" data-i18n="verification.desc">提供 DRC、LVS、RC 萃取与 EMIR 分析等全方位验证服务，并建立 PGV library flow，确保设计符合制程规范与电源完整性要求。</p>
+          <h3>Verification</h3>
+          <p class="service-desc">Full-spectrum verification including DRC, LVS, RC extraction, and EMIR analysis, plus PGV library flow setup, to ensure design-rule compliance and power integrity.</p>
           <ul class="tag-list">
             <li>DRC</li><li>LVS</li><li>RC</li><li>EMIR</li>
           </ul>
-          <p class="service-tools" data-i18n="verification.tools">工具：Calibre・PVS・StarRC・QRC・Voltus</p>
+          <p class="service-tools">Tools: Calibre, PVS, StarRC, QRC, Voltus</p>
         </article>
 
-        <article class="service-card" id="layout">
+        <article class="service-card" id="physical-design">
           <div class="service-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><rect x="6" y="6" width="14" height="14"/><rect x="28" y="6" width="14" height="14"/><rect x="6" y="28" width="14" height="14"/><rect x="28" y="28" width="14" height="14"/></svg>
+            <svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="3"/><rect x="13" y="13" width="10" height="10"/><rect x="27" y="27" width="8" height="8"/><path d="M23 18h12v9"/></svg>
           </div>
-          <h3 data-i18n="layout.title">设计与布局</h3>
-          <p class="service-en" data-i18n="layout.en">Design &amp; Layout</p>
-          <p class="service-desc" data-i18n="layout.desc">支援电路设计、客制化布局、Symbol 与 Analog Logic Cell 建置，涵盖业界主流 EDA 平台。</p>
+          <h3>Physical Design</h3>
+          <p class="service-desc">Innovus-based APR support across the netlist-to-GDSII flow: floorplanning and power planning, placement, clock tree synthesis, global and detailed routing, timing and PPA closure, ECO implementation, and physical signoff.</p>
           <ul class="tag-list">
-            <li>ADE</li><li>Virtuoso</li><li>Laker</li><li>CC</li>
+            <li>Floorplan</li><li>Power Plan</li><li>Placement</li><li>CTS</li><li>Routing</li><li>Timing Closure</li><li>ECO</li>
           </ul>
+          <p class="service-tools">Tools: Innovus, Genus, Tempus, Voltus, Quantus</p>
         </article>
 
-        <article class="service-card" id="model">
+        <article class="service-card" id="cad-support">
           <div class="service-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><path d="M8 34l10-16 8 10 6-10 8 6"/><circle cx="18" cy="18" r="4"/><circle cx="34" cy="14" r="4"/></svg>
+            <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h20M8 36h26"/><path d="M34 18l8 6-8 6"/></svg>
           </div>
-          <h3 data-i18n="model.title">模型验证与工具认证</h3>
-          <p class="service-en" data-i18n="model.en">Model &amp; Tool Certification</p>
-          <p class="service-desc" data-i18n="model.desc">提供制程 SPICE Model 评估与认证、EDA 工具资格认证与效能基准测试，协助团队完成从模型到工具导入的完整验证链。</p>
+          <h3>CAD Support</h3>
+          <p class="service-desc">SPICE model evaluation and EDA tool qualification, plus automation flows, version control, and benchmarking that keep the design environment qualified, scripted, and reproducible.</p>
+          <p class="tag-group-label">Model &amp; tool certification</p>
           <ul class="tag-list">
-            <li>Model Evaluation</li><li>ADE</li><li>Spectre</li><li>Benchmark</li>
+            <li>Model Evaluation</li><li>Tool Qualification</li><li>Benchmark</li>
           </ul>
-        </article>
-
-        <article class="service-card" id="scripting">
-          <div class="service-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h32M8 36h20"/><path d="M34 30l8 6-8 6"/></svg>
-          </div>
-          <h3 data-i18n="scripting.title">自动化脚本开发</h3>
-          <p class="service-en" data-i18n="scripting.en">Automation &amp; Scripting</p>
-          <p class="service-desc" data-i18n="scripting.desc">建立自动化流程与版本控管机制，提供 EDA 工具评估与基准测试，提升团队开发效率并降低重复性作业成本。</p>
+          <p class="tag-group-label">Automation &amp; scripting</p>
           <ul class="tag-list">
-            <li>Perl</li><li>Tcl</li><li>Python / TK</li><li>SVN</li><li>GIT</li><li>LSF</li>
+            <li>Perl</li><li>Tcl</li><li>Python / Tk</li><li>SVN</li><li>GIT</li><li>LSF</li>
           </ul>
+          <p class="service-tools">Tools: ADE, Spectre</p>
         </article>
 
       </div>
@@ -133,16 +113,15 @@
 
   <section class="section" id="contact">
     <div class="container">
-      <h2 class="section-title"><span data-i18n="contact.title">联络我们</span> <span class="section-title-en" data-i18n="contact.titleEn">Contact</span></h2>
-      <p class="section-sub" data-i18n="contact.sub">欢迎透过以下方式与我们联系，讨论您的专案需求或加入我们的团队。</p>
+      <h2 class="section-title">Contact</h2>
+      <p class="section-sub">Reach out through the channels below to discuss your project or join our team.</p>
 
       <div class="contact-grid">
         <a class="contact-card" href="mailto:support@cadsemi.com">
           <div class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="4" y="10" width="40" height="28" rx="4"/><path d="M6 14l18 14 18-14"/></svg>
           </div>
-          <h3 data-i18n="contact.card1">客户服务与专案洽询</h3>
-          <p class="contact-en" data-i18n="contact.card1En">Client Inquiries</p>
+          <h3>Client &amp; Project Inquiries</h3>
           <p class="contact-email">support@cadsemi.com</p>
         </a>
 
@@ -150,21 +129,51 @@
           <div class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="8"/><path d="M8 42c0-9 7-16 16-16s16 7 16 16"/></svg>
           </div>
-          <h3 data-i18n="contact.card2">人才招募</h3>
-          <p class="contact-en" data-i18n="contact.card2En">Careers / HR</p>
+          <h3>Careers</h3>
           <p class="contact-email">hr@cadsemi.com</p>
         </a>
       </div>
 
-      <p class="domain-note" data-i18n="contact.domain">官方网域 <strong>cadsemi.com</strong> 筹备中，敬请期待正式上线。</p>
+      <p class="domain-note">Our official domain <strong>cadsemi.com</strong> is in preparation &mdash; stay tuned for launch.</p>
     </div>
   </section>
 </main>
 
 <footer class="site-footer">
-  <div class="container footer-inner">
-    <span>&copy; <span id="year">2026</span> CADSEMI. All rights reserved.</span>
-    <span class="footer-tagline">Silicon to Signoff.</span>
+  <div class="container">
+    <div class="footer-cols">
+      <div>
+        <span class="logo-text">Cadsemi</span>
+        <p class="footer-tagline">Silicon to Signoff.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="#pdk">PDK Development &amp; Porting</a></li>
+          <li><a href="#verification">Verification</a></li>
+          <li><a href="#physical-design">Physical Design</a></li>
+          <li><a href="#cad-support">CAD Support</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#top">Home</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="mailto:hr@cadsemi.com">Careers</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <ul>
+          <li><a href="mailto:support@cadsemi.com">support@cadsemi.com</a></li>
+          <li><a href="mailto:hr@cadsemi.com">hr@cadsemi.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span id="year">2026</span> CADSEMI. All rights reserved.</span>
+    </div>
   </div>
 </footer>
 
