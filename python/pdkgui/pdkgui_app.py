@@ -121,7 +121,7 @@ class PdkGui(tk.Tk):
     def _apply_fonts(self):
         """Resize Tk's named fonts, which every widget that sets no font of its
         own follows -- entries, labels, buttons, listboxes, text boxes. Doing it
-        here means one setting (config.UI_FONT_SIZE) scales the whole interface."""
+        here means one setting (config.UI_FONT_PX) scales the whole interface."""
         family, size = config.ui_font()
         for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont", "TkHeadingFont",
                      "TkIconFont", "TkSmallCaptionFont", "TkTooltipFont"):

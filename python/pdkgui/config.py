@@ -240,35 +240,106 @@ def window_title(subject=None):
     return title
 
 # --------------------------------------------------------------------------
-# Fonts -- one place to make the whole GUI bigger.
+# Fonts -- one place to make the whole GUI bigger, and to keep it the same size
+# on every machine.
+#
 # Most widgets set no font of their own and follow Tk's named fonts, which the
-# app points at UI_FONT_SIZE on start; the few that do ask for one go through
-# ui_font()/mono_font(), so everything scales together.
-# Raise the number (or set PDKGUI_FONT_SIZE=13) to enlarge the whole interface.
+# app points at these on start; the few that do ask for one go through
+# ui_font()/mono_font(), so everything moves together. Set PDKGUI_FONT_PX=17 to
+# enlarge the whole interface.
+#
+# Two things used to differ per machine:
+#
+#   the family -- it was "Arial"/"Courier New", which are Windows fonts and are
+#   not installed on these hosts. Tk does not complain about a family it does
+#   not have; it silently picks something similar, and what it picks depends on
+#   what that host has. So the family is *chosen* here from what is actually
+#   installed, rather than named and hoped for. (Tk has no CSS-style fallback
+#   list -- "Arial DejaVu Sans" is read as one family name.)
+#
+#   the size -- a positive size is in *points*, which Tk multiplies by the X
+#   server's `tk scaling`. The same 11 came out as 14 px on one display and 27
+#   on another. A negative size is in pixels and ignores scaling entirely.
+#
+# Liberation first because it is metric-compatible with Arial/Courier New, which
+# is what this layout was drawn against; DejaVu is on practically every Linux.
 # --------------------------------------------------------------------------
-UI_FONT_BASE = 9                    # size the layout was originally drawn at
-UI_FONT_SIZE = int(os.environ.get("PDKGUI_FONT_SIZE", "11"))
-UI_FONT_FAMILY = "Arial"
-MONO_FONT_FAMILY = "Courier New"    # command files / revision history
+UI_FONT_CANDIDATES = ("Liberation Sans", "DejaVu Sans", "Nimbus Sans",
+                      "Helvetica", "Arial")
+MONO_FONT_CANDIDATES = ("Liberation Mono", "DejaVu Sans Mono", "Nimbus Mono PS",
+                        "Courier", "Courier New")
 
-# Window size at UI_FONT_BASE; scaled with the font so nothing gets cramped.
+UI_FONT_BASE_PX = 12                # pixel size the layout was drawn at
+UI_FONT_PX = int(os.environ.get("PDKGUI_FONT_PX", "15"))
+# PDKGUI_FONT_SIZE is the older setting and is in points -- still honoured, but
+# it brings the per-machine scaling back with it.
+UI_FONT_POINTS = int(os.environ.get("PDKGUI_FONT_SIZE", "0")) or None
+
+# Window size at UI_FONT_BASE_PX; scaled with the font so nothing gets cramped.
 WINDOW_W, WINDOW_H = 980, 560
+
+_families = {}                      # resolved once, on first use
+
+
+def _pick_family(candidates, override=None):
+    """The first candidate this machine actually has.
+
+    None when it has none of them, which leaves the choice to Tk -- no worse
+    than naming a font that is not there. An override is used as given: if
+    someone asks for a particular font, that is the answer, installed or not."""
+    if override:
+        return override
+    try:
+        from tkinter import font as tkfont
+        installed = set(tkfont.families())
+    except Exception:
+        return None                 # no Tk root yet, or no display
+    for name in candidates:
+        if name in installed:
+            return name
+    return None
 
 
 def ui_font(delta=0, weight=None):
     """(family, size[, weight]) for a normal widget; delta shifts from the base."""
-    size = max(6, UI_FONT_SIZE + delta)
-    return (UI_FONT_FAMILY, size, weight) if weight else (UI_FONT_FAMILY, size)
+    return _font(UI_FONT_CANDIDATES, "PDKGUI_FONT_FAMILY", delta, weight)
 
 
 def mono_font(delta=0):
     """Fixed-width font, kept in step with the interface size."""
-    return (MONO_FONT_FAMILY, max(6, UI_FONT_SIZE + delta))
+    return _font(MONO_FONT_CANDIDATES, "PDKGUI_MONO_FAMILY", delta)
+
+
+def _font(candidates, env_var, delta, weight=None):
+    key = env_var
+    if key not in _families:
+        _families[key] = _pick_family(candidates, os.environ.get(env_var))
+    family = _families[key]
+    if UI_FONT_POINTS:
+        size = max(6, UI_FONT_POINTS + delta)          # points: scaled by the DPI
+    else:
+        size = -max(8, UI_FONT_PX + delta)             # pixels: the same anywhere
+    spec = (family, size) if family else ("", size)
+    return spec + (weight,) if weight else spec
+
+
+def font_report():
+    """What the fonts resolved to, for the SYSTEM tab -- the quickest way to
+    tell whether two machines really are showing the same thing."""
+    ui, mono = ui_font(), mono_font()
+    unit = "pt" if UI_FONT_POINTS else "px"
+    return "%s / %s, %d%s" % (ui[0] or "(Tk default)", mono[0] or "(Tk default)",
+                              abs(ui[1]), unit)
+
+
+def clear_font_cache():
+    """Forget the resolved families (the tests change the environment)."""
+    _families.clear()
 
 
 def window_geometry():
     """Default window size, grown in proportion to the chosen font size."""
-    scale = float(UI_FONT_SIZE) / UI_FONT_BASE
+    scale = float(UI_FONT_PX) / UI_FONT_BASE_PX
     return "%dx%d" % (int(WINDOW_W * scale), int(WINDOW_H * scale))
 
 # --- Logo settings: point this at your own image ---

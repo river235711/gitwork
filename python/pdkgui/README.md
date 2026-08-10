@@ -481,20 +481,42 @@ from 18.3 ms and 5 central reads per round to 4.0 ms and none; an XRC Run reads
 `PDKGUI_TIMING=1 pdkgui` prints what each step cost to stderr, which is the way
 to see the real numbers on a host where the files are remote.
 
-## Interface size
+## Interface size, and the same fonts everywhere
 
-One setting scales the whole GUI -- `config.UI_FONT_SIZE` (default 11), or per
-user without editing anything:
+One setting scales the whole GUI -- `config.UI_FONT_PX` (default 15), or per user
+without editing anything:
 
 ```bash
-PDKGUI_FONT_SIZE=13 pdkgui
+PDKGUI_FONT_PX=18 pdkgui
 ```
 
 Most widgets set no font of their own and follow Tk's named fonts, which the app
-resizes on start; the few that do ask for one go through `config.ui_font()` /
+sets on start; the few that do ask for one go through `config.ui_font()` /
 `config.mono_font()`, so titles, the menu buttons, command boxes and the ttk
 comboboxes all move together. The default window size grows in proportion
 (`config.window_geometry()`), so a larger font does not leave the layout cramped.
+
+Two details are what make it look the same on every host:
+
+- **The size is in pixels**, i.e. a negative size to Tk. A *positive* size is in
+  points, which Tk multiplies by the X server's `tk scaling`: the same 11 came
+  out 14 px on one display and 27 on another. `PDKGUI_FONT_SIZE` still works and
+  is still points, for anyone who already has it set -- it brings the per-machine
+  scaling back with it.
+- **The family is chosen from what is installed**, not named and hoped for. It
+  used to say `Arial` / `Courier New`, which are Windows fonts these hosts do not
+  have -- and Tk does not complain about a family it lacks, it silently
+  substitutes, so the result depended on what each host happened to have.
+  `config.UI_FONT_CANDIDATES` is tried in order (Liberation Sans, DejaVu Sans,
+  Nimbus Sans, ...) against `tkinter.font.families()`. Liberation comes first
+  because it is metric-compatible with Arial, which is what this layout was drawn
+  against. Tk has no CSS-style fallback list -- `"Arial DejaVu Sans"` is read as
+  one family name -- so the choice has to be made here.
+
+Override either with `PDKGUI_FONT_FAMILY` / `PDKGUI_MONO_FAMILY`. **The SYSTEM
+tab shows what was actually resolved** (`Fonts: Liberation Sans / Liberation
+Mono, 15px`), which is the quickest way to tell whether two machines are really
+showing the same thing.
 
 ## Opening things outside pdkgui
 

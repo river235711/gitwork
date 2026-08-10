@@ -89,4 +89,11 @@ class SystemPage(BasePage):
             tk.Label(frame, bg=bg, anchor="w", fg="#555", justify="left",
                      text="Running from %s" % config.BASE_DIR
                      ).pack(anchor="w", padx=10, pady=(0, 8))
+
+        # Which fonts this machine actually resolved to. A named font that is
+        # not installed is substituted silently, so two machines can look
+        # different with no sign of why; this is where to look first.
+        tk.Label(frame, bg=bg, anchor="w", fg="#777", font=config.ui_font(-1),
+                 text="Fonts: %s" % config.font_report()
+                 ).pack(anchor="w", padx=10, pady=(0, 8))
         return frame
