@@ -1,6 +1,9 @@
 /* CADSEMI — company website
    Visual language references anthropic.com: warm ivory canvas, oversized flat
-   display headings, hairline-bordered flat cards, sparing orange accent. */
+   display headings, hairline-bordered flat cards.
+   Accent is copper (#a0522d) — the interconnect metal, and clear of every major
+   EDA vendor's brand color. At 5.33:1 on ivory it passes AA, so it can carry
+   text as well as icons and rules. */
 
 :root {
   color-scheme: light;
@@ -11,7 +14,8 @@
   --divider: #b0aea5;
   --text: #141413;
   --text-muted: #5f5e59;
-  --accent: #d97757;
+  --accent: #a0522d;
+  --accent-hover: #85431f;
   --radius-sm: 8px;
   --radius: 12px;
   --max-width: 1200px;
@@ -42,6 +46,8 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+
+::selection { background: rgba(160, 82, 45, 0.18); color: var(--text); }
 
 img, svg { display: block; max-width: 100%; }
 
@@ -329,10 +335,12 @@ svg {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  color: var(--text);
+  color: var(--accent);
   border-bottom: 1px solid var(--accent);
   display: inline-block;
 }
+
+.contact-card:hover .contact-email { color: var(--accent-hover); }
 
 .domain-note {
   color: var(--text-muted);
@@ -380,7 +388,7 @@ svg {
 }
 
 .footer-col a { color: var(--text); }
-.footer-col a:hover { color: var(--accent); }
+.footer-col a:hover { color: var(--accent-hover); }
 
 .footer-bottom {
   border-top: 1px solid var(--surface-border);
