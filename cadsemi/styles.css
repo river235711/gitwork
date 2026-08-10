@@ -8,9 +8,10 @@
 :root {
   color-scheme: light;
   --bg: #faf9f5;
-  --bg-alt: #f2f0e9;
-  --surface: #ffffff;
+  --bg-alt: #f0eee6;
   --surface-border: #e8e6dc;
+  --card: #e8dfd1;          /* warm tan card fill, per anthropic.com */
+  --card-rule: #d3c6b2;     /* hairline between metadata rows inside a card */
   --divider: #b0aea5;
   --text: #141413;
   --text-muted: #5f5e59;
@@ -159,6 +160,13 @@ svg {
 
 .btn-primary:hover { background: #33322e; }
 
+.btn .arrow {
+  display: inline-block;
+  margin-left: 4px;
+  transition: transform 0.15s ease;
+}
+.btn:hover .arrow { transform: translateX(3px); }
+
 .header-cta { padding: 9px 18px; }
 
 .chevron-link {
@@ -230,6 +238,7 @@ svg {
 
 .section-title {
   font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-weight: 600;
   margin: 0 0 16px;
 }
 
@@ -248,62 +257,67 @@ svg {
 }
 
 .service-card {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
   border-radius: var(--radius);
-  padding: 36px;
-  transition: border-color 0.15s ease;
+  padding: 32px;
 }
-
-.service-card:hover { border-color: var(--accent); }
 
 .service-icon {
   color: var(--accent);
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .service-icon svg { width: 32px; height: 32px; }
 
-.service-card h3 { margin: 0 0 12px; font-size: 1.35rem; }
-.service-desc { color: var(--text-muted); font-size: 0.98rem; margin: 0 0 22px; }
-
-.tag-group-label {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
+/* Card headings run in the body serif, matching anthropic.com's card treatment. */
+.service-card h3,
+.contact-card h3 {
+  font-family: var(--font-body);
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 12px;
+  font-size: 1.4rem;
+}
+
+.service-desc { color: var(--text-muted); font-size: 0.98rem; margin: 0 0 28px; }
+
+/* Label/value rows separated by hairlines, pinned to the bottom of the card so
+   the CTAs line up across a row of cards of unequal length. */
+.card-meta {
+  margin: auto 0 24px;
+  padding: 0;
+  border-bottom: 1px solid var(--card-rule);
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  padding: 11px 0;
+  border-top: 1px solid var(--card-rule);
+}
+
+.meta-row dt {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 0 0 10px;
+  white-space: nowrap;
 }
 
-.tag-list {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 18px;
-}
-
-.tag-list:last-of-type { margin-bottom: 0; }
-
-.tag-list li {
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-alt);
-  color: var(--text);
-}
-
-.service-card .tag-list li { background: var(--surface-border); }
-
-.service-tools {
-  margin: 18px 0 0;
+.meta-row dd {
+  margin: 0;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  text-align: right;
 }
+
+.card-cta { align-self: flex-start; }
 
 /* Contact */
 .contact-grid {
@@ -314,33 +328,45 @@ svg {
 }
 
 .contact-card {
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
   border-radius: var(--radius);
-  padding: 36px;
-  transition: border-color 0.15s ease;
+  padding: 32px;
 }
-
-.contact-card:hover { border-color: var(--accent); }
 
 .contact-icon {
   color: var(--accent);
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .contact-icon svg { width: 32px; height: 32px; }
 
-.contact-card h3 { margin: 0 0 10px; font-size: 1.2rem; }
-.contact-email {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 500;
-  color: var(--accent);
-  border-bottom: 1px solid var(--accent);
-  display: inline-block;
+.contact-desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0 0 24px;
 }
 
-.contact-card:hover .contact-email { color: var(--accent-hover); }
+/* --accent-hover rather than --accent: on the tan card fill the lighter copper
+   is 4.25:1, which is fine for the 32px icons but short of AA for link text. */
+.contact-email {
+  margin: auto 0 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--accent-hover);
+  align-self: flex-start;
+  border-bottom: 1px solid var(--accent-hover);
+}
+
+.contact-email .arrow {
+  display: inline-block;
+  margin-left: 2px;
+  transition: transform 0.15s ease;
+}
+
+.contact-card:hover .contact-email .arrow { transform: translateX(3px); }
 
 .domain-note {
   color: var(--text-muted);
