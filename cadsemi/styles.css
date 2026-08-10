@@ -211,26 +211,7 @@ svg {
   max-width: 620px;
 }
 
-.hero-actions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-bottom: 64px; }
-
-.hero-stats {
-  display: flex;
-  gap: 64px;
-  list-style: none;
-  margin: 0;
-  padding: 28px 0 0;
-  border-top: 1px solid var(--surface-border);
-  flex-wrap: wrap;
-}
-
-.hero-stats li { display: flex; flex-direction: column; gap: 4px; }
-.hero-stats strong {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-.hero-stats span { font-size: 0.85rem; color: var(--text-muted); }
+.hero-actions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 
 /* Sections */
 .section { padding: 96px 0; }
@@ -255,8 +236,6 @@ svg {
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
 }
-
-.service-grid.grid-3 { grid-template-columns: repeat(3, 1fr); }
 
 .service-card {
   display: flex;
@@ -320,30 +299,6 @@ svg {
 }
 
 .card-cta { align-self: flex-start; }
-
-/* Same row pattern used full-width on a section band rather than inside a tan
-   card: neutral rules, roomier type, fixed label column. */
-.card-meta-plain {
-  margin: 0;
-  border-bottom-color: var(--surface-border);
-}
-
-.card-meta-plain .meta-row {
-  padding: 18px 0;
-  border-top-color: var(--surface-border);
-  gap: 40px;
-}
-
-.card-meta-plain dt {
-  font-size: 0.75rem;
-  flex: 0 0 200px;
-}
-
-.card-meta-plain dd {
-  font-size: 1rem;
-  text-align: left;
-  flex: 1;
-}
 
 /* Contact */
 .contact-grid {
@@ -451,7 +406,7 @@ svg {
 
 /* Responsive */
 @media (max-width: 900px) {
-  .service-grid, .service-grid.grid-3 { grid-template-columns: 1fr; }
+  .service-grid { grid-template-columns: 1fr; }
   .footer-cols { grid-template-columns: 1fr 1fr; gap: 32px; }
 }
 
@@ -474,18 +429,7 @@ svg {
   }
 
   .hero { padding: 56px 0 48px; }
-  .hero-actions { margin-bottom: 44px; }
-  .hero-stats { gap: 28px; }
   .section { padding: 64px 0; }
   .service-card, .contact-card { padding: 28px; }
   .footer-cols { grid-template-columns: 1fr; }
-
-  /* Stack label over value once there is no room for two columns. */
-  .card-meta-plain .meta-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 14px 0;
-  }
-  .card-meta-plain dt { flex: none; }
 }
