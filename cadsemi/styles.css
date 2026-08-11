@@ -17,6 +17,10 @@
   --text-muted: #5f5e59;
   --accent: #a0522d;
   --accent-hover: #85431f;
+  /* The footer inverts, and neither --text-muted nor --accent clears 4.5:1 on
+     it (the copper only reaches 3.36:1), so it carries its own two tones. */
+  --footer-muted: #8d897f;  /* 5.4:1 on --text */
+  --footer-accent: #c9825a; /* 6.1:1 on --text */
   --radius-sm: 8px;
   --radius: 12px;
   --max-width: 1200px;
@@ -338,11 +342,15 @@ svg {
 
 .contact-card:hover .contact-email .arrow { transform: translateX(3px); }
 
-/* Footer */
+/* Footer -- inverted, closing the page the way anthropic.com does. The colour
+   change is the divider, so there is no rule along the top. */
 .site-footer {
-  border-top: 1px solid var(--surface-border);
+  background: var(--text);
+  color: var(--bg);
   padding: 64px 0 32px;
 }
+
+.site-footer .logo-text { color: var(--bg); }
 
 .footer-cols {
   display: grid;
@@ -353,7 +361,7 @@ svg {
 
 .footer-tagline {
   margin: 12px 0 0;
-  color: var(--text-muted);
+  color: var(--footer-muted);
   font-size: 0.9rem;
 }
 
@@ -363,7 +371,7 @@ svg {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--footer-muted);
 }
 
 .footer-col ul {
@@ -376,13 +384,13 @@ svg {
   font-size: 0.92rem;
 }
 
-.footer-col a { color: var(--text); }
-.footer-col a:hover { color: var(--accent-hover); }
+.footer-col a { color: var(--bg); }
+.footer-col a:hover { color: var(--footer-accent); }
 
 .footer-bottom {
-  border-top: 1px solid var(--surface-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
   padding-top: 24px;
-  color: var(--text-muted);
+  color: var(--footer-muted);
   font-size: 0.85rem;
 }
 
