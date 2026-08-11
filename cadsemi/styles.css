@@ -91,11 +91,13 @@ svg {
   margin-right: auto;
 }
 
+/* Set as a wordmark, so caps with positive tracking -- the tight negative
+   tracking the display headings use closes caps up until they read as a block. */
 .logo-text {
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: 1.3rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: 0.04em;
   color: var(--text);
 }
 
