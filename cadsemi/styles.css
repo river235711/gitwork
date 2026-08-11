@@ -268,8 +268,9 @@ svg {
 
 /* Label/value rows separated by hairlines, pinned to the bottom of the card so
    the CTAs line up across a row of cards of unequal length. Every card carries
-   the same three rows and each value is kept short enough to stay on one line --
-   wrapped values are what make a row of cards look ragged. */
+   the same two rows -- Scope and Tools/Languages -- and each value is kept short
+   enough to stay on one line; wrapped values are what make a row of cards look
+   ragged. */
 .card-meta {
   margin: auto 0 24px;
   padding: 0;
