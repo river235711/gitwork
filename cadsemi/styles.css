@@ -305,11 +305,14 @@ svg {
 .card-cta { align-self: flex-start; }
 
 /* Contact */
+/* Careers lives in the footer, so this grid holds a single card. Capping it at
+   one service-card column ((1152 - 24) / 2) keeps that card aligned with the
+   cards above instead of stretching across the full canvas. */
 .contact-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
-  margin-bottom: 40px;
+  max-width: 564px;
 }
 
 .contact-card {
@@ -352,13 +355,6 @@ svg {
 }
 
 .contact-card:hover .contact-email .arrow { transform: translateX(3px); }
-
-.domain-note {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-.domain-note strong { color: var(--text); }
 
 /* Footer */
 .site-footer {
