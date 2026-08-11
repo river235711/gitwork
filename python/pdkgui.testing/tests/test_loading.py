@@ -443,10 +443,25 @@ class LoadingTab(GuiTestCase):
         self.assertEqual(self.spawned[-1][:len(config.TERMINALS[0])],
                          list(config.TERMINALS[0]))
 
-    def test_a_chosen_terminal_is_used(self):
+    def test_mate_terminal_is_the_first_choice(self):
+        self.assertEqual(config.TERMINALS[0][0], "mate-terminal")
+
+    def test_a_chosen_terminal_keeps_its_own_flag(self):
+        """Naming one of the known terminals must not lose the flag it needs."""
         os.environ["PDKGUI_TERMINAL"] = "mate-terminal"
         self.addCleanup(os.environ.pop, "PDKGUI_TERMINAL", None)
-        self.assertEqual(config.terminals(), (["mate-terminal", "-e"],))
+        self.assertEqual(config.terminals(), (["mate-terminal", "-x"],))
+
+    def test_every_terminal_takes_the_rest_of_the_command_line(self):
+        """A command goes as separate arguments (ssh -X -t host '...'), so the
+        flag must be the one that swallows the remainder. mate-terminal and
+        xfce4-terminal spell that -x; their -e takes a single string and would
+        read `ssh` as the whole command, then reject `-X` as an option of its
+        own."""
+        expected = {"mate-terminal": "-x", "xfce4-terminal": "-x",
+                    "gnome-terminal": "--", "konsole": "-e", "xterm": "-e"}
+        for term in config.TERMINALS:
+            self.assertEqual(term[-1], expected[term[0]], term[0])
 
     def test_an_empty_list_says_so_instead_of_looking_broken(self):
         listing = os.path.join(self.paths["work"], "none.txt")

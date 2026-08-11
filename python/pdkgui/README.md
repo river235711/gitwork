@@ -258,10 +258,16 @@ cat /proc/loadavg; nproc; awk '/^Mem(Total|Available):/{print $1, $2}' /proc/mem
 Two buttons on each row, from `shell_command()`:
 
 - **Terminal** -- `ssh -X -t <host> 'exec $SHELL -l'` in a terminal emulator
-  (`config.terminals()`, the same list the Run buttons use). A *login* shell,
-  because the EDA tools come from Environment Modules, which a plain
-  `ssh host command` shell has never sourced; `-t` because ssh allocates no pty
-  when it is given a command.
+  (`config.terminals()`, the same list the Run buttons use; **mate-terminal**
+  first, then gnome-terminal, konsole, xfce4-terminal, xterm --
+  `PDKGUI_TERMINAL` picks one). A *login* shell, because the EDA tools come from
+  Environment Modules, which a plain `ssh host command` shell has never sourced;
+  `-t` because ssh allocates no pty when it is given a command.
+- Each entry carries **the flag that takes the rest of the command line**, since
+  the command goes as separate arguments (`ssh -X -t host '...'`). On
+  mate-terminal and xfce4-terminal that is `-x`: their `-e` takes a single
+  string, so it would read `ssh` as the whole command and then reject `-X` as an
+  option of its own.
 - Our own plumbing is wrapped in **`bash -lc`**. `ssh host '<cmd>'` hands the
   command to the *login* shell, and on these machines that is tcsh, which has no
   `2>` redirect: it read `cd <dir> 2>/dev/null` as `cd <dir> 2`, answered
