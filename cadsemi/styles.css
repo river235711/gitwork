@@ -120,26 +120,6 @@ svg {
 .main-nav a:hover { color: var(--text); }
 .main-nav a:hover::after { transform: scaleX(1); }
 
-.nav-toggle {
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  width: 36px;
-  height: 36px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.nav-toggle span {
-  height: 2px;
-  width: 100%;
-  background: var(--text);
-  border-radius: 2px;
-}
-
 /* Buttons & chevron links */
 .btn {
   display: inline-block;
@@ -411,22 +391,11 @@ svg {
 }
 
 @media (max-width: 720px) {
-  .main-nav { display: none; }
-  .nav-toggle { display: flex; }
-  .header-cta { display: none; }
-
-  .main-nav.open {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 72px;
-    left: 0;
-    right: 0;
-    background: var(--bg);
-    border-bottom: 1px solid var(--surface-border);
-    padding: 16px 24px 24px;
-    gap: 18px;
-  }
+  /* One nav link and the CTA both fit on a phone once the gaps tighten, so the
+     header stays flat -- no menu to open. */
+  .header-inner { gap: 20px; }
+  .main-nav { gap: 20px; font-size: 0.9rem; }
+  .header-cta { padding: 8px 14px; font-size: 0.9rem; }
 
   .hero { padding: 56px 0 48px; }
   .section { padding: 64px 0; }
