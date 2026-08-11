@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Home \ Cadsemi</title>
-<meta name="description" content="CADSEMI provides PDK development and porting, physical verification (DRC/LVS/PEX/EMIR), Innovus APR physical design support, and CAD support for analog design environments &mdash; from 6nm to 0.25um, across TSMC, UMC, SMIC, GF and HLMC PDK formats.">
+<meta name="description" content="CADSEMI provides CAD support, PDK support, DRC/LVS deck support and PD support for IC design teams &mdash; design environment enablement, foundry PDK development, rule deck qualification and block-level place-and-route, from 6nm to 0.25um across TSMC, UMC, SMIC, GF and HLMC formats.">
 <meta name="theme-color" content="#faf9f5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23faf9f5%22/><text x=%2250%22 y=%2273%22 font-family=%22Poppins,Arial,Helvetica,sans-serif%22 font-size=%2266%22 font-weight=%22600%22 fill=%22%23141413%22 text-anchor=%22middle%22>C</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +35,7 @@
     <div class="container">
       <p class="eyebrow">Semiconductor Design Automation Consulting</p>
       <h1>From PDK to full-chip signoff</h1>
-      <p class="hero-sub">PDK development and porting, physical verification, Innovus APR support, and CAD infrastructure &mdash; built by engineers who have owned in-house PDKs, certified models and qualified tools inside foundries, EDA vendors and fabless design houses.</p>
+      <p class="hero-sub">CAD support, PDK support, DRC/LVS deck support and PD support &mdash; the design infrastructure layer, run by engineers who have owned in-house PDKs, certified models and qualified tools inside foundries, EDA vendors and fabless design houses.</p>
       <div class="hero-actions">
         <a href="#contact" class="btn btn-primary">Contact us</a>
         <a href="#services" class="chevron-link">Our services <span aria-hidden="true">&rsaquo;</span></a>
@@ -46,33 +46,47 @@
   <section class="section section-alt" id="services">
     <div class="container">
       <h2 class="section-title">Our services</h2>
-      <p class="section-sub">Covering every critical step from PDK bring-up to physical signoff, as a one-stop technical consulting partner.</p>
+      <p class="section-sub">Four support lines across the design infrastructure layer &mdash; the environment your designers work in, the kit they design with, the decks that sign them off, and the implementation that closes the block.</p>
 
       <div class="service-grid">
+
+        <article class="service-card" id="cad-support">
+          <div class="service-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h20M8 36h26"/><path d="M34 18l8 6-8 6"/></svg>
+          </div>
+          <h3>CAD Support</h3>
+          <p class="service-desc">Design environment enablement end to end &mdash; launchers and utilities in SKILL and Tcl, EDA tool qualification and benchmarking, regression harnesses, and Linux CAD deployment, so your designers start work instead of debugging the flow.</p>
+          <dl class="card-meta">
+            <div class="meta-row"><dt>Scope</dt><dd>Environment, flows, deployment</dd></div>
+            <div class="meta-row"><dt>Qualification</dt><dd>EDA tools, SPICE models</dd></div>
+            <div class="meta-row"><dt>Languages</dt><dd>Python, Tcl, Perl, SKILL</dd></div>
+          </dl>
+          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
+        </article>
 
         <article class="service-card" id="pdk">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="14" y="14" width="20" height="20" rx="3"/><path d="M20 6v8M28 6v8M20 34v8M28 34v8M6 20h8M6 28h8M34 20h8M34 28h8"/></svg>
           </div>
-          <h3>PDK Development &amp; Porting</h3>
-          <p class="service-desc">Foundry PDK integration and in-house kit development for custom analog and RF design flows &mdash; CDF and callbacks, PCELL layout generation, symbols and analog logic cells, and node-to-node migration across nine process generations.</p>
+          <h3>PDK Support</h3>
+          <p class="service-desc">Foundry PDK enablement and in-house kit development &mdash; techfiles, CDF parameters and callbacks, PCELL layout generation, symbols and analog logic cells, plus node-to-node migration and QA across nine process generations.</p>
           <dl class="card-meta">
-            <div class="meta-row"><dt>Scope</dt><dd>CDF, PCELL, symbols, migration</dd></div>
+            <div class="meta-row"><dt>Scope</dt><dd>Techfile, CDF, PCELL, symbols</dd></div>
             <div class="meta-row"><dt>Foundries</dt><dd>TSMC, UMC, SMIC, GF, HLMC</dd></div>
             <div class="meta-row"><dt>Tools</dt><dd>Virtuoso, Custom Compiler, Laker</dd></div>
           </dl>
           <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
 
-        <article class="service-card" id="verification">
+        <article class="service-card" id="drc-lvs">
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><path d="M6 24l8-14 8 14-8 14z"/><path d="M26 24l8-14 8 14-8 14z"/></svg>
           </div>
-          <h3>Verification</h3>
-          <p class="service-desc">Calibre DRC, LVS and PEX runsets and the verification environment around them, extended through parasitic extraction and power-integrity signoff.</p>
+          <h3>DRC / LVS Deck Support</h3>
+          <p class="service-desc">Rule deck development, porting and qualification &mdash; DRC, LVS and PEX runsets with the verification environment around them, validated against QA cells and real designs before they reach your designers.</p>
           <dl class="card-meta">
             <div class="meta-row"><dt>Scope</dt><dd>DRC, LVS, PEX runsets</dd></div>
-            <div class="meta-row"><dt>Signoff</dt><dd>RC extraction, EMIR, PGV</dd></div>
+            <div class="meta-row"><dt>Validation</dt><dd>QA cells, silicon correlation</dd></div>
             <div class="meta-row"><dt>Tools</dt><dd>Calibre, QRC, StarRC, Voltus</dd></div>
           </dl>
           <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
@@ -82,26 +96,12 @@
           <div class="service-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="3"/><rect x="13" y="13" width="10" height="10"/><rect x="27" y="27" width="8" height="8"/><path d="M23 18h12v9"/></svg>
           </div>
-          <h3>Physical Design</h3>
+          <h3>PD Support</h3>
           <p class="service-desc">Block-level place-and-route on Innovus &mdash; multi-voltage, multi-corner implementation through timing and power closure at advanced nodes. Layout verification, DRC fixes and IR/EM analysis stay inside the engagement.</p>
           <dl class="card-meta">
             <div class="meta-row"><dt>Scope</dt><dd>Block P&amp;R, MV/MC, low power</dd></div>
             <div class="meta-row"><dt>Signoff</dt><dd>IR/EM, DRC fixes, RC extraction</dd></div>
             <div class="meta-row"><dt>Tools</dt><dd>Innovus, Voltus, Calibre, QRC</dd></div>
-          </dl>
-          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
-        </article>
-
-        <article class="service-card" id="cad-support">
-          <div class="service-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48"><path d="M8 12h32M8 24h20M8 36h26"/><path d="M34 18l8 6-8 6"/></svg>
-          </div>
-          <h3>CAD Support</h3>
-          <p class="service-desc">Ownership of the analog design environment end to end &mdash; launchers and design utilities in SKILL, model and tool qualification, and the scripting that keeps a flow reproducible.</p>
-          <dl class="card-meta">
-            <div class="meta-row"><dt>Scope</dt><dd>Design environment, launchers</dd></div>
-            <div class="meta-row"><dt>Certification</dt><dd>SPICE models, ADE, Spectre</dd></div>
-            <div class="meta-row"><dt>Languages</dt><dd>Python, Tcl, Perl, SKILL</dd></div>
           </dl>
           <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
@@ -150,10 +150,10 @@
       <div class="footer-col">
         <h4>Services</h4>
         <ul>
-          <li><a href="#pdk">PDK Development &amp; Porting</a></li>
-          <li><a href="#verification">Verification</a></li>
-          <li><a href="#physical-design">Physical Design</a></li>
           <li><a href="#cad-support">CAD Support</a></li>
+          <li><a href="#pdk">PDK Support</a></li>
+          <li><a href="#drc-lvs">DRC / LVS Deck Support</a></li>
+          <li><a href="#physical-design">PD Support</a></li>
         </ul>
       </div>
       <div class="footer-col">
