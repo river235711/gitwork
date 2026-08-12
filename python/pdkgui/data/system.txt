@@ -2,8 +2,6 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
-2026.0811    2026/08/11    * [Function] Fonts are now the same on every machine: the family is chosen from the ones actually installed (Liberation Sans, DejaVu Sans, Nimbus Sans ...) instead of asking for Arial, and the size is in pixels so it no longer follows each display's scaling. SYSTEM shows what was resolved; PDKGUI_FONT_FAMILY, PDKGUI_MONO_FAMILY and PDKGUI_FONT_PX override
-                           * [Function] In LOADING, Terminal and pdkgui open with mate-terminal first, and each terminal is given the option that runs a whole command line
 2026.073109  2026/07/31    * [Function] Choosing a file with Open re-parses the cellname even when the same file is picked again, so a LayoutPrimary/SourcePrimary changed or emptied by hand is put back
 2026.073108  2026/07/31    * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
                            * [Function] Emptying LAYOUT/SOURCE PRIMARY or PATH in the command file text now empties the field above it too
