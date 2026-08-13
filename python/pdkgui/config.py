@@ -399,27 +399,18 @@ def file_types(kind):
 # command". Shared by the Run buttons (a verification in its own window) and the
 # LOADING tab (a shell on another machine).
 # PDKGUI_TERMINAL forces one, e.g. PDKGUI_TERMINAL=mate-terminal.
-#
-# The flag has to be the one that takes the *rest of the command line*, because
-# a command is passed as separate arguments (`ssh -X -t host '...'`). On
-# mate-terminal and xfce4-terminal that is -x: their -e takes a single string,
-# so it would read `ssh` as the command and then choke on `-X` as an option of
-# its own. xterm and konsole -e, and gnome-terminal --, already take the rest.
 TERMINALS = (
-    ["mate-terminal", "-x"],
-    ["gnome-terminal", "--"], ["konsole", "-e"],
-    ["xfce4-terminal", "-x"],
     ["xterm", "-fg", "white", "-bg", "black", "-e"],
+    ["gnome-terminal", "--"], ["konsole", "-e"],
+    ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
 )
 
 
 def terminals():
     """Terminal emulators to try, best first; PDKGUI_TERMINAL wins.
 
-    A name that is one of the known ones is used with its own flag. Anything
-    else falls back to "-e", which is the common spelling -- but a terminal
-    whose -e wants a single string will not work that way, so prefer naming one
-    of the above."""
+    A forced one is given "-e", which every emulator here but gnome-terminal
+    understands; use PDKGUI_TERMINAL only to pick between the known ones."""
     forced = os.environ.get("PDKGUI_TERMINAL")
     if not forced:
         return TERMINALS
