@@ -153,6 +153,9 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   `Hcell` field of its own, filled from the same key -- there is one hcell list
   per process -- with a **use** box beside it: the list is passed only when that
   box and LvsHier are both ticked, since `-hcell` goes with a hierarchical run.
+  Emptying one of these fields means *no* `-hcell`/`-xcell` in the run, not the
+  central path coming back behind your back; re-open the tab to have it filled
+  in again.
 
 ## LVL tab (layout against layout)
 

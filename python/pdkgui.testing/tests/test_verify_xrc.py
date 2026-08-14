@@ -188,6 +188,29 @@ class XrcOptions(GuiTestCase):
         self.assertIn("-hcell %s " % hcell, script)
         self.assertIn("-xcell %s " % xcell, script)
 
+    def test_an_emptied_cell_field_drops_the_option(self):
+        """A field cleared by hand means no list, not the central path quietly
+        coming back: the run has to do what the page shows."""
+        self.set_entry(self.page, "Hcell", "")
+        self.set_entry(self.page, "Xcell", "")
+        self.click(self.page, "Run")
+        script = self.run_script()
+        self.assertNotIn("-hcell", script)
+        self.assertNotIn("-xcell", script)
+        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all %s | tee lvs.log"
+                      % self.page._com_filename(), script)
+        self.assertIn("-xrc -pdb -turbo -turbo_all -c ", script)
+        self.assertIn("-xrc -fmt -c ", script)
+
+    def test_the_central_path_comes_back_when_the_tab_is_reopened(self):
+        central = config.central_xrc_paths(config.DESIGN_NAME)
+        self.set_entry(self.page, "Hcell", "")
+        self.page.flush()
+        self.open_tab("LVS")
+        self.app._drop_cached_pages()          # force a rebuild from the session
+        page = self.open_tab("XRC")
+        self.assertEqual(page.entries["Hcell"].get(), central["hcell"])
+
     def test_a_cell_path_survives_the_session(self):
         hcell = os.path.join(self.run_folder(), "kept_hcell")
         self.set_entry(self.page, "Hcell", hcell)

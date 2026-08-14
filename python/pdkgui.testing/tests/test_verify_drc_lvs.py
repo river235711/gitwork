@@ -505,6 +505,19 @@ class LvsTab(GuiTestCase):
         self.click(page, "Run")
         self.assertIn("-hcell %s " % hcell, self.run_script())
 
+    def test_use_with_an_empty_path_passes_no_list(self):
+        """The box says 'use this list' -- with no list there, the run says
+        nothing about one rather than reaching for the central path."""
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        self.set_entry(page, "Hcell", "")
+        self.set_check(page, "HcellUse", True)
+        self.click(page, "Run")
+        script = self.run_script()
+        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all %s | tee lvs.log"
+                      % page._com_filename(), script)
+        self.assertNotIn("-hcell", script)
+
     def test_the_hcell_row_browses_and_is_remembered(self):
         page = self.open_tab("LVS")
         hcell = os.path.join(self.paths["work"], "picked_hcell")

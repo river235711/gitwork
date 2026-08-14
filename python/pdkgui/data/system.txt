@@ -2,6 +2,11 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.0814    2026/08/14    * [Function] Fonts use the same family and the same size on every machine, SYSTEM shows the ones in use
+                           * [Function] New function of XRC Hcell and Xcell to choose the cell lists, filled from the central XRC.inc
+                           * [Function] XRC run gives calibre -hcell and -xcell as full paths, the run folder no longer collects hcell/xcell links
+                           * [Function] New function of LVS Hcell with a use option: -hcell is passed only when LvsHier and use are both ticked
+                           * [Function] An emptied Hcell or Xcell means no -hcell/-xcell at all, instead of the central path being used quietly
 2026.073109  2026/07/31    * [Function] Choosing a file with Open re-parses the cellname even when the same file is picked again, so a LayoutPrimary/SourcePrimary changed or emptied by hand is put back
 2026.073108  2026/07/31    * [Function] Open dialogs offer file types: layouts *.gds and *.gds.gz, source netlists *sp* *spi* *netlist*, JIVARO also *dist* *dspf* *lump*, All types last
                            * [Function] Emptying LAYOUT/SOURCE PRIMARY or PATH in the command file text now empties the field above it too

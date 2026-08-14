@@ -935,9 +935,11 @@ class VerifyPage(BasePage):
         opts = ""
         if self._checked("LvsHier"):
             opts = "-hier -turbo -turbo_all "
-            if self._checked("HcellUse"):
-                opts += "-hcell %s " % (self._entry("Hcell")
-                                        or self._cell_default("Hcell"))
+            # An emptied field means no list: the run does what the page shows,
+            # and clearing it is the only way to say "not this time". The
+            # central path comes back on the next open of the tab.
+            if self._checked("HcellUse") and self._entry("Hcell"):
+                opts += "-hcell %s " % self._entry("Hcell")
         tab = self.module.lower()
         return (
             "#!/bin/bash -l\n"
@@ -955,13 +957,16 @@ class VerifyPage(BasePage):
         # (which start at the central XRC.inc). There used to be an 'ln -sf'
         # pair and a plain '-hcell hcell' instead; the run folder no longer
         # collects those two links.
+        # An emptied field means no list at all rather than the central path
+        # quietly coming back: the run does what the page shows. The default
+        # returns on the next open of the tab.
         conf = self._xrc_central()
-        hcell = self._entry("Hcell") or self._cell_default("Hcell")
-        xcell = self._entry("Xcell") or self._cell_default("Xcell")
+        hcell_opt = "-hcell %s " % self._entry("Hcell") if self._entry("Hcell") else ""
+        xcell_opt = "-xcell %s " % self._entry("Xcell") if self._entry("Xcell") else ""
         # The hierarchical LVS also takes the hcell list: -hcell is what makes
         # the cells in it hierarchical, so a flat run (LvsHier off) has nothing
         # to say about them and is given neither.
-        lvs_opts = ("-hier -turbo -turbo_all -hcell %s " % hcell
+        lvs_opts = ("-hier -turbo -turbo_all " + hcell_opt
                     if self._checked("LvsHier") else "")
         # netlist output cleaned by rm depends on the extraction type:
         #   -c   -> lumped netlist (<primary>.lump*)
@@ -978,10 +983,11 @@ class VerifyPage(BasePage):
             "%s"
             "rm -rf lvs.log pdb.log fmt.log %s.%s* svdb/\n"
             "calibre -64 -lvs %s%s | tee lvs.log\n"
-            "calibre -64 -xrc -pdb -turbo -turbo_all -xcell %s -%s %s | tee pdb.log\n"
-            "calibre -64 -xrc -fmt -xcell %s -%s %s | tee fmt.log\n"
+            "calibre -64 -xrc -pdb -turbo -turbo_all %s-%s %s | tee pdb.log\n"
+            "calibre -64 -xrc -fmt %s-%s %s | tee fmt.log\n"
         ) % (self._calibre_env(), self._jivaro_env(), dfm_line, primary,
-             netlist_ext, lvs_opts, com, xcell, exttype, com, xcell, exttype, com)
+             netlist_ext, lvs_opts, com, xcell_opt, exttype, com,
+             xcell_opt, exttype, com)
         if self._checked("XrcReduction"):
             script += "jivaro -xml jivaro.xml\n"
         return script
