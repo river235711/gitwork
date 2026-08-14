@@ -2,6 +2,7 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.081401  2026/08/14    * [Function] LoadDefault of LVS and XRC fills Hcell and Xcell from the central XRC.inc as well, along with the command file and its includes
 2026.0814    2026/08/14    * [Function] Fonts use the same family and the same size on every machine, SYSTEM shows the ones in use
                            * [Function] New function of XRC Hcell and Xcell to choose the cell lists, filled from the central XRC.inc
                            * [Function] XRC run gives calibre -hcell and -xcell as full paths, the run folder no longer collects hcell/xcell links
