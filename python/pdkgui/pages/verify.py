@@ -315,13 +315,17 @@ class VerifyPage(BasePage):
         return (self._xrc_central().get(name)
                 or "%s/%s" % (config.XRC_HCELL_DIR, name))
 
-    def _fill_cell_fields(self):
-        """Fill an empty Hcell/Xcell field with its central default. Only when
-        empty: a path put there by hand is what the next run should use. A page
-        without the fields (everything but LVS and XRC) reads nothing."""
+    def _fill_cell_fields(self, force=False):
+        """Fill the Hcell/Xcell fields from central. A page without them
+        (everything but LVS and XRC) reads nothing.
+
+        Normally only an empty one is filled -- a path put there by hand is what
+        the next run should use. force overwrites whatever is there, which is
+        what LoadDefault means: these paths come from the same central XRC.inc
+        as the command file and the includes it hands back."""
         for key in ("Hcell", "Xcell"):
             w = self.entries.get(key)
-            if w is not None and not w.get().strip():
+            if w is not None and (force or not w.get().strip()):
                 self._fill_entry(key, self._cell_default(key))
 
     def _xrc_refresh_from_central(self):
@@ -1172,6 +1176,8 @@ class VerifyPage(BasePage):
             self.cmd_text.load_file(config.page_file(self.module))
         self._sync_fields_from_text()
         self._follow_paths(fill_blank=True)
+        # the cell lists are central too, so they come back with the rest
+        self._fill_cell_fields(force=True)
 
     def _on_load_default(self):
         self._load_default()

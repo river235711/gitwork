@@ -202,6 +202,16 @@ class XrcOptions(GuiTestCase):
         self.assertIn("-xrc -pdb -turbo -turbo_all -c ", script)
         self.assertIn("-xrc -fmt -c ", script)
 
+    def test_load_default_puts_the_central_cell_paths_back(self):
+        """LoadDefault hands back what central says -- the command file, the
+        includes, and these two paths with them."""
+        central = config.central_xrc_paths(config.DESIGN_NAME)
+        self.set_entry(self.page, "Hcell", "/somewhere/of/my/own")
+        self.set_entry(self.page, "Xcell", "")
+        self.click(self.page, "LoadDefault")
+        self.assertEqual(self.page.entries["Hcell"].get(), central["hcell"])
+        self.assertEqual(self.page.entries["Xcell"].get(), central["xcell"])
+
     def test_the_central_path_comes_back_when_the_tab_is_reopened(self):
         central = config.central_xrc_paths(config.DESIGN_NAME)
         self.set_entry(self.page, "Hcell", "")

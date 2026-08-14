@@ -505,6 +505,16 @@ class LvsTab(GuiTestCase):
         self.click(page, "Run")
         self.assertIn("-hcell %s " % hcell, self.run_script())
 
+    def test_load_default_puts_the_central_hcell_path_back(self):
+        page = self.open_tab("LVS")
+        hcell = config.central_xrc_paths(config.DESIGN_NAME)["hcell"]
+        self.set_entry(page, "Hcell", "/somewhere/of/my/own")
+        self.set_check(page, "HcellUse", True)
+        self.click(page, "LoadDefault")
+        self.assertEqual(page.entries["Hcell"].get(), hcell)
+        self.assertTrue(page.entries["HcellUse"].get(),
+                        "the box is a choice of yours, not something central says")
+
     def test_use_with_an_empty_path_passes_no_list(self):
         """The box says 'use this list' -- with no list there, the run says
         nothing about one rather than reaching for the central path."""

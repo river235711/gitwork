@@ -154,8 +154,9 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   per process -- with a **use** box beside it: the list is passed only when that
   box and LvsHier are both ticked, since `-hcell` goes with a hierarchical run.
   Emptying one of these fields means *no* `-hcell`/`-xcell` in the run, not the
-  central path coming back behind your back; re-open the tab to have it filled
-  in again.
+  central path coming back behind your back. **LoadDefault** puts these paths
+  back along with the command file and its includes -- everything on the page
+  that central has an opinion about -- and so does re-opening the tab.
 
 ## LVL tab (layout against layout)
 
