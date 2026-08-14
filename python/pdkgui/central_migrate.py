@@ -76,7 +76,8 @@ SKIPPER_CONF_HEADER = """\
 XRC_INC_HEADER = """\
 # XRC central files (parsed as 'key = value'; #-comments and blank lines
 # ignored). Four keys:
-#   hcell / xcell -- the run script does 'ln -sf <path> hcell|xcell'
+#   hcell / xcell -- the cell lists the XRC tab starts its Hcell / Xcell fields
+#                    at; the run script passes them as -hcell / -xcell <path>
 #   rules         -- the XRC_calibre.<ver> base; pdkgui appends /<corner>/rules
 #                    using the XrcRCCorner selection on the XRC tab
 #   deck          -- the DFM_LVS_RC deck (second include line)

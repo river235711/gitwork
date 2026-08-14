@@ -146,9 +146,10 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   e.g. `echo /datacenter/.../CLN22ULP_..._<new>.encrypt > <DEFAULT_COM_DIR>/<DESIGN>/DRC.inc`
 - **XRC.inc is special**: XRC needs four central paths, so its `.inc` is a
   `key = value` file with keys `hcell`, `xcell`, `rules`, `deck`. On tab open /
-  Run, pdkgui symlinks `hcell`/`xcell` in the run folder (`ln -sf`), rebuilds the
-  rules include as `include <rules>/<corner>/rules` (corner from the XrcRCCorner
-  field) and the deck include as `include <deck>`.
+  Run, pdkgui rebuilds the rules include as `include <rules>/<corner>/rules`
+  (corner from the XrcRCCorner field) and the deck include as `include <deck>`.
+  `hcell`/`xcell` fill the two fields of the same name on the XRC tab, which the
+  run script hands to calibre as `-hcell <path>` / `-xcell <path>`.
 
 ## LVL tab (layout against layout)
 

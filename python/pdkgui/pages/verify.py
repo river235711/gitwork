@@ -226,6 +226,11 @@ class VerifyPage(BasePage):
         else:
             self._load_default()
 
+        # XRC: an empty Hcell/Xcell takes the central XRC.inc path (the first
+        # open, and every session saved before the two fields existed)
+        if self.module == "XRC":
+            self._xrc_fill_cells()
+
         # On open: refresh the include line to the latest fab deck from central .inc
         self._refresh_include()
 
@@ -277,6 +282,23 @@ class VerifyPage(BasePage):
 
     def _xrc_central(self):
         return config.central_xrc_paths(config.DESIGN_NAME)
+
+    def _xrc_cell_default(self, key):
+        """Where the Hcell / Xcell field starts: the path the central XRC.inc
+        gives, else <XRC_HCELL_DIR>/<name>. These are the lists calibre is
+        handed as -hcell / -xcell; the field is a plain path, so a run can use
+        one of its own without touching central."""
+        name = key.lower()
+        return (self._xrc_central().get(name)
+                or "%s/%s" % (config.XRC_HCELL_DIR, name))
+
+    def _xrc_fill_cells(self):
+        """Fill an empty Hcell/Xcell field with its central default. Only when
+        empty: a path put there by hand is what the next run should use."""
+        for key in ("Hcell", "Xcell"):
+            w = self.entries.get(key)
+            if w is not None and not w.get().strip():
+                self._fill_entry(key, self._xrc_cell_default(key))
 
     def _xrc_refresh_from_central(self):
         """Rebuild the two XRC include lines from the central XRC.inc:
@@ -394,6 +416,11 @@ class VerifyPage(BasePage):
                         [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
         self._entry_row(r, "SourcePrimary"); r += 1
         self._check_row(r, "LvsHier", default=True); r += 1
+        # The two cell lists calibre is given (-hcell / -xcell). They start at
+        # the central XRC.inc paths, filled in by _xrc_fill_cells().
+        for key in ("Hcell", "Xcell"):
+            self._entry_row(r, key, [self._open_btn(key),
+                                     ("Edit", lambda k=key: self._edit_entry(k))]); r += 1
         self._combo_row(r, "XrcFormat", ["SPECTRE", "DSPF"], "SPECTRE"); r += 1
         self._combo_row(r, "XrcUseName", ["SOURCE", "LAYOUT"], "SOURCE"); r += 1
         self._entry_row(r, "XrcGround", default="GND"); r += 1
@@ -882,14 +909,21 @@ class VerifyPage(BasePage):
 
     # --- XRC ---
     def _run_script_xrc(self):
-        hier = "-hier -turbo -turbo_all " if self._checked("LvsHier") else ""
         exttype = self._xrc_exttype()
         primary = self._xrc_netlist_base()   # netlist files use SourcePrimary
         com = self._com_filename()
-        # hcell / xcell symlink sources: central XRC.inc, else XRC_HCELL_DIR/<name>
+        # The cell lists go to calibre as full paths, straight from the fields
+        # (which start at the central XRC.inc). There used to be an 'ln -sf'
+        # pair and a plain '-hcell hcell' instead; the run folder no longer
+        # collects those two links.
         conf = self._xrc_central()
-        hcell = conf.get("hcell") or "%s/hcell" % config.XRC_HCELL_DIR
-        xcell = conf.get("xcell") or "%s/xcell" % config.XRC_HCELL_DIR
+        hcell = self._entry("Hcell") or self._xrc_cell_default("Hcell")
+        xcell = self._entry("Xcell") or self._xrc_cell_default("Xcell")
+        # The hierarchical LVS also takes the hcell list: -hcell is what makes
+        # the cells in it hierarchical, so a flat run (LvsHier off) has nothing
+        # to say about them and is given neither.
+        lvs_opts = ("-hier -turbo -turbo_all -hcell %s " % hcell
+                    if self._checked("LvsHier") else "")
         # netlist output cleaned by rm depends on the extraction type:
         #   -c   -> lumped netlist (<primary>.lump*)
         #   -rcc -> distributed netlist (<primary>.dist*)
@@ -904,13 +938,11 @@ class VerifyPage(BasePage):
             "module load %s\n"
             "%s"
             "rm -rf lvs.log pdb.log fmt.log %s.%s* svdb/\n"
-            "if [ ! -e hcell ] && [ ! -L hcell ]; then ln -sf %s; fi\n"
-            "if [ ! -e xcell ] && [ ! -L xcell ]; then ln -sf %s; fi\n"
-            "calibre -64 -lvs %s-hcell hcell %s | tee lvs.log\n"
-            "calibre -64 -xrc -pdb -turbo -turbo_all -xcell xcell -%s %s | tee pdb.log\n"
-            "calibre -64 -xrc -fmt -xcell xcell -%s %s | tee fmt.log\n"
+            "calibre -64 -lvs %s%s | tee lvs.log\n"
+            "calibre -64 -xrc -pdb -turbo -turbo_all -xcell %s -%s %s | tee pdb.log\n"
+            "calibre -64 -xrc -fmt -xcell %s -%s %s | tee fmt.log\n"
         ) % (self._calibre_env(), self._jivaro_env(), dfm_line, primary,
-             netlist_ext, hcell, xcell, hier, com, exttype, com, exttype, com)
+             netlist_ext, lvs_opts, com, xcell, exttype, com, xcell, exttype, com)
         if self._checked("XrcReduction"):
             script += "jivaro -xml jivaro.xml\n"
         return script

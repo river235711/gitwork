@@ -60,7 +60,8 @@ def central_include_file(module, design):
 
 def central_xrc_paths(design):
     """XRC.inc as a 'key = value' file (parsed by read_conf), holding the four
-    central XRC files:  hcell, xcell (run-script ln -sf sources), rules (the
+    central XRC files:  hcell, xcell (the -hcell / -xcell cell lists, which the
+    XRC tab shows in two fields of its own), rules (the
     .../include_for_xrc/XRC_calibre.<ver> base) and deck (the DFM_LVS_RC deck),
     plus an optional fifth:  dfm, exported as TSMC_CAL_DFM_PATH by the run
     script for the processes whose deck needs it.
@@ -606,8 +607,9 @@ def pending_update():
     return running_name, release_name(live), live
 
 
-# Source directory for the XRC hcell / xcell symbolic links (per PDK / process).
-# The run script does:  ln -sf <this dir>/hcell   and   ln -sf <this dir>/xcell
+# Directory holding the XRC hcell / xcell cell lists (per PDK / process). Used
+# only as the fallback for the XRC tab's Hcell / Xcell fields when the central
+# XRC.inc names no path of its own; the run passes the field as -hcell / -xcell.
 # Override via env PDKGUI_XRC_HCELL_DIR.
 XRC_HCELL_DIR = os.environ.get(
     "PDKGUI_XRC_HCELL_DIR",

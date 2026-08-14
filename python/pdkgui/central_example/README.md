@@ -38,8 +38,9 @@ skipper command.
 - `.inc` is the single source of truth for the fab deck path: to update the deck,
   **edit just the one line in `.inc`** and everyone picks it up on their next open/run.
 - **XRC is the exception**: `XRC.inc` is a `key = value` file with four keys
-  (`hcell`, `xcell`, `rules`, `deck`). On open/Run the run folder symlinks
-  `hcell`/`xcell`, and the two XRC includes are rebuilt as
+  (`hcell`, `xcell`, `rules`, `deck`). `hcell`/`xcell` fill the two fields of
+  the same name on the XRC tab (the run passes them as `-hcell`/`-xcell`), and
+  the two XRC includes are rebuilt on open/Run as
   `include <rules>/<corner>/rules` (corner from the XrcRCCorner field) and
   `include <deck>`.
 

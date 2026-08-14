@@ -4,8 +4,8 @@
 
 XrcFormat / XrcUseName / XrcGround / XrcRCCorner rewrite the command text,
 XrcExtType and XrcReduction shape the run script, and SourcePrimary names the
-netlist files. The four central paths in XRC.inc drive the includes and the
-hcell/xcell links.
+netlist files. The four central paths in XRC.inc drive the includes and seed the
+Hcell/Xcell fields, which the run passes to calibre as -hcell / -xcell.
 """
 
 import os
@@ -118,13 +118,14 @@ class XrcOptions(GuiTestCase):
     def test_extraction_type_drives_the_calibre_flags_and_cleanup(self):
         cases = {"c": "lump", "rcc": "dist"}
         base = self.page.entries["SourcePrimary"].get().strip()
+        xcell = self.page.entries["Xcell"].get().strip()
         for ext_type, netlist in cases.items():
             self.set_combo(self.page, "XrcExtType", ext_type)
             self.click(self.page, "Run")
             script = self.run_script()
-            self.assertIn("-xrc -pdb -turbo -turbo_all -xcell xcell -%s" % ext_type,
+            self.assertIn("-xrc -pdb -turbo -turbo_all -xcell %s -%s" % (xcell, ext_type),
                           script)
-            self.assertIn("-xrc -fmt -xcell xcell -%s" % ext_type, script)
+            self.assertIn("-xrc -fmt -xcell %s -%s" % (xcell, ext_type), script)
             self.assertIn("rm -rf lvs.log pdb.log fmt.log %s.%s*" % (base, netlist),
                           script)
 
@@ -147,23 +148,71 @@ class XrcOptions(GuiTestCase):
             self.assertIn('<inputFile value="%s.%s"/>' % (base, netlist), xml)
             self.assertIn('<outputFile value="./%s.red.%s"/>' % (base, netlist), xml)
 
-    # --- 7. central files ---------------------------------------------
-    def test_hcell_and_xcell_are_linked_from_central(self):
+    # --- 7. the cell lists --------------------------------------------
+    def test_the_cell_rows_sit_under_lvs_hier(self):
+        """They belong to the LVS/extraction pair above them, not among the
+        Xrc* options below."""
+        row = {key: int(self.page.entries[key].grid_info()["row"])
+               for key in ("Hcell", "Xcell", "XrcFormat")}
+        # LvsHier is a BooleanVar, so go by the label naming its row
+        hier = min(int(w.grid_info()["row"])
+                   for w in self.widgets(self.page, "Label")
+                   if w.cget("text") == "LvsHier")
+        self.assertEqual(row["Hcell"], hier + 1)
+        self.assertEqual(row["Xcell"], hier + 2)
+        self.assertEqual(row["XrcFormat"], hier + 3)
+
+    def test_the_cell_fields_start_at_the_central_paths(self):
+        central = config.central_xrc_paths(config.DESIGN_NAME)
+        self.assertEqual(self.page.entries["Hcell"].get(), central["hcell"])
+        self.assertEqual(self.page.entries["Xcell"].get(), central["xcell"])
+
+    def test_the_cell_lists_go_to_calibre_as_full_paths(self):
+        """No 'ln -sf hcell/xcell' in the run folder any more: the path in the
+        field is handed to calibre as it stands."""
         central = config.central_xrc_paths(config.DESIGN_NAME)
         self.click(self.page, "Run")
         script = self.run_script()
-        self.assertIn("ln -sf %s;" % central["hcell"], script)
-        self.assertIn("ln -sf %s;" % central["xcell"], script)
+        self.assertNotIn("ln -sf", script)
+        self.assertIn("-hcell %s " % central["hcell"], script)
+        self.assertEqual(script.count("-xcell %s " % central["xcell"]), 2,
+                         "both -xrc lines take the xcell path")
+
+    def test_an_edited_cell_path_is_the_one_that_runs(self):
+        hcell = os.path.join(self.run_folder(), "my_hcell")
+        xcell = os.path.join(self.run_folder(), "my_xcell")
+        self.set_entry(self.page, "Hcell", hcell)
+        self.set_entry(self.page, "Xcell", xcell)
+        self.click(self.page, "Run")
+        script = self.run_script()
+        self.assertIn("-hcell %s " % hcell, script)
+        self.assertIn("-xcell %s " % xcell, script)
+
+    def test_a_cell_path_survives_the_session(self):
+        hcell = os.path.join(self.run_folder(), "kept_hcell")
+        self.set_entry(self.page, "Hcell", hcell)
+        self.page.flush()
+        self.assertEqual(self.session("XRC")["Hcell"], hcell)
+
+    def test_the_cell_fields_can_be_browsed_to(self):
+        path = os.path.join(self.run_folder(), "picked_hcell")
+        self.browse(self.page, "Hcell", path)
+        self.assertEqual(self.page.entries["Hcell"].get(), path)
 
     def test_lvs_hier_toggles_the_lvs_flags(self):
+        central = config.central_xrc_paths(config.DESIGN_NAME)
+        com = self.page._com_filename()
         self.set_check(self.page, "LvsHier", True)
         self.click(self.page, "Run")
-        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all -hcell hcell",
-                      self.run_script())
+        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all -hcell %s %s"
+                      % (central["hcell"], com), self.run_script())
 
+        # a flat LVS is given no hcell list at all
         self.set_check(self.page, "LvsHier", False)
         self.click(self.page, "Run")
-        self.assertIn("calibre -64 -lvs -hcell hcell", self.run_script())
+        script = self.run_script()
+        self.assertIn("calibre -64 -lvs %s | tee lvs.log" % com, script)
+        self.assertNotIn("-hcell", script)
 
     # --- the optional DFM export --------------------------------------
     def test_no_dfm_export_when_the_process_does_not_need_one(self):
