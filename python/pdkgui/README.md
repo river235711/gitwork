@@ -149,7 +149,10 @@ design (set via `config.DEFAULT_COM_DIR`, or override with env
   Run, pdkgui rebuilds the rules include as `include <rules>/<corner>/rules`
   (corner from the XrcRCCorner field) and the deck include as `include <deck>`.
   `hcell`/`xcell` fill the two fields of the same name on the XRC tab, which the
-  run script hands to calibre as `-hcell <path>` / `-xcell <path>`.
+  run script hands to calibre as `-hcell <path>` / `-xcell <path>`. LVS has an
+  `Hcell` field of its own, filled from the same key -- there is one hcell list
+  per process -- with a **use** box beside it: the list is passed only when that
+  box and LvsHier are both ticked, since `-hcell` goes with a hierarchical run.
 
 ## LVL tab (layout against layout)
 

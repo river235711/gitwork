@@ -458,6 +458,65 @@ class LvsTab(GuiTestCase):
         self.assertIn("calibre -64 -lvs", script)
         self.assertNotIn("-hier", script)
 
+    # --- the hcell list -----------------------------------------------
+    def test_the_hcell_row_starts_at_the_central_path_and_unused(self):
+        page = self.open_tab("LVS")
+        hcell = config.central_xrc_paths(config.DESIGN_NAME)["hcell"]
+        self.assertEqual(page.entries["Hcell"].get(), hcell,
+                         "the path comes from XRC.inc, as on the XRC tab")
+        self.assertFalse(page.entries["HcellUse"].get(),
+                         "an LVS that never passed an hcell list must keep running as it did")
+
+    def test_the_hcell_list_is_passed_only_when_both_boxes_are_ticked(self):
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        hcell = page.entries["Hcell"].get()
+        com = page._com_filename()
+
+        self.set_check(page, "LvsHier", True)
+        self.set_check(page, "HcellUse", True)
+        self.click(page, "Run")
+        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all -hcell %s %s"
+                      % (hcell, com), self.run_script())
+
+        # hierarchical, but the list is not wanted
+        self.set_check(page, "HcellUse", False)
+        self.click(page, "Run")
+        script = self.run_script()
+        self.assertIn("calibre -64 -lvs -hier -turbo -turbo_all %s" % com, script)
+        self.assertNotIn("-hcell", script)
+
+        # flat: the list goes whether or not its box is ticked
+        for use in (True, False):
+            self.set_check(page, "LvsHier", False)
+            self.set_check(page, "HcellUse", use)
+            self.click(page, "Run")
+            script = self.run_script()
+            self.assertIn("calibre -64 -lvs %s | tee lvs.log" % com, script)
+            self.assertNotIn("-hcell", script)
+            self.assertNotIn("-hier", script)
+
+    def test_an_edited_hcell_path_is_the_one_that_runs(self):
+        page = self.open_tab("LVS")
+        self.set_entry(page, "RunFolder", self.run_folder())
+        hcell = os.path.join(self.run_folder(), "my_hcell")
+        self.set_entry(page, "Hcell", hcell)
+        self.set_check(page, "HcellUse", True)
+        self.click(page, "Run")
+        self.assertIn("-hcell %s " % hcell, self.run_script())
+
+    def test_the_hcell_row_browses_and_is_remembered(self):
+        page = self.open_tab("LVS")
+        hcell = os.path.join(self.paths["work"], "picked_hcell")
+        self.browse(page, "Hcell", hcell)
+        self.assertEqual(page.entries["Hcell"].get(), hcell)
+
+        self.set_check(page, "HcellUse", True)
+        page.flush()
+        st = self.session("LVS")
+        self.assertEqual(st["Hcell"], hcell)
+        self.assertTrue(st["HcellUse"])
+
     def test_source_fields_sync_with_the_text(self):
         page = self.open_tab("LVS")
         cdl = os.path.join(self.paths["work"], "top.cdl")

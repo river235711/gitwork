@@ -5,7 +5,8 @@ pages/verify.py
 ---------------
 Verification-flow pages:
   - DRC class (DRC/ANT/WB/BUMP/DMDV/DPDO): calibre -drc, same run flow.
-  - LVS: calibre -lvs (LvsHier toggles -hier -turbo -turbo_all).
+  - LVS: calibre -lvs (LvsHier toggles -hier -turbo -turbo_all; the Hcell row's
+    'use' box adds -hcell <path> to the hierarchical run).
   - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
     jivaro step).
   - JIVARO: no command file -- pick a post-layout netlist (File) + RunFolder;
@@ -162,10 +163,30 @@ class VerifyPage(BasePage):
         tk.Label(self, text=config.DESIGN_NAME, bg=self.bg,
                  font=config.ui_font(1)).grid(row=0, column=0, columnspan=4, pady=(0, 10))
 
-    def _entry_row(self, row, key, buttons=(), default=None):
+    def _entry_row(self, row, key, buttons=(), default=None, check=None):
+        """One field with its label and its buttons.
+
+        check=(key, text, default) puts a checkbutton at the head of the field,
+        sharing the row: LVS's Hcell is a path *and* a yes/no, and the answer
+        belongs beside the path it applies to rather than on a row of its own.
+        The entry then sits in a holder frame -- still the full width, since the
+        holder is what the column stretches."""
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
-        e = tk.Entry(self)
-        e.grid(row=row, column=1, sticky="we", padx=4)
+        if check is None:
+            parent = self
+            grid = dict(row=row, column=1, sticky="we", padx=4)
+        else:
+            parent = tk.Frame(self, bg=self.bg)
+            parent.grid(row=row, column=1, sticky="we", padx=4)
+            parent.grid_columnconfigure(1, weight=1)
+            check_key, check_text, check_default = check
+            var = tk.BooleanVar(value=check_default)
+            tk.Checkbutton(parent, variable=var, text=check_text, bg=self.bg,
+                           command=self._schedule_save).grid(row=0, column=0, sticky="w")
+            self.entries[check_key] = var
+            grid = dict(row=0, column=1, sticky="we", padx=(4, 0))
+        e = tk.Entry(parent)
+        e.grid(**grid)
         if default:
             e.insert(0, default)
         self.entries[key] = e
@@ -226,10 +247,9 @@ class VerifyPage(BasePage):
         else:
             self._load_default()
 
-        # XRC: an empty Hcell/Xcell takes the central XRC.inc path (the first
-        # open, and every session saved before the two fields existed)
-        if self.module == "XRC":
-            self._xrc_fill_cells()
+        # An empty Hcell/Xcell takes the central XRC.inc path (the first open,
+        # and every session saved before the fields existed)
+        self._fill_cell_fields()
 
         # On open: refresh the include line to the latest fab deck from central .inc
         self._refresh_include()
@@ -283,22 +303,26 @@ class VerifyPage(BasePage):
     def _xrc_central(self):
         return config.central_xrc_paths(config.DESIGN_NAME)
 
-    def _xrc_cell_default(self, key):
+    def _cell_default(self, key):
         """Where the Hcell / Xcell field starts: the path the central XRC.inc
         gives, else <XRC_HCELL_DIR>/<name>. These are the lists calibre is
         handed as -hcell / -xcell; the field is a plain path, so a run can use
-        one of its own without touching central."""
+        one of its own without touching central.
+
+        LVS reads XRC.inc too, hcell being a property of the process rather than
+        of the tab -- there is nowhere else it is written down."""
         name = key.lower()
         return (self._xrc_central().get(name)
                 or "%s/%s" % (config.XRC_HCELL_DIR, name))
 
-    def _xrc_fill_cells(self):
+    def _fill_cell_fields(self):
         """Fill an empty Hcell/Xcell field with its central default. Only when
-        empty: a path put there by hand is what the next run should use."""
+        empty: a path put there by hand is what the next run should use. A page
+        without the fields (everything but LVS and XRC) reads nothing."""
         for key in ("Hcell", "Xcell"):
             w = self.entries.get(key)
             if w is not None and not w.get().strip():
-                self._fill_entry(key, self._xrc_cell_default(key))
+                self._fill_entry(key, self._cell_default(key))
 
     def _xrc_refresh_from_central(self):
         """Rebuild the two XRC include lines from the central XRC.inc:
@@ -401,6 +425,12 @@ class VerifyPage(BasePage):
                         [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
         self._entry_row(r, "SourcePrimary"); r += 1
         self._check_row(r, "LvsHier", default=True); r += 1
+        # The hcell list, off by default: an LVS run that never had one must
+        # keep running the way it did. Its path comes from the same central
+        # XRC.inc the XRC tab reads (there is one hcell list per process).
+        self._entry_row(r, "Hcell",
+                        [self._open_btn("Hcell"), ("Edit", lambda: self._edit_entry("Hcell"))],
+                        check=("HcellUse", "use", False)); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
@@ -417,7 +447,7 @@ class VerifyPage(BasePage):
         self._entry_row(r, "SourcePrimary"); r += 1
         self._check_row(r, "LvsHier", default=True); r += 1
         # The two cell lists calibre is given (-hcell / -xcell). They start at
-        # the central XRC.inc paths, filled in by _xrc_fill_cells().
+        # the central XRC.inc paths, filled in by _fill_cell_fields().
         for key in ("Hcell", "Xcell"):
             self._entry_row(r, key, [self._open_btn(key),
                                      ("Edit", lambda k=key: self._edit_entry(k))]); r += 1
@@ -898,14 +928,23 @@ class VerifyPage(BasePage):
 
     # --- LVS ---
     def _run_script_lvs(self):
-        hier = "-hier -turbo -turbo_all " if self._checked("LvsHier") else ""
+        # -hcell rides on the hierarchical run: it says which cells stay
+        # hierarchical, which a flat LVS has no use for. So the hcell list is
+        # passed only when both boxes are ticked -- LvsHier off means plain
+        # 'calibre -64 -lvs <com>' whatever the Hcell row says.
+        opts = ""
+        if self._checked("LvsHier"):
+            opts = "-hier -turbo -turbo_all "
+            if self._checked("HcellUse"):
+                opts += "-hcell %s " % (self._entry("Hcell")
+                                        or self._cell_default("Hcell"))
         tab = self.module.lower()
         return (
             "#!/bin/bash -l\n"
             "module load %s\n"
             "rm -rf %s.log %s.rep svdb/\n"
             "calibre -64 -lvs %s%s | tee %s.log\n"
-        ) % (self._calibre_env(), tab, tab, hier, self._com_filename(), tab)
+        ) % (self._calibre_env(), tab, tab, opts, self._com_filename(), tab)
 
     # --- XRC ---
     def _run_script_xrc(self):
@@ -917,8 +956,8 @@ class VerifyPage(BasePage):
         # pair and a plain '-hcell hcell' instead; the run folder no longer
         # collects those two links.
         conf = self._xrc_central()
-        hcell = self._entry("Hcell") or self._xrc_cell_default("Hcell")
-        xcell = self._entry("Xcell") or self._xrc_cell_default("Xcell")
+        hcell = self._entry("Hcell") or self._cell_default("Hcell")
+        xcell = self._entry("Xcell") or self._cell_default("Xcell")
         # The hierarchical LVS also takes the hcell list: -hcell is what makes
         # the cells in it hierarchical, so a flat run (LvsHier off) has nothing
         # to say about them and is given neither.

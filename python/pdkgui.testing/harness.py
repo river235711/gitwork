@@ -161,7 +161,12 @@ class GuiTestCase(unittest.TestCase):
     def browse(self, page, key, path):
         """Pick a path for a field by pressing the Open button on its row."""
         self.files = [path]
-        row = str(page.entries[key].grid_info().get("row"))
+        # a field sharing its row with a checkbox sits in a holder frame, so ask
+        # the outermost widget still inside the page which row that is
+        w = page.entries[key]
+        while w.master is not page and w.master is not None:
+            w = w.master
+        row = str(w.grid_info().get("row"))
         for b in self.widgets(page, "Button"):
             info = b.grid_info()
             if (b.cget("text") == "Open" and info
