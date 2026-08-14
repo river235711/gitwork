@@ -2,21 +2,22 @@
    Visual language references anthropic.com: warm ivory canvas, oversized flat
    display headings, hairline-bordered flat cards.
    Accent is copper (#a0522d) — the interconnect metal, and clear of every major
-   EDA vendor's brand color. At 5.33:1 on ivory it passes AA, so it can carry
+   EDA vendor's brand color. At 5.52:1 on ivory it passes AA, so it can carry
    text as well as icons and rules. */
 
 :root {
   color-scheme: light;
-  --bg: #faf9f5;
-  --bg-alt: #f0eee6;
-  --surface-border: #e8e6dc;
-  --card: #e8dfd1;          /* warm tan card fill, per anthropic.com */
-  --card-rule: #d3c6b2;     /* hairline between metadata rows inside a card */
+  --bg: #fefdfb;
+  --bg-alt: #f5f2ea;
+  /* Card edge and header rule. Kept dark enough to read against --bg-alt, where
+     it is 1.20:1 — the separation the old filled card had against the canvas. */
+  --surface-border: #e2ded2;
+  --card: #fdfbf7;          /* near-white panel, defined by its border not its fill */
+  --card-rule: #e6e0d4;     /* hairline between metadata rows inside a card */
   --divider: #b0aea5;
   --text: #141413;
   --text-muted: #5f5e59;
   --accent: #a0522d;
-  --accent-hover: #85431f;
   /* The footer inverts, and neither --text-muted nor --accent clears 4.5:1 on
      it (the copper only reaches 3.36:1), so it carries its own two tones. */
   --footer-muted: #8d897f;  /* 5.4:1 on --text */
@@ -227,6 +228,7 @@ svg {
   display: flex;
   flex-direction: column;
   background: var(--card);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius);
   padding: 32px;
 }
@@ -305,6 +307,7 @@ svg {
   display: flex;
   flex-direction: column;
   background: var(--card);
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius);
   padding: 32px;
 }
@@ -322,16 +325,14 @@ svg {
   margin: 0 0 24px;
 }
 
-/* --accent-hover rather than --accent: on the tan card fill the lighter copper
-   is 4.25:1, which is fine for the 32px icons but short of AA for link text. */
 .contact-email {
   margin: auto 0 0;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 0.95rem;
-  color: var(--accent-hover);
+  color: var(--accent);
   align-self: flex-start;
-  border-bottom: 1px solid var(--accent-hover);
+  border-bottom: 1px solid var(--accent);
 }
 
 .contact-email .arrow {

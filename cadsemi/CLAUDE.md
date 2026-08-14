@@ -28,7 +28,7 @@ The four service cards must stay interchangeable, because their alignment is the
 
 - Description is **4 lines** at the 564px card width (~230–280 characters).
 - **Exactly one** `.meta-row`, and its value must fit on one line. Wrapped values are what make a row of cards look ragged.
-- All four cards measure the **same height** (399px at desktop). Verify after any copy edit.
+- All four cards measure the **same height** (401px at desktop). Verify after any copy edit.
 
 Height needs the browser, but the structural half is checkable without one — run this after any card edit and expect `rows=1` on all four, descriptions inside the character band, and no dangling anchors:
 
@@ -49,6 +49,10 @@ The Contact section's single card is capped at 564px — one service-card column
 ## Design system
 
 Colors come from the `:root` tokens in `styles.css`; never hardcode a hex. Body text holds **4.5:1** contrast — the tokens are annotated with their measured ratios, so keep the annotations honest when adding one.
+
+Two spots in `index.html` mirror `--bg` as a literal and can't use the token — the `<meta name="theme-color">` and the inline SVG favicon's `fill`. Change `--bg` and both have to move with it.
+
+Cards are near-white on the warm canvas, so what separates them is `--surface-border`, not their fill. Keep that token dark enough to read against `--bg-alt` (it sits at 1.20:1); lighten it and the four service cards lose their edges against the services band.
 
 The footer is inverted, and neither `--text-muted` nor `--accent` survives there (the copper only reaches 3.36:1 on `--text`); it has its own `--footer-muted` and `--footer-accent`. Anything placed in the footer that inherits `color: var(--text)` — `.logo-text` did — needs an explicit override or it goes dark on dark.
 
