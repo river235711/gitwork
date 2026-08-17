@@ -1182,10 +1182,10 @@ class VerifyPage(BasePage):
         ) % (infile, self._jivaro_output_name(infile), self._frequency_limit())
 
     def _frequency_limit(self):
-        """The frequency the reduction stays accurate to, in GHz. The XRC tab
-        has a field for it beside the XrcReduction box; the JIVARO tab has none
-        and keeps jivaro's usual 20, which is also what an emptied field
-        writes -- the file has to carry a number."""
+        """The frequency the reduction stays accurate to, in GHz. Both tabs that
+        write a jivaro.xml have a field for it -- beside the XrcReduction box on
+        XRC, on a row of its own on JIVARO -- and an emptied one writes jivaro's
+        usual 20, since the file has to carry a number."""
         return self._entry("FrequencyLimit") or _JIVARO_FREQ_LIMIT
 
     def _run_jivaro(self, folder):
