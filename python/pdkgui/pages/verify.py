@@ -107,6 +107,9 @@ _FILE_KIND = {
     "File": "extracted",
 }
 
+# jivaro's own default frequency limit (GHz), and so the XRC field's
+_JIVARO_FREQ_LIMIT = "20"
+
 # LVL: dbdiff writes the comparison rules, calibre runs them, RVE opens what
 # that produced. Fixed names -- there is no command file to say otherwise.
 _LVL_TAB = "lvl"
@@ -202,11 +205,30 @@ class VerifyPage(BasePage):
         cb.grid(row=row, column=1, sticky="we", padx=4)
         self.entries[key] = cb
 
-    def _check_row(self, row, key, text="", default=False):
+    def _check_row(self, row, key, text="", default=False, extra=None):
+        """A yes/no on its own row.
+
+        extra=(key, label, default, unit) puts a small field after the box, for
+        a number the option itself needs: XrcReduction is 'run' *and* the
+        frequency the reduction is accurate to, and the two belong together."""
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
         var = tk.BooleanVar(value=default)
-        tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
-                       command=self._schedule_save).grid(row=row, column=1, sticky="w")
+        if extra is None:
+            tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
+                           command=self._schedule_save).grid(row=row, column=1, sticky="w")
+        else:
+            holder = tk.Frame(self, bg=self.bg)
+            holder.grid(row=row, column=1, sticky="w")
+            tk.Checkbutton(holder, variable=var, text=text, bg=self.bg,
+                           command=self._schedule_save).pack(side="left")
+            extra_key, label, extra_default, unit = extra
+            tk.Label(holder, text=label, bg=self.bg).pack(side="left")
+            e = tk.Entry(holder, width=6)
+            e.insert(0, extra_default)
+            e.pack(side="left", padx=4)
+            self.entries[extra_key] = e
+            if unit:
+                tk.Label(holder, text=unit, bg=self.bg).pack(side="left")
         self.entries[key] = var
 
     def _open_btn(self, key):
@@ -460,7 +482,9 @@ class VerifyPage(BasePage):
         self._entry_row(r, "XrcGround", default="GND"); r += 1
         self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
         self._combo_row(r, "XrcExtType", ["c", "rcc"], "c"); r += 1
-        self._check_row(r, "XrcReduction", "run", default=False); r += 1
+        self._check_row(r, "XrcReduction", "run,", default=False,
+                        extra=("XrcFrequencyLimit", "frequencyLimit",
+                               _JIVARO_FREQ_LIMIT, "GHz")); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
@@ -1130,12 +1154,19 @@ class VerifyPage(BasePage):
             '<!-- Reduction settings -->\n\n'
             '    <criterion value="accurate"/>\n'
             '    <errorMax  value="2"/>\n'
-            '    <frequencyLimit  value="20"/>\n'
+            '    <frequencyLimit  value="%s"/>\n'
             '    <negativeCapacitor value="false"/>\n'
             '    <decouplingAutoThreshold value="false"/>\n\n'
             '</options>\n\n'
             '</reductionParameters>\n'
-        ) % (infile, self._jivaro_output_name(infile))
+        ) % (infile, self._jivaro_output_name(infile), self._frequency_limit())
+
+    def _frequency_limit(self):
+        """The frequency the reduction stays accurate to, in GHz. The XRC tab
+        has a field for it beside the XrcReduction box; the JIVARO tab has none
+        and keeps jivaro's usual 20, which is also what an emptied field
+        writes -- the file has to carry a number."""
+        return self._entry("XrcFrequencyLimit") or _JIVARO_FREQ_LIMIT
 
     def _run_jivaro(self, folder):
         infile = self.entries["File"].get().strip()

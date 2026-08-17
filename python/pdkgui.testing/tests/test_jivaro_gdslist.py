@@ -34,6 +34,9 @@ class JivaroTab(GuiTestCase):
         self.assertIn('<inputFile value="%s"/>' % netlist, xml)
         self.assertIn('<outputFile value="./%s.red.lump"/>' % config.DESIGN_NAME, xml)
         self.assertIn('<reductionParameters version="2020.1">', xml)
+        # this tab has no frequencyLimit field (the XRC one does), so the xml
+        # keeps jivaro's own 20
+        self.assertIn('<frequencyLimit  value="20"/>', xml)
 
     def test_output_name_follows_the_input_suffix(self):
         for suffix in ("lump", "dist"):
