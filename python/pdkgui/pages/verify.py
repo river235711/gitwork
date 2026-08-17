@@ -9,9 +9,10 @@ Verification-flow pages:
     'use' box adds -hcell <path> to the hierarchical run).
   - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
     jivaro step).
-  - JIVARO: no command file -- pick a post-layout netlist (File) + RunFolder;
-    Run generates jivaro.xml (inputFile = File, outputFile inserts '.red' before
-    the .lump/.dist suffix) and a run script that calls jivaro -xml jivaro.xml.
+  - JIVARO: no command file -- a frequencyLimit, a post-layout netlist (File)
+    and a RunFolder; Run generates jivaro.xml (inputFile = File, outputFile
+    inserts '.red' before the .lump/.dist suffix, frequencyLimit from the field)
+    and a run script that calls jivaro -xml jivaro.xml.
 
 Common:
   - Bottom command-file text box (right + bottom scrollbars); initially loads
@@ -221,15 +222,30 @@ class VerifyPage(BasePage):
             holder.grid(row=row, column=1, sticky="w")
             tk.Checkbutton(holder, variable=var, text=text, bg=self.bg,
                            command=self._schedule_save).pack(side="left")
-            extra_key, label, extra_default, unit = extra
-            tk.Label(holder, text=label, bg=self.bg).pack(side="left")
-            e = tk.Entry(holder, width=6)
-            e.insert(0, extra_default)
-            e.pack(side="left", padx=4)
-            self.entries[extra_key] = e
-            if unit:
-                tk.Label(holder, text=unit, bg=self.bg).pack(side="left")
+            self._number_widgets(holder, *extra)
         self.entries[key] = var
+
+    def _number_row(self, row, key, label, default, unit=""):
+        """A row holding one short number and its unit (JIVARO's frequency
+        limit). The label spells the number's name, which is not the key: the
+        name is jivaro's, lower-case f and all."""
+        tk.Label(self, text=label, bg=self.bg).grid(row=row, column=0, sticky="w")
+        holder = tk.Frame(self, bg=self.bg)
+        holder.grid(row=row, column=1, sticky="w")
+        self._number_widgets(holder, key, "", default, unit)
+
+    def _number_widgets(self, parent, key, label, default, unit=""):
+        """A short number field, its name before it and its unit after, packed
+        into parent. Shared by the XrcReduction row (where it follows the
+        checkbox) and JIVARO's frequencyLimit row (where it is the whole row)."""
+        if label:
+            tk.Label(parent, text=label, bg=self.bg).pack(side="left")
+        e = tk.Entry(parent, width=6)
+        e.insert(0, default)
+        e.pack(side="left", padx=4)
+        self.entries[key] = e
+        if unit:
+            tk.Label(parent, text=unit, bg=self.bg).pack(side="left")
 
     def _open_btn(self, key):
         return ("Open", lambda: self._browse_path(key))
@@ -483,7 +499,7 @@ class VerifyPage(BasePage):
         self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
         self._combo_row(r, "XrcExtType", ["c", "rcc"], "c"); r += 1
         self._check_row(r, "XrcReduction", "run,", default=False,
-                        extra=("XrcFrequencyLimit", "frequencyLimit",
+                        extra=("FrequencyLimit", "frequencyLimit",
                                _JIVARO_FREQ_LIMIT, "GHz")); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
@@ -522,6 +538,10 @@ class VerifyPage(BasePage):
         RunFolder, and Run -> generate jivaro.xml + run script."""
         self._title()
         r = 1
+        # above the netlist it applies to, the way the XRC tab has it beside the
+        # box that turns the reduction on
+        self._number_row(r, "FrequencyLimit", "frequencyLimit",
+                         _JIVARO_FREQ_LIMIT, "GHz"); r += 1
         self._entry_row(r, "File",
                         [self._open_btn("File"), ("Edit", self._on_edit_file)]); r += 1
         self._entry_row(r, "RunFolder",
@@ -1166,7 +1186,7 @@ class VerifyPage(BasePage):
         has a field for it beside the XrcReduction box; the JIVARO tab has none
         and keeps jivaro's usual 20, which is also what an emptied field
         writes -- the file has to carry a number."""
-        return self._entry("XrcFrequencyLimit") or _JIVARO_FREQ_LIMIT
+        return self._entry("FrequencyLimit") or _JIVARO_FREQ_LIMIT
 
     def _run_jivaro(self, folder):
         infile = self.entries["File"].get().strip()

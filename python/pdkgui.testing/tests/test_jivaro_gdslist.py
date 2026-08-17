@@ -14,8 +14,9 @@ class JivaroTab(GuiTestCase):
         super(JivaroTab, self).setUp()
         self.page = self.open_tab("JIVARO")
 
-    def test_has_only_a_file_and_a_run_folder(self):
-        self.assertEqual(sorted(self.page.entries), ["File", "RunFolder"])
+    def test_has_a_frequency_limit_a_file_and_a_run_folder(self):
+        self.assertEqual(sorted(self.page.entries),
+                         ["File", "FrequencyLimit", "RunFolder"])
         self.assertIsNone(self.page.cmd_text, "JIVARO should have no command box")
         for label in ("Open", "Edit", "FileManager", "Run"):
             self.button(self.page, label)
@@ -34,9 +35,22 @@ class JivaroTab(GuiTestCase):
         self.assertIn('<inputFile value="%s"/>' % netlist, xml)
         self.assertIn('<outputFile value="./%s.red.lump"/>' % config.DESIGN_NAME, xml)
         self.assertIn('<reductionParameters version="2020.1">', xml)
-        # this tab has no frequencyLimit field (the XRC one does), so the xml
-        # keeps jivaro's own 20
-        self.assertIn('<frequencyLimit  value="20"/>', xml)
+        self.assertIn('<frequencyLimit  value="20"/>', xml)   # the field's default
+
+    def test_the_frequency_limit_field_reaches_the_xml(self):
+        netlist = os.path.join(self.paths["work"], "%s.lump" % config.DESIGN_NAME)
+        self.set_entry(self.page, "File", netlist)
+        self.set_entry(self.page, "RunFolder", self.run_folder())
+        self.assertEqual(self.page.entries["FrequencyLimit"].get(), "20")
+
+        self.set_entry(self.page, "FrequencyLimit", "40")
+        self.click(self.page, "Run")
+        self.assertIn('<frequencyLimit  value="40"/>', self.jivaro_xml())
+
+        # cleared mid-edit: the file still has to carry a number
+        self.set_entry(self.page, "FrequencyLimit", "")
+        self.click(self.page, "Run")
+        self.assertIn('<frequencyLimit  value="20"/>', self.jivaro_xml())
 
     def test_output_name_follows_the_input_suffix(self):
         for suffix in ("lump", "dist"):

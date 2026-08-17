@@ -149,11 +149,11 @@ class XrcOptions(GuiTestCase):
             self.assertIn('<outputFile value="./%s.red.%s"/>' % (base, netlist), xml)
 
     def test_the_frequency_limit_defaults_to_jivaros_own(self):
-        self.assertEqual(self.page.entries["XrcFrequencyLimit"].get(), "20")
+        self.assertEqual(self.page.entries["FrequencyLimit"].get(), "20")
 
     def test_the_frequency_limit_field_reaches_the_jivaro_xml(self):
         self.set_check(self.page, "XrcReduction", True)
-        self.set_entry(self.page, "XrcFrequencyLimit", "40")
+        self.set_entry(self.page, "FrequencyLimit", "40")
         self.click(self.page, "Run")
         self.assertIn('<frequencyLimit  value="40"/>', self.jivaro_xml())
 
@@ -161,14 +161,14 @@ class XrcOptions(GuiTestCase):
         """The file has to carry a number, so a field cleared mid-edit falls
         back to jivaro's own 20 rather than writing an empty value."""
         self.set_check(self.page, "XrcReduction", True)
-        self.set_entry(self.page, "XrcFrequencyLimit", "")
+        self.set_entry(self.page, "FrequencyLimit", "")
         self.click(self.page, "Run")
         self.assertIn('<frequencyLimit  value="20"/>', self.jivaro_xml())
 
     def test_the_frequency_limit_survives_the_session(self):
-        self.set_entry(self.page, "XrcFrequencyLimit", "5")
+        self.set_entry(self.page, "FrequencyLimit", "5")
         self.page.flush()
-        self.assertEqual(self.session("XRC")["XrcFrequencyLimit"], "5")
+        self.assertEqual(self.session("XRC")["FrequencyLimit"], "5")
 
     # --- 7. the cell lists --------------------------------------------
     def test_the_cell_rows_sit_under_lvs_hier(self):
