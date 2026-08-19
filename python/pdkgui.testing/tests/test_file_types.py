@@ -3,9 +3,10 @@
 """What each Open dialog offers in its "files of type" list.
 
 Netlists here are not named consistently enough to filter on an extension, so
-the patterns match anywhere in the name; layouts are the other way round. Every
-list ends in "All types", so a file that follows no convention is still
-reachable.
+the patterns match anywhere in the name; layouts are the other way round. Each
+kind is one entry matching all of its patterns at once -- a directory holding
+both .gds and .gds.gz shows both without switching entries -- and every list
+ends in "All types", so a file that follows no convention is still reachable.
 """
 
 import unittest
@@ -13,12 +14,11 @@ import unittest
 import config
 from harness import GuiTestCase
 
-LAYOUT = [("*.gds", "*.gds"), ("*.gds.gz", "*.gds.gz"), ("All types", "*")]
-SOURCE = [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
-          ("All types", "*")]
-EXTRACTED = [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
-             ("*dist*", "*dist*"), ("*dspf*", "*dspf*"), ("*lump*", "*lump*"),
-             ("All types", "*")]
+ALL_TYPES = ("All types", "*")
+LAYOUT = [("*.gds *.gds.gz", "*.gds *.gds.gz"), ALL_TYPES]
+SOURCE = [("*sp* *netlist*", "*sp* *netlist*"), ALL_TYPES]
+EXTRACTED = [("*sp* *netlist* *dist* *dspf* *lump*",
+              "*sp* *netlist* *dist* *dspf* *lump*"), ALL_TYPES]
 
 VERIFY_TABS = ("DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO", "LVS", "LVL", "XRC")
 
@@ -74,7 +74,25 @@ class FileTypes(GuiTestCase):
     def test_every_list_ends_in_all_types(self):
         """However badly a file is named, it can still be picked."""
         for kind, offered in config.FILE_TYPES.items():
-            self.assertEqual(tuple(offered[-1]), ("All types", "*"), kind)
+            self.assertEqual(tuple(offered[-1]), ALL_TYPES, kind)
+
+    def test_each_kind_is_one_entry_plus_all_types(self):
+        """The patterns of a kind belong together in a single entry: listed
+        separately, the dialog can only ever show one of them at a time."""
+        for kind, offered in config.FILE_TYPES.items():
+            self.assertEqual(len(offered), 2,
+                             "%s should offer its patterns as one entry, "
+                             "plus All types: %s" % (kind, offered))
+            label, patterns = offered[0]
+            self.assertEqual(label, patterns,
+                             "%s: the label is the patterns themselves" % kind)
+
+    def test_no_pattern_is_offered_twice(self):
+        """*spi* went because *sp* already matches it; *dspf* is matched too but
+        is named on purpose, so this only catches a plain duplicate."""
+        for kind, offered in config.FILE_TYPES.items():
+            patterns = offered[0][1].split()
+            self.assertEqual(len(patterns), len(set(patterns)), kind)
 
     def test_a_field_with_no_convention_gets_no_filter(self):
         self.assertEqual(config.file_types("something else"), ())

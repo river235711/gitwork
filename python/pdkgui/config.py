@@ -374,19 +374,34 @@ def file_managers():
 # netlists are not named consistently enough to filter on an extension, so the
 # patterns match anywhere in the name.
 #
-# The first entry is what the dialog opens on; "All types" is always last so a
-# file that follows no convention is still reachable.
+# Each kind is *one* entry matching all of its patterns at once, so a directory
+# holding both .gds and .gds.gz shows both without switching entries. "All types"
+# stays separate, and last, so a file that follows no convention is reachable.
 # --------------------------------------------------------------------------
 _ALL_TYPES = ("All types", "*")
+
+
+def _one_of(*patterns):
+    """One "files of type" entry offering all of these at once.
+
+    The label is the patterns themselves, which is how these lists have always
+    read; Tk shows an entry as "label (patterns)". Space-separated is what Tcl
+    parses as a pattern *list*, and that is what makes one entry match several
+    globs."""
+    joined = " ".join(patterns)
+    return (joined, joined)
+
+
 FILE_TYPES = {
-    # layouts: the compressed ones do not match *.gds, hence the second entry
-    "layout": [("*.gds", "*.gds"), ("*.gds.gz", "*.gds.gz"), _ALL_TYPES],
-    # schematic netlists for LVS/XRC
-    "source": [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
-               _ALL_TYPES],
-    # JIVARO reduces an extracted netlist, so it sees the XRC output too
-    "extracted": [("*sp*", "*sp*"), ("*spi*", "*spi*"), ("*netlist*", "*netlist*"),
-                  ("*dist*", "*dist*"), ("*dspf*", "*dspf*"), ("*lump*", "*lump*"),
+    # layouts: the compressed ones do not match *.gds, hence the second pattern
+    "layout": [_one_of("*.gds", "*.gds.gz"), _ALL_TYPES],
+    # schematic netlists for LVS/XRC. No *spi*: a name holding "spi" holds "sp",
+    # so *sp* already matches it.
+    "source": [_one_of("*sp*", "*netlist*"), _ALL_TYPES],
+    # JIVARO reduces an extracted netlist, so it sees the XRC output too. *dspf*
+    # is matched by *sp* as well, but is named anyway: the list is also how
+    # someone finds out that a .dspf is offered at all.
+    "extracted": [_one_of("*sp*", "*netlist*", "*dist*", "*dspf*", "*lump*"),
                   _ALL_TYPES],
 }
 
