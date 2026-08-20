@@ -2,6 +2,8 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.0820    2026/08/20    * [Function] Open dialogs offer each kind of file as one entry matching all its patterns at once, so a directory holding both shows both: layouts *.gds *.gds.gz, netlists *sp* *netlist*, JIVARO also *dist* *dspf* *lump*
+                           * [Function] Dropped *spi* from the netlist patterns, *sp* already matches every name it did
 2026.0817    2026/08/17    * [Function] New function of XRC XrcReduction frequencyLimit in GHz, default 20, which the generated jivaro.xml now carries instead of a fixed 20
                            * [Function] New function of JIVARO frequencyLimit in GHz above File, default 20, written into the jivaro.xml this tab generates
 2026.081401  2026/08/14    * [Function] LoadDefault of LVS and XRC fills Hcell and Xcell from the central XRC.inc as well, along with the command file and its includes
