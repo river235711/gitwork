@@ -69,7 +69,7 @@ Renaming a service touches five places: the card `id`, the card `<h3>`, the foot
 
 ## Committing
 
-Some clones carry a `.git/hooks/post-commit` that pushes to `origin/<branch>` automatically — **this one does not**, and `core.hooksPath` is unset. Check rather than assume, or work lands locally while looking done:
+Whether a commit is already pushed depends on the clone: some carry a `.git/hooks/post-commit` that pushes to `origin/<branch>` automatically, others don't. Hooks aren't cloned, so this differs per machine — check the result rather than assuming either way, or work lands locally while looking done:
 
 ```
 git log origin/main..HEAD --oneline   # empty means the remote has it
