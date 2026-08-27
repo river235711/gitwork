@@ -622,6 +622,27 @@ class LvsTab(GuiTestCase):
         self.assertEqual(st["Hcell"], hcell)
         self.assertTrue(st["HcellUse"])
 
+    def test_a_relative_source_path_is_resolved_too(self):
+        """Both paths a command file carries go by the same rule."""
+        deck = os.path.join(self.paths["work"], "deck")
+        if not os.path.isdir(deck):
+            os.makedirs(deck)
+        com = os.path.join(deck, "lvs_relative.com")
+        with open(com, "w", encoding="utf-8") as f:
+            f.write('LAYOUT PRIMARY "top"\n'
+                    'LAYOUT PATH "../top.gds"\n'
+                    'SOURCE PRIMARY "top"\n'
+                    'SOURCE PATH "../top.cdl"\n')
+        page = self.open_tab("LVS")
+        self.files = [com]
+        self.click(page, "Load")
+
+        cdl = os.path.realpath(os.path.join(self.paths["work"], "top.cdl"))
+        self.assertEqual(page.entries["SourcePath"].get(), cdl)
+        self.assertIn('"%s"' % cdl,
+                      self.active_lines(page.cmd_text.get_text(), "SOURCE PATH")[0])
+        self.assertNotIn("../top.cdl", page.cmd_text.get_text())
+
     def test_source_fields_sync_with_the_text(self):
         page = self.open_tab("LVS")
         cdl = os.path.join(self.paths["work"], "top.cdl")
