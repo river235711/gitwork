@@ -2,6 +2,8 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.0827    2026/08/27    * [Function] Load reads a relative LAYOUT/SOURCE PATH against the directory of the command file it came from, not the directory pdkgui was started in, and writes the resolved absolute path into the command file text too
+                           * [Function] LoadDefault leaves the template's ./<cellname> placeholder as it is, since it means a file in your own directory rather than one in the central directory
 2026.0820    2026/08/20    * [Function] Open dialogs offer each kind of file as one entry matching all its patterns at once, so a directory holding both shows both: layouts *.gds *.gds.gz, netlists *sp* *netlist*, JIVARO also *dist* *dspf* *lump*
                            * [Function] Dropped *spi* from the netlist patterns, *sp* already matches every name it did
 2026.0817    2026/08/17    * [Function] New function of XRC XrcReduction frequencyLimit in GHz, default 20, which the generated jivaro.xml now carries instead of a fixed 20
