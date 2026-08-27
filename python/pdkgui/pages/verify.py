@@ -17,8 +17,10 @@ Verification-flow pages:
 Common:
   - Bottom command-file text box (right + bottom scrollbars); initially loads
     data/verify/<MODULE>.com.
-  - Parses LAYOUT/SOURCE PATH (-> realpath) and PRIMARY from the text (ignoring
-    lines starting with '//') into the fields.
+  - Parses LAYOUT/SOURCE PATH (-> absolute) and PRIMARY from the text (ignoring
+    lines starting with '//') into the fields. A relative path in a *loaded*
+    command file is relative to that file, and Load writes the resolved path
+    back into the text; a default template's './x' is left as it is.
   - Run: create RunFolder, write calibre_<DESIGN>_<module>.com and run, open a
     terminal to execute run.
   - Rve: rewrite run as calibre -rve <db> (LVS: -turbo 8 -rve -lvs svdb,
@@ -147,6 +149,7 @@ class VerifyPage(BasePage):
         self._syncing = False      # prevent field<->text feedback loops
         self._save_job = None       # after() id for the debounced save
         self._path_seen = {}        # PATH each PRIMARY was named after
+        self._text_base = None      # directory the command text was loaded from
         if self.module == "LVS":
             self._build_lvs()
         elif self.module == "LVL":
@@ -586,11 +589,41 @@ class VerifyPage(BasePage):
                 # realpath("") is the current directory, which is not what an
                 # empty path means
                 if real and val:
-                    val = os.path.realpath(val)
+                    val = self._resolve_path(val)
                 w.delete(0, tk.END)
                 w.insert(0, val)
         finally:
             self._syncing = False
+
+    def _resolve_path(self, value):
+        """A path out of the command text, made absolute.
+
+        A relative path in a command file is relative to *that file*, which is
+        what the fab writes and what a user copying a .com around expects. It is
+        not relative to where pdkgui happens to have been started, which is what
+        realpath() alone assumed -- so loading someone else's .com used to put a
+        path into the field that pointed at nothing.
+
+        Falls back to the launch directory when there is no such file to be
+        relative to: a default template (whose "./CELL_NAME.gds" means the
+        user's own directory, not central's), or a session migrated from the old
+        .commandfile, which kept the text only."""
+        if not os.path.isabs(value):
+            value = os.path.join(self._text_base or self.app.launch_dir, value)
+        return os.path.realpath(value)
+
+    def _absolutise_text_paths(self):
+        """Write the resolved paths back into the command text, after a load.
+
+        The Run writes the *text* into the run folder, so a "../x.gds" left
+        there would be read relative to the run folder -- a different directory
+        from the one it was written against, pointing at the wrong file or at
+        none. The field and the text now say the same absolute thing."""
+        for key, (_kw, _regex, real) in _FIELD_KEYWORDS.items():
+            # only a path, and only one that has a value: writing an empty one
+            # would add a `LAYOUT PATH ""` line the loaded file never had
+            if real and key in self.entries and self._entry(key):
+                self._sync_text_from_field(key)
 
     def _follow_paths(self, fill_blank=False, rename=True, force=None):
         """Keep each PRIMARY named after the file its PATH points at.
@@ -869,6 +902,9 @@ class VerifyPage(BasePage):
             st[key] = bool(w.get()) if isinstance(w, tk.BooleanVar) else w.get()
         if self.cmd_text is not None:
             st["__command__"] = self.cmd_text.get_text()
+        if self._text_base:
+            # so a reopened tab resolves the text the way the load did
+            st["__base__"] = self._text_base
         return st
 
     def _apply_state(self, st):
@@ -883,6 +919,8 @@ class VerifyPage(BasePage):
             elif hasattr(w, "delete"):
                 w.delete(0, tk.END)
                 w.insert(0, val)
+        if st.get("__base__"):
+            self._text_base = st["__base__"]
         if "__command__" in st and self.cmd_text is not None:
             self.cmd_text.set_text(st["__command__"])
 
@@ -1221,10 +1259,16 @@ class VerifyPage(BasePage):
         """Load the command file from the central default dir; fall back to the
         built-in template if not found."""
         path = config.central_default_file(self.module, config.DESIGN_NAME)
-        if os.path.isfile(path):
-            self.cmd_text.load_file(path)
-        else:
-            self.cmd_text.load_file(config.page_file(self.module))
+        if not os.path.isfile(path):
+            path = config.page_file(self.module)
+        self.cmd_text.load_file(path)
+        # A default is a *template*: its "./CELL_NAME.gds" stands for a file in
+        # the user's own working directory, not for one sitting beside the
+        # template in the central directory. So the base is dropped rather than
+        # set to where this came from, and the placeholder is left in the text.
+        # Only Load, which reads a command file someone actually wrote, goes by
+        # the file's own directory.
+        self._text_base = None
         self._sync_fields_from_text()
         self._follow_paths(fill_blank=True)
         # the cell lists are central too, so they come back with the rest
@@ -1239,7 +1283,9 @@ class VerifyPage(BasePage):
             filetypes=[("Command file", "*.com"), ("All files", "*")])
         if path:
             self.cmd_text.load_file(path)
+            self._text_base = os.path.dirname(os.path.abspath(path))
             self._sync_fields_from_text()
+            self._absolutise_text_paths()
             self._follow_paths(fill_blank=True)
             self._schedule_save()
 

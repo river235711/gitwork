@@ -343,6 +343,88 @@ class DrcFamily(GuiTestCase):
         self.click(page, "Load")
         self.assertNotIn("something else", page.cmd_text.get_text())
 
+    # --- a relative path in a loaded command file ---------------------
+    def _com_with_a_relative_path(self, name="relative.com"):
+        """A command file in <work>/deck/ pointing one directory up, the way a
+        .com kept beside its run directory does."""
+        deck = os.path.join(self.paths["work"], "deck")
+        if not os.path.isdir(deck):
+            os.makedirs(deck)
+        com = os.path.join(deck, name)
+        with open(com, "w", encoding="utf-8") as f:
+            f.write('LAYOUT PRIMARY "top"\n'
+                    'LAYOUT PATH "../top.gds"\n'
+                    'LAYOUT SYSTEM GDSII\n')
+        # <work>/top.gds is what "../top.gds" means from <work>/deck/
+        return com, os.path.realpath(os.path.join(self.paths["work"], "top.gds"))
+
+    def test_a_relative_path_is_read_against_the_command_file(self):
+        """Not against the directory pdkgui was started in, which is what it
+        used to do -- the path then pointed at nothing."""
+        com, expected = self._com_with_a_relative_path()
+        page = self.open_tab("DRC")
+        self.files = [com]
+        self.click(page, "Load")
+
+        self.assertEqual(page.entries["LayoutPath"].get(), expected)
+        self.assertNotEqual(expected, os.path.realpath("../top.gds"),
+                            "the test cannot tell the two apart from here")
+
+    def test_the_loaded_text_is_made_absolute_too(self):
+        """Run writes the text into the run folder, where "../top.gds" would
+        mean a different file again."""
+        com, expected = self._com_with_a_relative_path()
+        page = self.open_tab("DRC")
+        self.files = [com]
+        self.click(page, "Load")
+
+        line = self.active_lines(page.cmd_text.get_text(), "LAYOUT PATH")[0]
+        self.assertIn('"%s"' % expected, line)
+        self.assertNotIn("../top.gds", page.cmd_text.get_text())
+
+    def test_reopening_keeps_the_directory_the_text_was_read_from(self):
+        com, expected = self._com_with_a_relative_path()
+        page = self.open_tab("DRC")
+        self.files = [com]
+        self.click(page, "Load")
+        # a relative path typed back into the text still means the same file
+        self.set_text(page, 'LAYOUT PRIMARY "top"\nLAYOUT PATH "../top.gds"\n')
+        page.flush()
+
+        self.open_tab("LVS")
+        self.app._drop_cached_pages()
+        again = self.open_tab("DRC")
+        self.assertEqual(again.entries["LayoutPath"].get(), expected)
+
+    def test_load_default_leaves_the_template_placeholder_alone(self):
+        """The central default is a template: "./CELL_NAME.gds" means a file in
+        the user's own directory, not one beside the template in central."""
+        com, _expected = self._com_with_a_relative_path()
+        page = self.open_tab("LVS")
+        self.files = [com]
+        self.click(page, "Load")          # a base is in force after this
+
+        self.click(page, "LoadDefault")
+        line = self.active_lines(page.cmd_text.get_text(), "LAYOUT PATH")[0]
+        self.assertIn("./", line, "the placeholder was rewritten: %s" % line)
+        self.assertNotIn(os.path.dirname(com), page.cmd_text.get_text(),
+                         "the loaded file's directory leaked into the default")
+        self.assertNotIn(config.DEFAULT_COM_DIR, page.entries["LayoutPath"].get(),
+                         "the placeholder was resolved into the central directory")
+
+    def test_an_absolute_path_is_left_where_it_points(self):
+        gds = os.path.join(self.paths["work"], "top.gds")
+        deck = os.path.join(self.paths["work"], "deck")
+        if not os.path.isdir(deck):
+            os.makedirs(deck)
+        com = os.path.join(deck, "absolute.com")
+        with open(com, "w", encoding="utf-8") as f:
+            f.write('LAYOUT PATH "%s"\n' % gds)
+        page = self.open_tab("DRC")
+        self.files = [com]
+        self.click(page, "Load")
+        self.assertEqual(page.entries["LayoutPath"].get(), os.path.realpath(gds))
+
     def test_state_is_remembered_per_tab(self):
         page = self.open_tab("DRC")
         self.set_entry(page, "LayoutPrimary", "remembered")
