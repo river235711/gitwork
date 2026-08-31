@@ -300,10 +300,12 @@ class PdkGui(tk.Tk):
         self.destroy()
 
 
-USAGE = """usage: pdkgui [-l]
+USAGE = """usage: pdkgui [-l | -e <engineer-mode options>]
 
   -l, --loading   open the machine chooser only: the LOADING page on its own,
                   to see which machine is free and start pdkgui there
+  -e, --engineer  engineer mode: the command-line tools, run in this terminal
+                  instead of opening a window. `pdkgui -e -h` lists them.
   -h, --help      this message
 
 With no options the full window opens on the tab it was last left on.
@@ -325,8 +327,16 @@ def parse_argv(argv):
 
 def main(argv=None):
     import sys
-    only, message, status = parse_argv(
-        list(sys.argv[1:] if argv is None else argv))
+    argv = list(sys.argv[1:] if argv is None else argv)
+
+    # Engineer mode is a terminal program, not a window: hand the rest of the
+    # command line to it and never build a Tk root. Imported here so a normal
+    # start does not pay for a module it will not use.
+    if argv and argv[0] in ("-e", "--engineer"):
+        import pdkgui_eng
+        return pdkgui_eng.main(argv[1:])
+
+    only, message, status = parse_argv(argv)
     if message:
         (sys.stderr if status else sys.stdout).write(message)
         return status

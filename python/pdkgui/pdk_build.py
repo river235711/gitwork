@@ -56,7 +56,7 @@ SRC = os.path.dirname(os.path.abspath(__file__))
 PLAINTEXT = ["pdkgui", "pdkgui.py", "pdkcrypt.py", "pdk_secure.py"]
 
 # Top-level modules to encrypt (pages/* collected separately via glob)
-ENCRYPT_TOP = ["config.py", "widgets.py", "pdkgui_app.py"]
+ENCRYPT_TOP = ["config.py", "widgets.py", "pdkgui_app.py", "pdkgui_eng.py"]
 
 
 def _encrypt_to(src_rel, dist, salt=None):

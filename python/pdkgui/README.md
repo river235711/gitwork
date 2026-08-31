@@ -15,6 +15,7 @@ pdkgui              launcher (bash): find a tkinter python, then run
 pdkgui.py           bootstrap (stays plaintext, no logic): install the
                     encrypted import hook -> pdkgui_app.main()
 pdkgui_app.py       main window + left menu + page routing
+pdkgui_eng.py       engineer mode (`pdkgui -e`): the command-line tools
 config.py           central settings (which file each tab reads, paths, constants)
 widgets.py          shared widgets (ScrolledText with two scrollbars, LogoPanel)
 pages/              per-tab pages
@@ -309,6 +310,56 @@ much the point as what it does:
 `pdkgui --help` lists the options; an unknown one exits 2 rather than being
 ignored.
 
+## `pdkgui -e` -- engineer mode (the command line)
+
+`-e` is the terminal half of pdkgui: the engineer / test tools that want a shell
+rather than a tab. It lives in its own module (`pdkgui_eng.py`) and never builds
+a Tk root, so adding a tool here costs no start-up time and no menu entry.
+
+The first tool opens a layout with skipper:
+
+```bash
+pdkgui -e -p t22_1p7m_4x1z1u top.gds.gz    # process named
+pdkgui -e top.gds.gz                       # asks which process
+pdkgui -e t22_1p7m_4x1z1u top.gds.gz       # shorthand: <process> <gds>
+```
+
+| option | meaning |
+| --- | --- |
+| `-p`, `--process <name>` | which process to open with. A number from the list is accepted too (`-p 3`). |
+| `-P`, `--list-process` | print the process list and exit |
+| `-n`, `--dry-run` | print the skipper shell instead of running it |
+| `-h`, `--help` | the option list |
+
+Without `-p` the processes are numbered in the terminal and Enter takes the
+default -- the design last chosen on the PROCESS tab, else the first listed:
+
+```
+Process:
+   1) t22_1p7m_4x1z1u   [default]
+   2) t22_1p8m_5x1z1u
+   3) t40lp_1p6m_4x1u
+   4) t40lp_1p7m_4x1z1u
+select [1-4, Enter=t22_1p7m_4x1z1u]:
+```
+
+The process is what makes the layers right: the shell is built by the same
+`build_skipper_script()` the SKIPPER tab uses, so `-cdsTech` / `-cdsDisp` /
+`-cdsLayerMap` / `-init` come from that process's central `SKIPPER.conf` and a
+command-line open gives exactly the viewer a tab open gives. A process with no
+`SKIPPER.conf` still opens (with `-i` only) but says so first.
+
+Like `pdkgui -l`, this mode **reads** the session and does not write it: the ENV
+tab's skipper/calibre versions are used and the PROCESS design seeds the prompt,
+but viewing one GDS from a shell does not change which process or tab the window
+opens on next time.
+
+Two things follow from it being a terminal program, both handled in the bash
+launcher: it runs in the **foreground** (a backgrounded job that reads stdin is
+stopped with SIGTTIN, so the prompt could never be answered) and it passes its
+own exit status back -- 2 for a bad command line or a missing file, 1 when no
+process was chosen or there is no `$DISPLAY`.
+
 ## Deployment layout (versioned install + shared central)
 
 Users always run one stable entry point; releases are switched by repointing a
@@ -570,6 +621,9 @@ skipper -noterm -i <gds> -cdsTech <..> -cdsDisp <..> -cdsLayerMap <..> [-init <.
 The `-cdsTech` / `-cdsDisp` / `-cdsLayerMap` / `init` paths come from
 `<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf` (`key = value` lines). `init` is optional:
 `-init` is added only when it is set and the file exists, otherwise it is omitted.
+
+The same shell is what `pdkgui -e <process> <gds>` runs, so a layout can be
+opened from a terminal without the window -- see *`pdkgui -e` -- engineer mode*.
 
 ## Per-user state `~/.pdkgui/`
 

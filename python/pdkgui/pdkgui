@@ -23,6 +23,8 @@
 #   pdkgui           the full window, on the tab it was last left on
 #   pdkgui -l        the machine chooser only (LOADING on its own), to see which
 #                    machine is free and start pdkgui there
+#   pdkgui -e ...    engineer mode: the command-line tools (no window). This one
+#                    runs in the foreground -- see step 5.
 #   pdkgui --help    the option list
 #==============================================================================
 
@@ -120,5 +122,15 @@ if [ "${PDKGUI_TIMING:-0}" != "0" ] && [ -n "${SECONDS:-}" ]; then
     printf '[pdkgui] %-34s %6.1f ms\n' "launcher (find python)" \
         "$(awk "BEGIN{print $SECONDS * 1000}")" >&2
 fi
+#   Engineer mode (pdkgui -e ...) is the exception: it is a terminal program.
+#   It may ask which process to use on stdin -- a backgrounded job reading stdin
+#   is stopped with SIGTTIN -- and its output belongs in the shell that asked
+#   for it, so it runs in the foreground and hands back its own exit status.
+case "$1" in
+    -e|--engineer)
+        exec "$PY" "$PDKGUI_PY" "$@"
+        ;;
+esac
+
 "$PY" "$PDKGUI_PY" "$@" &
 echo "pdkgui started in the background (PID $!, python: $PY)"
