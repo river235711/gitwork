@@ -2,6 +2,9 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.0831    2026/08/31    * [Function] New function of pdkgui -e engineer mode, the command line tools that run in your own terminal instead of opening a window, pdkgui -e -h lists them
+                           * [Function] pdkgui -e -p <process> <gds or gds.gz> opens a layout with skipper set up for that process, -P lists the processes and -n prints the command instead of running it
+                           * [Function] pdkgui -e without -p lists the processes in the terminal and asks which one, Enter takes the one PROCESS was last left on
 2026.0827    2026/08/27    * [Function] Load reads a relative LAYOUT/SOURCE PATH against the directory of the command file it came from, not the directory pdkgui was started in, and writes the resolved absolute path into the command file text too
                            * [Function] LoadDefault leaves the template's ./<cellname> placeholder as it is, since it means a file in your own directory rather than one in the central directory
 2026.0820    2026/08/20    * [Function] Open dialogs offer each kind of file as one entry matching all its patterns at once, so a directory holding both shows both: layouts *.gds *.gds.gz, netlists *sp* *netlist*, JIVARO also *dist* *dspf* *lump*
