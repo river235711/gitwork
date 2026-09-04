@@ -1,0 +1,45 @@
+# Publishes cadsemi/ to GitHub Pages at https://cadsemi.com/
+# gitwork holds several unrelated projects, so only cadsemi/ is uploaded.
+name: Deploy cadsemi to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cadsemi/**'
+      - '.github/workflows/cadsemi-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish; queue at most one more.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp cadsemi/index.html cadsemi/styles.css cadsemi/script.js _site/
+          # The custom domain. Without it Pages serves the repo at
+          # river235711.github.io/gitwork/ and cadsemi.com 404s.
+          echo 'cadsemi.com' > _site/CNAME
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
