@@ -1,16 +1,20 @@
-"""鋼鐵人反應爐風格的機器 loading 監看器 (Tk)。
+"""Arc-reactor style machine loading monitor (Tk).
 
-- 中間反應爐核心：refresh(抓資料)時快速閃爍，閃爍頻率由低到高。
-- 周圍圓周光條：顯示那台機器的 loading 高低 (load average / CPU 數)。
-- 預設監看 TE0037 / sirius01 / WilldeMacBook-Air.local 三台，
-  也可以用 argv 換掉：python3 arc_reactor.py hostA hostB ...
+- Core: flickers while refreshing, the flicker rate ramps up over time.
+- Outer light bar: on refresh it fades dark -> bright -> dark, then shows
+  the machine's real loading.
+- Pick a machine from the dropdown, or ALL to see every machine at once;
+  every host is polled every 10s either way.
+  Hosts can be overridden: python3 arc_reactor.py hostA hostB ...
 
-本機直接跑 uptime，遠端用 ssh BatchMode(需先設好金鑰，不會跳密碼)。
+Local host runs uptime directly, remote hosts go over ssh BatchMode
+(keys must already be set up, it will never prompt for a password).
 """
 
 import math
 import queue
 import re
+import shlex
 import socket
 import subprocess
 import sys
@@ -19,54 +23,62 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
-DEFAULT_HOSTS = ["TE0037", "sirius01", "WilldeMacBook-Air.local"]
+DEFAULT_HOSTS = ["sirius01", "sirius02", "sirius05", "sirius06", "sirius07"]
+ALL_LABEL = "ALL"  # dropdown entry that shows every machine at once
+GRID_COLS = 3  # reactors per row in ALL view
 
-# ---- 配色 (照參考圖：全黑機械件 + 青/橘雙色燈) ---------------------------
+# ---- Palette (all-black hardware + cyan/amber lamps) ---------------------
 BG = "#04070b"
 PANEL = "#050a0f"
-DIM = "#03060a"  # 變暗時要混向的底色
+DIM = "#03060a"  # base color everything fades toward
 TEXT = "#c8dbe6"
 MUTED = "#5e7686"
 ACCENT = "#3fd0f0"
 
-# 機械件(參考圖裡幾乎是純黑，只有邊角吃到一點藍光)
-BODY = "#070b10"  # 模組本體
-BODY_HI = "#0d161d"  # 上蓋
-PLATE = "#0a1219"  # 底座
-EDGE = "#2b4553"  # 亮邊
-EDGE_DIM = "#16232c"  # 暗邊
-GROOVE = "#0d1c25"  # 同心刻紋
+# Hardware is almost pure black, only the edges catch a little blue light.
+BODY = "#070b10"  # module body
+BODY_HI = "#0d161d"  # top cap
+PLATE = "#0a1219"  # base plate
+EDGE = "#2b4553"  # lit edge
+EDGE_DIM = "#16232c"  # dark edge
+GROOVE = "#0d1c25"  # concentric grooves
 RING_LINE = "#123642"
 
-# 燈：參考圖的青與橘，各有 光暈 / 本體 / 白熱芯 三層
+# Lamps: cyan and amber, each with halo / body / white-hot core
 CYAN_HALO, CYAN_MAIN, CYAN_HOT = "#0d6f9e", "#2fc8ff", "#dbf4ff"
 ORANGE_HALO, ORANGE_MAIN, ORANGE_HOT = "#a63f08", "#ff8a12", "#ffe3b4"
 GLOW_CYAN = "#1f9ed6"
 GLOW_ORANGE = "#e2661a"
 
-# 燈的固定排列(0=正上方，順時針)：左半偏青、右下偏橘，刻意排得不規則
+# Fixed lamp layout (index 0 = straight up, clockwise): left side leans
+# cyan, lower right leans amber, deliberately irregular.
 LAMP_PATTERN = "OCCOOC" "OOCOOC" "OCOCCC" "CCOCCO"
 
-# 負載光條(額外加的，不屬於參考圖)
+# Load bar colors
 BAR_TRACK = "#0a151c"
 TICK_OFF = "#0c1b23"
-BAR_LOW = (0x3A, 0xD2, 0xFF)  # 低載：青
-BAR_MID = (0xFF, 0x9A, 0x2E)  # 中載：橘
-BAR_HIGH = (0xFF, 0x3B, 0x4A)  # 高載：紅
+BAR_LOW = (0x3A, 0xD2, 0xFF)  # light load: cyan
+BAR_MID = (0xFF, 0x9A, 0x2E)  # medium load: amber
+BAR_HIGH = (0xFF, 0x3B, 0x4A)  # heavy load: red
 
-# ---- 動畫參數 ------------------------------------------------------------
-FPS_MS = 33  # 動畫 tick (約 30fps)
-FLICKER_F0 = 1.8  # 開始 refresh 時的閃爍頻率 (Hz)
-FLICKER_F1 = 22.0  # 衝到最高的閃爍頻率 (Hz)
-FLICKER_RAMP = 2.5  # 幾秒內從 F0 拉到 F1
-FLICKER_LOW = 0.12  # 閃爍暗相的亮度
+# ---- Animation ----------------------------------------------------------
+FPS_MS = 33  # animation tick (~30fps)
+FPS_MS_ALL = 50  # slower tick in ALL view, there are 5 reactors to repaint
+FLICKER_F0 = 1.8  # flicker rate when a refresh starts (Hz)
+FLICKER_F1 = 22.0  # flicker rate it ramps up to (Hz)
+FLICKER_RAMP = 2.5  # seconds to go from F0 to F1
+FLICKER_LOW = 0.12  # brightness of the dark half of a flicker
 
-MODULES = 24  # 外圈機械模組(粗顆粒燈)數量
-SEGMENTS = 60  # 內圈細刻度格數(精準讀值)
+PULSE_SECS = 0.9  # one dark -> bright -> dark cycle of the load bar
+
+REFRESH_MS = 10_000  # poll every host every 10 seconds
+
+MODULES = 24  # outer hardware modules (coarse lamps)
+SEGMENTS = 60  # inner fine tick count (precise readout)
 SSH_TIMEOUT = 12
 
 
-# ---- 小工具 --------------------------------------------------------------
+# ---- Helpers ------------------------------------------------------------
 def _hex(rgb):
     return "#%02x%02x%02x" % tuple(max(0, min(255, int(v))) for v in rgb)
 
@@ -76,19 +88,19 @@ def _rgb(color):
 
 
 def _mix(c1, c2, t):
-    """c1、c2 可以是 #rrggbb 或 (r,g,b)，回傳混色後的 #rrggbb。"""
+    """c1/c2 may be #rrggbb or (r,g,b); returns the blend as #rrggbb."""
     a = _rgb(c1) if isinstance(c1, str) else c1
     b = _rgb(c2) if isinstance(c2, str) else c2
     return _hex(a[i] + (b[i] - a[i]) * t for i in range(3))
 
 
 def _dim(color, k):
-    """把顏色往底色壓暗，k=1 原色、k=0 全暗。"""
+    """Fade a color toward the base color; k=1 keeps it, k=0 blacks it out."""
     return _mix(DIM, color, max(0.0, min(1.0, k)))
 
 
 def _load_color(frac):
-    """0~1 的位置 -> 青 / 琥珀 / 紅 漸層。"""
+    """0..1 position -> cyan / amber / red gradient."""
     if frac < 0.5:
         return _mix(BAR_LOW, BAR_MID, frac / 0.5)
     return _mix(BAR_MID, BAR_HIGH, (frac - 0.5) / 0.5)
@@ -99,9 +111,10 @@ def _pt(cx, cy, r, deg):
     return cx + r * math.cos(rad), cy - r * math.sin(rad)
 
 
-# ---- 抓 loading ----------------------------------------------------------
+# ---- Reading the load ---------------------------------------------------
 _LOAD_RE = re.compile(r"load averages?:\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)")
 _PROBE = "uptime; getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu"
+_STRICT = "accept-new"  # downgraded to "no" if the local ssh is too old
 
 
 def _is_local(host):
@@ -110,25 +123,52 @@ def _is_local(host):
     return host in names or host.split(".")[0] in names
 
 
-def probe(host):
-    """回傳 (load1, load5, load15, ncpu)，失敗就丟 RuntimeError。"""
-    if _is_local(host):
-        cmd = ["/bin/sh", "-c", _PROBE]
-    else:
-        cmd = [
-            "ssh",
-            "-o", "BatchMode=yes",
-            "-o", "ConnectTimeout=6",
-            "-o", "StrictHostKeyChecking=accept-new",
-            host,
-            _PROBE,
-        ]
+def _run(cmd):
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=SSH_TIMEOUT)
+        # stdout/stderr=PIPE + universal_newlines instead of the 3.7-only
+        # capture_output/text, so this still runs on python 3.6
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              universal_newlines=True, timeout=SSH_TIMEOUT)
     except subprocess.TimeoutExpired:
         raise RuntimeError("timeout")
     except OSError as e:
         raise RuntimeError(str(e))
+
+
+def _ssh_cmd(host, strict):
+    return [
+        "ssh",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=6",
+        "-o", "StrictHostKeyChecking=" + strict,
+        host,
+        # ssh runs this through the login shell, which may be csh/tcsh —
+        # hand it to /bin/sh so the sh syntax in _PROBE is understood
+        "/bin/sh -c " + shlex.quote(_PROBE),
+    ]
+
+
+def terminal_cmds(host):
+    """Candidate command lines for opening a terminal on `host`."""
+    inner = [] if _is_local(host) else ["ssh", "-t", host]
+    return [
+        ["mate-terminal", "--title", host] + (["-x"] + inner if inner else []),
+        ["xterm", "-T", host] + (["-e"] + inner if inner else []),
+    ]
+
+
+def probe(host):
+    """Return (load1, load5, load15, ncpu), or raise RuntimeError."""
+    global _STRICT
+    if _is_local(host):
+        p = _run(["/bin/sh", "-c", _PROBE])
+    else:
+        p = _run(_ssh_cmd(host, _STRICT))
+        # accept-new needs OpenSSH >= 7.6; older clients reject the option
+        # outright, so fall back once and remember the choice.
+        if p.returncode and "unsupported option" in (p.stderr or ""):
+            _STRICT = "no"
+            p = _run(_ssh_cmd(host, _STRICT))
 
     out = p.stdout
     m = _LOAD_RE.search(out)
@@ -144,22 +184,28 @@ def probe(host):
     return float(m.group(1)), float(m.group(2)), float(m.group(3)), ncpu
 
 
-# ---- 反應爐 widget -------------------------------------------------------
+# ---- Reactor widget -----------------------------------------------------
 class Reactor(tk.Frame):
-    """一台機器 = 一顆反應爐 + 底下的文字。"""
+    """One machine = one reactor plus the text underneath."""
 
     SIZE = 296
 
-    def __init__(self, master, host, on_click):
+    def __init__(self, master, host, on_click, on_terminal):
         super().__init__(master, bg=PANEL, padx=10, pady=12)
         self.host = host
 
-        self.percent = 0.0  # 目前顯示的負載百分比
-        self.busy = False  # 是否正在 refresh
+        self.percent = 0.0  # loading percentage currently displayed
+        self.busy = False  # a refresh is in flight
         self.offline = False
-        self.t0 = 0.0  # 這次 refresh 的起始時間
-        self.phase = 0.0  # 閃爍相位累加器
-        self._shown_pct = -1.0  # 光條上次畫的值，避免每格都重畫
+        self.t0 = 0.0  # start time of this refresh
+        self.phase = 0.0  # flicker phase accumulator
+        self._shown_pct = -1.0  # last value painted on the ticks
+
+        # Load-bar animation: "idle" -> "pulse" (fade up and down while
+        # polling) -> "idle" (the real reading).
+        self.anim = "idle"
+        self.pulse_t0 = 0.0
+        self.pulse_end = None  # end of the current fade cycle, once data is in
 
         self.canvas = tk.Canvas(
             self, width=self.SIZE, height=self.SIZE,
@@ -168,17 +214,26 @@ class Reactor(tk.Frame):
         self.canvas.pack()
         self.canvas.bind("<Button-1>", lambda _e: on_click(self.host))
 
+        # host name and its TERMINAL button share one row, to keep the ALL
+        # view short enough to fit on screen
+        row = tk.Frame(self, bg=PANEL)
+        row.pack(pady=(8, 0))
         self.name_lb = tk.Label(
-            self, text=host, bg=PANEL, fg=ACCENT,
+            row, text=host, bg=PANEL, fg=ACCENT,
             font=("TkDefaultFont", 12, "bold"),
         )
-        self.name_lb.pack(pady=(8, 0))
+        self.name_lb.pack(side="left")
+        self.term_btn = ttk.Button(
+            row, text="TERMINAL", style="Term.TButton", takefocus=False,
+            command=lambda: on_terminal(self.host),
+        )
+        self.term_btn.pack(side="left", padx=(10, 0))
         self.pct_lb = tk.Label(
             self, text="--", bg=PANEL, fg=TEXT, font=("TkFixedFont", 20, "bold")
         )
         self.pct_lb.pack()
         self.det_lb = tk.Label(
-            self, text="尚未讀取", bg=PANEL, fg=MUTED, font=("TkFixedFont", 10)
+            self, text="no data yet", bg=PANEL, fg=MUTED, font=("TkFixedFont", 10)
         )
         self.det_lb.pack()
         self.time_lb = tk.Label(self, text="", bg=PANEL, fg=MUTED, font=("TkFixedFont", 9))
@@ -186,17 +241,17 @@ class Reactor(tk.Frame):
 
         self._build()
 
-    # -- 畫出反應爐本體 (正面視角，全部用正圓，無透視) --
+    # -- draw the reactor (head-on view, plain circles, no perspective) --
     def _build(self):
         c = self.canvas
         m = self.SIZE / 2
-        self.core = []  # (item, 基礎色) — 亮度由動畫控制
+        self.core = []  # (item, base color) — brightness driven by animate()
 
         def oval(r, **kw):
             return c.create_oval(m - r, m - r, m + r, m + r, **kw)
 
         def block(r0, r1, deg, half, **kw):
-            """一塊沿著圓周擺的機械件(內外兩條邊都是圓弧)。"""
+            """A hardware block laid along the ring (both edges are arcs)."""
             pts = []
             for j in range(6):
                 pts.extend(_pt(m, m, r1, deg - half + half * 2 * j / 5))
@@ -204,11 +259,11 @@ class Reactor(tk.Frame):
                 pts.extend(_pt(m, m, r0, deg + half - half * 2 * j / 5))
             return c.create_polygon(pts, **kw)
 
-        # 背後的散光暈(Tk 沒有 alpha，用幾層同心色階假裝)
+        # Scattered backlight (Tk has no alpha, fake it with color steps).
         for r, col in ((142, "#050a0e"), (128, "#061019"), (112, "#07141d")):
             oval(r, fill=col, outline="")
 
-        # --- 加的東西 1：最外圈負載光條(底軌 + 光暈 + 本體 + 頭端亮點) ---
+        # --- Load bar: track + halo + body + head highlight ---
         c.create_oval(m - 138, m - 138, m + 138, m + 138,
                       outline=BAR_TRACK, width=9)
         self.bar_halo = c.create_arc(m - 138, m - 138, m + 138, m + 138,
@@ -220,12 +275,12 @@ class Reactor(tk.Frame):
         self.bar_head = block(131, 145, 90, 0.7, fill="", outline="")
         oval(131, outline="#0c2028", width=1)
 
-        # --- 外圈：24 顆機械模組，每顆中間一盞方燈(顏色固定，照參考圖排) ---
-        self.lamps = []  # [(halo, main, hot, 基礎三色)]
+        # --- Outer ring: 24 modules, each with a fixed-color lamp ---
+        self.lamps = []  # [(halo, main, hot, base colors)]
         step = 360 / MODULES
         for k in range(MODULES):
-            a = 90 - k * step  # 正上方開始順時針
-            big = k % 3 == 0  # 每三顆做一顆比較高的，做出參考圖的參差感
+            a = 90 - k * step  # start at the top, go clockwise
+            big = k % 3 == 0  # every third one is taller, for an uneven look
             top = 122 if big else 115
             cyan = LAMP_PATTERN[k] == "C"
             cols = ((CYAN_HALO, CYAN_MAIN, CYAN_HOT) if cyan
@@ -234,18 +289,18 @@ class Reactor(tk.Frame):
             block(92, 100, a, 6.8, fill=PLATE, outline=EDGE_DIM, width=1)
             block(96, top, a, 5.4, fill=BODY, outline=EDGE, width=1)
             block(top - 7, top, a, 3.6, fill=BODY_HI, outline=EDGE_DIM, width=1)
-            # 側邊斜切亮邊
+            # chamfered side edges
             block(98, top - 4, a - 4.6, 0.9, fill=EDGE_DIM, outline="")
             block(98, top - 4, a + 4.6, 0.9, fill=EDGE_DIM, outline="")
 
-            block(100, 113, a, 3.5, fill="#04080b", outline=EDGE_DIM, width=1)  # 燈座
+            block(100, 113, a, 3.5, fill="#04080b", outline=EDGE_DIM, width=1)  # socket
             self.lamps.append((
-                block(100.5, 112.5, a, 3.3, fill=cols[0], outline=""),  # 光暈
-                block(102, 111, a, 2.5, fill=cols[1], outline=""),      # 本體
-                block(104.5, 108.5, a, 1.1, fill=cols[2], outline=""),  # 白熱芯
+                block(100.5, 112.5, a, 3.3, fill=cols[0], outline=""),  # halo
+                block(102, 111, a, 2.5, fill=cols[1], outline=""),      # body
+                block(104.5, 108.5, a, 1.1, fill=cols[2], outline=""),  # white core
                 cols,
             ))
-            if big:  # 大顆的頂上多一盞小燈
+            if big:  # the tall ones get an extra lamp on top
                 self.lamps.append((
                     block(top - 6, top - 1, a, 2.0, fill=cols[0], outline=""),
                     block(top - 5.5, top - 1.5, a, 1.6, fill=cols[1], outline=""),
@@ -253,7 +308,7 @@ class Reactor(tk.Frame):
                     cols,
                 ))
 
-        # --- 加的東西 2：細刻度環 60 格，精準讀值 ---
+        # --- Fine tick ring, 60 segments, for the precise readout ---
         self.segs = []
         st = 360 / SEGMENTS
         for i in range(SEGMENTS):
@@ -267,7 +322,7 @@ class Reactor(tk.Frame):
         oval(90, outline=RING_LINE, width=1)
         oval(79, outline=RING_LINE, width=1)
 
-        # --- 內側斷續發光環：左上青、右下橘(照參考圖) ---
+        # --- Broken inner glow ring: cyan upper left, amber lower right ---
         for i in range(30):
             a0 = 90 - i * 12
             col = GLOW_CYAN if 30 <= (a0 % 360) < 210 else GLOW_ORANGE
@@ -278,9 +333,9 @@ class Reactor(tk.Frame):
                     style=tk.ARC, width=10, outline=col,
                 ), col))
 
-        # --- 中段機械環：同心刻紋 + 細放射線 ---
+        # --- Middle hardware ring: grooves + fine radial lines ---
         oval(63, fill="#060b0f", outline=EDGE_DIM, width=2)
-        for k in range(72):  # 細放射刻線
+        for k in range(72):  # fine radial scoring
             a = k * 5
             x1, y1 = _pt(m, m, 54, a)
             x2, y2 = _pt(m, m, 61, a)
@@ -289,12 +344,12 @@ class Reactor(tk.Frame):
         for r in (49, 45, 41):
             oval(r, outline=GROOVE, width=1)
 
-        # 內環上的一圈藍色細光(會跟著呼吸/閃爍)
+        # Thin blue ring that breathes/flickers with the core
         self.core.append((oval(39, outline="#1a7fa4", width=2), "#1a7fa4"))
 
-        # --- 核心：暗色，中間是深洞 ---
+        # --- Core: dark, with a deep well in the middle ---
         oval(36, fill="#04080c", outline=EDGE_DIM, width=1)
-        for k in range(36):  # 核心內的細紋路
+        for k in range(36):  # fine texture inside the core
             a = k * 10
             x1, y1 = _pt(m, m, 22, a)
             x2, y2 = _pt(m, m, 36, a)
@@ -305,13 +360,16 @@ class Reactor(tk.Frame):
         self.core.append((oval(13, outline="#176d8d", width=1), "#176d8d"))
         oval(9, fill="#020508", outline="")
 
-    # -- 外部呼叫 --
+    # -- called from the app --
     def start_refresh(self):
         self.busy = True
         self.offline = False
         self.t0 = time.monotonic()
         self.phase = 0.0
-        self.det_lb.config(text="讀取中…", fg=ACCENT)
+        self.anim = "pulse"
+        self.pulse_t0 = self.t0
+        self.pulse_end = None
+        self.det_lb.config(text="polling…", fg=ACCENT)
 
     def set_result(self, load, ncpu, stamp):
         self.busy = False
@@ -323,6 +381,7 @@ class Reactor(tk.Frame):
             fg=MUTED,
         )
         self.time_lb.config(text=stamp)
+        self._finish_pulse()
 
     def set_error(self, msg, stamp):
         self.busy = False
@@ -332,11 +391,21 @@ class Reactor(tk.Frame):
         self.pct_lb.config(text="--", fg="#ff5566")
         self.det_lb.config(text=msg[:34], fg="#ff5566")
         self.time_lb.config(text=stamp)
+        self._finish_pulse()
 
-    # -- 每個 frame 更新亮度 --
+    def _finish_pulse(self):
+        """Data is in: let the bar finish fading back to dark, then show it."""
+        if self.anim != "pulse":
+            self.anim = "idle"
+            return
+        elapsed = time.monotonic() - self.pulse_t0
+        cycles = math.floor(elapsed / PULSE_SECS) + 1  # always at least one
+        self.pulse_end = self.pulse_t0 + cycles * PULSE_SECS
+
+    # -- per-frame brightness update --
     def animate(self, now, dt):
         if self.busy:
-            # 閃爍頻率隨時間由低到高
+            # flicker rate ramps from low to high
             prog = min(1.0, (now - self.t0) / FLICKER_RAMP)
             freq = FLICKER_F0 + (FLICKER_F1 - FLICKER_F0) * prog
             self.phase += freq * dt
@@ -344,14 +413,14 @@ class Reactor(tk.Frame):
         elif self.offline:
             bright = 0.22
         else:
-            # 平常慢慢呼吸
+            # idle breathing
             bright = 0.82 + 0.18 * math.sin(now * 2.2)
 
-        # 核心那些件都是只有 outline 的圓弧/圓圈
+        # everything in the core is an outline-only arc or circle
         for item, col in self.core:
             c = "#ff3b4a" if self.offline else col
             if not self.offline and self.percent > 85:
-                c = _mix(c, "#ff4436", (self.percent - 85) / 15 * 0.7)  # 過載示警
+                c = _mix(c, "#ff4436", (self.percent - 85) / 15 * 0.7)  # overload warning
             self.canvas.itemconfig(item, outline=_dim(c, bright))
 
         self._paint_lamps(now, bright)
@@ -359,23 +428,36 @@ class Reactor(tk.Frame):
         self._paint_ticks(now, bright)
 
     def _paint_lamps(self, now, bright):
-        """外圈模組燈：顏色固定(照參考圖的青/橘)，只有亮度會動。"""
+        """Outer module lamps: fixed cyan/amber colors, only brightness moves."""
         n = len(self.lamps)
         for i, (halo, main, hot, cols) in enumerate(self.lamps):
             if self.offline:
                 k, cols = 0.30, ("#5a1a1f", "#8e2730", "#c05a5a")
             elif self.busy:
-                # 一顆一顆跑的掃描光，疊在閃爍的亮度上
+                # a chase light running lamp by lamp, on top of the flicker
                 d = (int(now * 14) % n - i) % n
                 k = bright * (1.0 if d < 3 else 0.55)
             else:
-                k = 0.80 + 0.20 * math.sin(now * 1.7 + i * 0.5)  # 微微呼吸
+                k = 0.80 + 0.20 * math.sin(now * 1.7 + i * 0.5)  # gentle breathing
             for item, col in zip((halo, main, hot), cols):
                 self.canvas.itemconfig(item, fill=_dim(col, k))
 
     def _paint_loadbar(self, now, bright):
-        """最外圈負載光條：整條的長度 = 負載，顏色 = 負載嚴重度。"""
+        """Outer load bar: length = load, color = how bad the load is."""
         c = self.canvas
+
+        if self.anim == "pulse":
+            if self.pulse_end is not None and now >= self.pulse_end:
+                self.anim = "idle"  # faded back to dark, show the real value
+            else:
+                # the whole ring fades dark -> bright -> dark while polling
+                t = ((now - self.pulse_t0) / PULSE_SECS) % 1.0
+                k = math.sin(math.pi * t) ** 1.4
+                c.itemconfig(self.bar, extent=-359.9, outline=_dim(BAR_LOW, k))
+                c.itemconfig(self.bar_halo, extent=-359.9, outline=_dim(BAR_LOW, k * 0.30))
+                c.itemconfig(self.bar_head, fill="", outline="")
+                return
+
         if self.offline:
             for it in (self.bar, self.bar_halo):
                 c.itemconfig(it, extent=-0.1, outline=BAR_TRACK)
@@ -388,19 +470,19 @@ class Reactor(tk.Frame):
         c.itemconfig(self.bar, extent=-ext, outline=_dim(col, k))
         c.itemconfig(self.bar_halo, extent=-ext, outline=_dim(col, k * 0.28))
 
-        # 頭端亮點跟著條子的尾巴跑
+        # head highlight rides the tail of the bar
         m = self.SIZE / 2
         a = 90 - ext
         pts = []
-        for j in range(4):  # 外緣 左->右
+        for j in range(4):  # outer edge, left -> right
             pts.extend(_pt(m, m, 145, a - 1.1 + 2.2 * j / 3))
-        for j in range(4):  # 內緣 右->左
+        for j in range(4):  # inner edge, right -> left
             pts.extend(_pt(m, m, 131, a + 1.1 - 2.2 * j / 3))
         c.coords(self.bar_head, *pts)
         c.itemconfig(self.bar_head, fill=_dim(col, min(1.0, k * 1.25)))
 
     def _paint_ticks(self, now, bright):
-        """內圈 60 格細刻度：精準的負載讀值。"""
+        """Inner 60-segment ring: the precise load readout."""
         lit = int(round(self.percent / 100 * SEGMENTS))
 
         if self.busy:
@@ -431,7 +513,7 @@ class Reactor(tk.Frame):
                 )
             self._shown_pct = self.percent
 
-        # 最前端那格跟著核心一起呼吸
+        # the leading segment breathes along with the core
         if 0 < lit <= SEGMENTS:
             self.canvas.itemconfig(
                 self.segs[lit - 1],
@@ -439,46 +521,59 @@ class Reactor(tk.Frame):
             )
 
 
-# ---- 主視窗 --------------------------------------------------------------
+# ---- Main window --------------------------------------------------------
 class App(tk.Tk):
     def __init__(self, hosts):
         super().__init__()
-        self.title("ARC REACTOR — 機器 loading 監看")
+        self.title("ARC REACTOR — machine loading monitor")
         self.configure(bg=BG)
         self.resizable(False, False)
 
         style = ttk.Style(self)
         style.theme_use("clam")
-        style.configure("TButton", background="#16303c", foreground=TEXT,
-                        bordercolor="#2a5364", focuscolor=BG, padding=6)
-        style.map("TButton", background=[("active", "#1f4657")])
-        style.configure("TCheckbutton", background=BG, foreground=TEXT)
-        style.map("TCheckbutton", background=[("active", BG)])
-        style.configure("TSpinbox", fieldbackground="#10202a", foreground=TEXT,
-                        arrowcolor=TEXT, bordercolor="#2a5364")
+        style.configure("TCombobox", fieldbackground="#10202a", background="#16303c",
+                        foreground=TEXT, arrowcolor=ACCENT, bordercolor="#2a5364",
+                        lightcolor="#16303c", darkcolor="#16303c", padding=4)
+        style.configure("Term.TButton", background="#0e2029", foreground=ACCENT,
+                        bordercolor="#2a5364", lightcolor="#0e2029",
+                        darkcolor="#0e2029", focuscolor=BG, relief="flat",
+                        padding=(12, 3), font=("TkDefaultFont", 9, "bold"))
+        style.map("Term.TButton",
+                  background=[("active", "#1f4657"), ("pressed", "#26586c")],
+                  foreground=[("active", CYAN_HOT)])
+        style.map("TCombobox",
+                  fieldbackground=[("readonly", "#10202a")],
+                  foreground=[("readonly", TEXT)],
+                  background=[("active", "#1f4657")])
+        self.option_add("*TCombobox*Listbox.background", "#0a1720")
+        self.option_add("*TCombobox*Listbox.foreground", TEXT)
+        self.option_add("*TCombobox*Listbox.selectBackground", "#1f4657")
+        self.option_add("*TCombobox*Listbox.selectForeground", ACCENT)
 
         top = tk.Frame(self, bg=BG, padx=14, pady=10)
         top.pack(fill="x")
-        tk.Label(top, text="ARC  REACTOR", bg=BG, fg=ACCENT,
-                 font=("TkDefaultFont", 15, "bold")).pack(side="left")
-        tk.Label(top, text="  機器 loading 監看 — 點反應爐可單獨更新", bg=BG,
+        tk.Label(top, text="click the reactor to refresh it now", bg=BG,
                  fg=MUTED, font=("TkDefaultFont", 10)).pack(side="left")
 
-        self.auto = tk.BooleanVar(value=False)
-        self.interval = tk.IntVar(value=30)
-        ttk.Spinbox(top, from_=5, to=600, increment=5, width=5,
-                    textvariable=self.interval).pack(side="right", padx=(4, 0))
-        ttk.Checkbutton(top, text="自動更新 (秒)", variable=self.auto,
-                        command=self._auto_changed).pack(side="right", padx=6)
-        ttk.Button(top, text="REFRESH ALL", command=self.refresh_all).pack(side="right")
+        self.hosts = list(hosts)
+        self.host_var = tk.StringVar(value=self.hosts[0])
+        self.picker = ttk.Combobox(
+            top, textvariable=self.host_var, values=self.hosts + [ALL_LABEL],
+            state="readonly",
+            width=max(12, max(len(h) for h in self.hosts) + 2),
+            font=("TkDefaultFont", 10),
+        )
+        self.picker.pack(side="right")
+        self.picker.bind("<<ComboboxSelected>>", self._host_changed)
+        tk.Label(top, text="MACHINE ", bg=BG, fg=MUTED,
+                 font=("TkDefaultFont", 10, "bold")).pack(side="right")
 
-        body = tk.Frame(self, bg=BG, padx=10, pady=4)
-        body.pack()
-        self.reactors = {}
-        for h in hosts:
-            r = Reactor(body, h, self.refresh_one)
-            r.pack(side="left", padx=6)
-            self.reactors[h] = r
+        self.body = tk.Frame(self, bg=BG, padx=10, pady=4)
+        self.body.pack()
+        self.reactors = {h: Reactor(self.body, h, self.refresh_one, self.open_terminal)
+                         for h in self.hosts}
+        self.visible = []
+        self._show([self.hosts[0]])
 
         self.status = tk.Label(self, text="", bg=BG, fg=MUTED, anchor="w",
                                font=("TkFixedFont", 10), padx=16, pady=8)
@@ -487,13 +582,47 @@ class App(tk.Tk):
         self.q = queue.Queue()
         self.inflight = set()
         self._last = time.monotonic()
-        self._auto_job = None
 
         self.after(FPS_MS, self._tick)
         self.after(60, self._drain)
-        self.after(300, self.refresh_all)
+        self.after(300, self._auto_fire)
 
-    # -- 抓資料 --
+    # -- machine picker --
+    def _show(self, hosts):
+        """Lay out exactly these reactors, in a grid for the ALL view."""
+        for r in self.reactors.values():
+            r.grid_forget()
+        for i, h in enumerate(hosts):
+            self.reactors[h].grid(row=i // GRID_COLS, column=i % GRID_COLS,
+                                  padx=6, pady=4)
+        self.visible = list(hosts)
+
+    def _host_changed(self, _event=None):
+        pick = self.host_var.get()
+        hosts = self.hosts if pick == ALL_LABEL else [pick]
+        if hosts == self.visible:
+            return
+        self._show(hosts)
+        self.picker.selection_clear()
+        if pick == ALL_LABEL:
+            self._say("showing all %d machines" % len(self.hosts))
+        else:
+            self._say("%s  %s" % (pick, self.reactors[pick].det_lb.cget("text")))
+
+    # -- terminal --
+    def open_terminal(self, host):
+        """Open a terminal on that machine (ssh unless it is this one)."""
+        for cmd in terminal_cmds(host):
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, start_new_session=True)
+            except OSError:
+                continue  # that terminal is not installed, try the next
+            self._say("%s: opened %s" % (host, cmd[0]))
+            return
+        self._say("no terminal found (tried mate-terminal, xterm)")
+
+    # -- fetching --
     def refresh_all(self):
         for h in self.reactors:
             self.refresh_one(h)
@@ -503,14 +632,15 @@ class App(tk.Tk):
             return
         self.inflight.add(host)
         self.reactors[host].start_refresh()
-        self._say("讀取 %s …" % host)
+        if host in self.visible:
+            self._say("polling %s …" % host)
         threading.Thread(target=self._work, args=(host,), daemon=True).start()
 
     def _work(self, host):
         try:
             l1, l5, l15, ncpu = probe(host)
             self.q.put((host, True, ((l1, l5, l15), ncpu)))
-        except Exception as e:  # 連不上 / 沒金鑰 / timeout 都算離線
+        except Exception as e:  # unreachable / no key / timeout all count as offline
             self.q.put((host, False, str(e)))
 
     def _drain(self):
@@ -525,38 +655,28 @@ class App(tk.Tk):
             if ok:
                 load, ncpu = payload
                 r.set_result(load, ncpu, stamp)
-                self._say("%s  load %.2f / %d cpu  →  %d%%"
-                          % (host, load[0], ncpu, round(r.percent)))
+                if host in self.visible:
+                    self._say("%s  load %.2f / %d cpu  →  %d%%"
+                              % (host, load[0], ncpu, round(r.percent)))
             else:
                 r.set_error(payload, stamp)
-                self._say("%s 連不上：%s" % (host, payload))
+                if host in self.visible:
+                    self._say("%s unreachable: %s" % (host, payload))
         self.after(60, self._drain)
 
-    # -- 動畫主迴圈 --
+    # -- animation loop (only the visible reactors need painting) --
     def _tick(self):
         now = time.monotonic()
         dt = now - self._last
         self._last = now
-        for r in self.reactors.values():
-            r.animate(now, dt)
-        self.after(FPS_MS, self._tick)
+        for h in self.visible:
+            self.reactors[h].animate(now, dt)
+        self.after(FPS_MS if len(self.visible) == 1 else FPS_MS_ALL, self._tick)
 
-    # -- 自動更新 --
-    def _auto_changed(self):
-        if self._auto_job:
-            self.after_cancel(self._auto_job)
-            self._auto_job = None
-        if self.auto.get():
-            self._schedule_auto()
-
-    def _schedule_auto(self):
-        secs = max(5, self.interval.get())
-        self._auto_job = self.after(secs * 1000, self._auto_fire)
-
+    # -- auto refresh every 10s --
     def _auto_fire(self):
         self.refresh_all()
-        if self.auto.get():
-            self._schedule_auto()
+        self.after(REFRESH_MS, self._auto_fire)
 
     def _say(self, msg):
         self.status.config(text=msg)
