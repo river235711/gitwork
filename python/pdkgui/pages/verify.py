@@ -9,10 +9,11 @@ Verification-flow pages:
     'use' box adds -hcell <path> to the hierarchical run).
   - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
     jivaro step).
-  - JIVARO: no command file -- a frequencyLimit, a post-layout netlist (File)
-    and a RunFolder; Run generates jivaro.xml (inputFile = File, outputFile
-    inserts '.red' before the .lump/.dist suffix, frequencyLimit from the field)
-    and a run script that calls jivaro -xml jivaro.xml.
+  - JIVARO: no command file -- a frequencyLimit, an errorMax, a post-layout
+    netlist (File) and a RunFolder; Run generates jivaro.xml (inputFile = File,
+    outputFile inserts '.red' before the .lump/.dist suffix, frequencyLimit and
+    errorMax from the fields) and a run script that calls jivaro -xml
+    jivaro.xml.
 
 Common:
   - Bottom command-file text box (right + bottom scrollbars); initially loads
@@ -110,8 +111,10 @@ _FILE_KIND = {
     "File": "extracted",
 }
 
-# jivaro's own default frequency limit (GHz), and so the XRC field's
+# jivaro's own default frequency limit (GHz) and maximum error (%), and so the
+# XRC fields'
 _JIVARO_FREQ_LIMIT = "20"
+_JIVARO_ERROR_MAX = "2"
 
 # LVL: dbdiff writes the comparison rules, calibre runs them, RVE opens what
 # that produced. Fixed names -- there is no command file to say otherwise.
@@ -209,15 +212,16 @@ class VerifyPage(BasePage):
         cb.grid(row=row, column=1, sticky="we", padx=4)
         self.entries[key] = cb
 
-    def _check_row(self, row, key, text="", default=False, extra=None):
+    def _check_row(self, row, key, text="", default=False, extras=()):
         """A yes/no on its own row.
 
-        extra=(key, label, default, unit) puts a small field after the box, for
-        a number the option itself needs: XrcReduction is 'run' *and* the
-        frequency the reduction is accurate to, and the two belong together."""
+        extras is a sequence of (key, label, default, unit) specs, each putting
+        a small field after the box, for the numbers the option itself needs:
+        XrcReduction is 'run' *and* the frequency the reduction is accurate to
+        *and* the error it may introduce, and they belong together."""
         tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
         var = tk.BooleanVar(value=default)
-        if extra is None:
+        if not extras:
             tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
                            command=self._schedule_save).grid(row=row, column=1, sticky="w")
         else:
@@ -225,13 +229,14 @@ class VerifyPage(BasePage):
             holder.grid(row=row, column=1, sticky="w")
             tk.Checkbutton(holder, variable=var, text=text, bg=self.bg,
                            command=self._schedule_save).pack(side="left")
-            self._number_widgets(holder, *extra)
+            for spec in extras:
+                self._number_widgets(holder, *spec)
         self.entries[key] = var
 
     def _number_row(self, row, key, label, default, unit=""):
         """A row holding one short number and its unit (JIVARO's frequency
-        limit). The label spells the number's name, which is not the key: the
-        name is jivaro's, lower-case f and all."""
+        limit and maximum error). The label spells the number's name, which is
+        not the key: the name is jivaro's, lower-case f and all."""
         tk.Label(self, text=label, bg=self.bg).grid(row=row, column=0, sticky="w")
         holder = tk.Frame(self, bg=self.bg)
         holder.grid(row=row, column=1, sticky="w")
@@ -239,10 +244,10 @@ class VerifyPage(BasePage):
 
     def _number_widgets(self, parent, key, label, default, unit=""):
         """A short number field, its name before it and its unit after, packed
-        into parent. Shared by the XrcReduction row (where it follows the
-        checkbox) and JIVARO's frequencyLimit row (where it is the whole row)."""
+        into parent. Shared by the XrcReduction row (where these follow the
+        checkbox) and JIVARO's number rows (where one is the whole row)."""
         if label:
-            tk.Label(parent, text=label, bg=self.bg).pack(side="left")
+            tk.Label(parent, text=label, bg=self.bg).pack(side="left", padx=(6, 0))
         e = tk.Entry(parent, width=6)
         e.insert(0, default)
         e.pack(side="left", padx=4)
@@ -502,8 +507,10 @@ class VerifyPage(BasePage):
         self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
         self._combo_row(r, "XrcExtType", ["c", "rcc"], "c"); r += 1
         self._check_row(r, "XrcReduction", "run,", default=False,
-                        extra=("FrequencyLimit", "frequencyLimit",
-                               _JIVARO_FREQ_LIMIT, "GHz")); r += 1
+                        extras=(("FrequencyLimit", "frequencyLimit",
+                                 _JIVARO_FREQ_LIMIT, "GHz"),
+                                ("ErrorMax", "errorMax",
+                                 _JIVARO_ERROR_MAX, "%"))); r += 1
         self._entry_row(r, "RunFolder",
                         [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
         self._action_buttons(r); r += 1
@@ -545,6 +552,8 @@ class VerifyPage(BasePage):
         # box that turns the reduction on
         self._number_row(r, "FrequencyLimit", "frequencyLimit",
                          _JIVARO_FREQ_LIMIT, "GHz"); r += 1
+        self._number_row(r, "ErrorMax", "errorMax",
+                         _JIVARO_ERROR_MAX, "%"); r += 1
         self._entry_row(r, "File",
                         [self._open_btn("File"), ("Edit", self._on_edit_file)]); r += 1
         self._entry_row(r, "RunFolder",
@@ -1211,13 +1220,14 @@ class VerifyPage(BasePage):
             '<!-- Reduced File Tuning -->\n\n\n'
             '<!-- Reduction settings -->\n\n'
             '    <criterion value="accurate"/>\n'
-            '    <errorMax  value="2"/>\n'
+            '    <errorMax  value="%s"/>\n'
             '    <frequencyLimit  value="%s"/>\n'
             '    <negativeCapacitor value="false"/>\n'
             '    <decouplingAutoThreshold value="false"/>\n\n'
             '</options>\n\n'
             '</reductionParameters>\n'
-        ) % (infile, self._jivaro_output_name(infile), self._frequency_limit())
+        ) % (infile, self._jivaro_output_name(infile), self._error_max(),
+             self._frequency_limit())
 
     def _frequency_limit(self):
         """The frequency the reduction stays accurate to, in GHz. Both tabs that
@@ -1225,6 +1235,12 @@ class VerifyPage(BasePage):
         XRC, on a row of its own on JIVARO -- and an emptied one writes jivaro's
         usual 20, since the file has to carry a number."""
         return self._entry("FrequencyLimit") or _JIVARO_FREQ_LIMIT
+
+    def _error_max(self):
+        """The error the reduction may introduce, in percent. Sits beside the
+        frequency limit on both tabs that write a jivaro.xml, and an emptied one
+        writes jivaro's usual 2, since the file has to carry a number."""
+        return self._entry("ErrorMax") or _JIVARO_ERROR_MAX
 
     def _run_jivaro(self, folder):
         infile = self.entries["File"].get().strip()
