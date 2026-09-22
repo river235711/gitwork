@@ -715,7 +715,7 @@ LEGACY_MARKER_V1 = ".migrated_commandfile"  # marker written by the first versio
 # every step runs once more (they merge, so this cannot lose anything).
 MIGRATION_VERSION = 2
 GDS_LIST_MODULES = ["SKIPPER", "KLAYOUT"]
-GDS_LIST_ROWS = 10                          # pad to the row count of the GDS pages
+GDS_LIST_ROWS = 15                          # pad to the row count of the GDS pages
 
 _RE_LEGACY_GDS_ROW = re.compile(r'^layout_path(\d+)\s+(.+?)\s*$', re.IGNORECASE)
 

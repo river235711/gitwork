@@ -135,7 +135,7 @@ class LegacyMigration(GuiTestCase):
         self.assertEqual(gds[0], "/a/one.gds")
         self.assertEqual(gds[1], "", "row 2 should stay empty")
         self.assertEqual(gds[2], "/a/three.gds")
-        self.assertEqual(len(gds), 10, "the list should be padded to ten rows")
+        self.assertEqual(len(gds), 15, "the list should be padded to fifteen rows")
 
     def test_the_originals_are_kept(self):
         path = self._legacy(".pdkgui.drc%s.commandfile" % config.DESIGN_NAME, "x\n")

@@ -2,6 +2,7 @@ pdkgui @SIRIUS
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
+2026.0922    2026/09/22    * [Function] SKIPPER and KLAYOUT expand the saved layout list from GDS1-GDS10 to GDS1-GDS15
 2026.0911    2026/09/11    * [Function] New function of XRC XrcReduction errorMax in %, default 2, beside the frequencyLimit, which the generated jivaro.xml now carries instead of a fixed 2
                            * [Function] New function of JIVARO errorMax in %, default 2, below the frequencyLimit, written into the jivaro.xml this tab generates
 2026.0831    2026/08/31    * [Function] New function of pdkgui -e engineer mode, the command line tools that run in your own terminal instead of opening a window, pdkgui -e -h lists them

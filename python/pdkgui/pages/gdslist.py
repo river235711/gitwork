@@ -20,7 +20,7 @@ import config
 
 
 class GdsListPage(BasePage):
-    ROWS = 10
+    ROWS = config.GDS_LIST_ROWS
 
     def build(self):
         self._save_job = None

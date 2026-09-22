@@ -80,9 +80,10 @@ class JivaroTab(GuiTestCase):
 class GdsListTabs(GuiTestCase):
     """SKIPPER and KLAYOUT share one page class but open different viewers."""
 
-    def test_both_tabs_offer_ten_rows_with_open_and_view(self):
+    def test_both_tabs_offer_fifteen_rows_with_open_and_view(self):
         for module in ("SKIPPER", "KLAYOUT"):
             page = self.open_tab(module)
+            self.assertEqual(page.ROWS, 15)
             self.assertEqual(len(page.entries), page.ROWS)
             self.assertEqual(len(self.widgets(page, "Button")), page.ROWS * 2)
 
