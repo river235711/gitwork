@@ -9,17 +9,17 @@
   color-scheme: light;
   --bg: #fefdfb;
   --bg-alt: #f5f2ea;
-  /* Card edge and header rule. Kept dark enough to read against --bg-alt, where
-     it is 1.20:1 — the separation the old filled card had against the canvas. */
   --surface-border: #e2ded2;
-  --card: #fdfbf7;          /* near-white panel, defined by its border not its fill */
-  --card-rule: #e6e0d4;     /* hairline between metadata rows inside a card */
+  --card: #fdfbf7;
+  --card-rule: #e6e0d4;
+  --input-bg: #ffffff;
+  --input-border: #d4cfc2;
   --divider: #b0aea5;
   --text: #141413;
   --text-muted: #5f5e59;
   --accent: #a0522d;
-  /* The footer inverts, and neither --text-muted nor --accent clears 4.5:1 on
-     it (the copper only reaches 3.36:1), so it carries its own two tones. */
+  --success: #2a5c3d;       /* 7.6:1 on --card */
+  --error: #9e2a2b;         /* 6.9:1 on --card */
   --footer-muted: #8d897f;  /* 5.4:1 on --text */
   --footer-accent: #c9825a; /* 6.1:1 on --text */
   --radius-sm: 8px;
@@ -33,7 +33,6 @@
 
 html { scroll-behavior: smooth; }
 
-/* Sticky header is 72px tall — keep anchor targets clear of it. */
 :target, .section, .service-card { scroll-margin-top: 96px; }
 
 body {
@@ -96,8 +95,6 @@ svg {
   margin-right: auto;
 }
 
-/* Set as a wordmark, so caps with positive tracking -- the tight negative
-   tracking the display headings use closes caps up until they read as a block. */
 .logo-text {
   font-family: var(--font-display);
   font-size: 1.3rem;
@@ -131,12 +128,14 @@ svg {
 .btn {
   display: inline-block;
   padding: 11px 22px;
+  border: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 0.95rem;
   line-height: 1.3;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
   white-space: nowrap;
 }
 
@@ -146,6 +145,7 @@ svg {
 }
 
 .btn-primary:hover { background: #33322e; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn .arrow {
   display: inline-block;
@@ -240,8 +240,6 @@ svg {
 
 .service-icon svg { width: 32px; height: 32px; }
 
-/* Card headings in the display sans, body copy in the serif underneath --
-   anthropic.com's card treatment. */
 .service-card h3,
 .contact-card h3 {
   font-family: var(--font-display);
@@ -254,11 +252,6 @@ svg {
 
 .service-desc { color: var(--text-muted); font-size: 0.98rem; margin: 0 0 28px; }
 
-/* Label/value rows separated by hairlines, pinned to the bottom of the card so
-   the CTAs line up across a row of cards of unequal length. Every card carries
-   a single row -- Tools, or Languages on the CAD card -- kept short enough to
-   stay on one line; wrapped values are what make a row of cards look ragged.
-   Everything else a card has to say belongs in its description. */
 .card-meta {
   margin: auto 0 24px;
   padding: 0;
@@ -292,15 +285,12 @@ svg {
 
 .card-cta { align-self: flex-start; }
 
-/* Contact */
-/* Careers lives in the footer, so this grid holds a single card. Capping it at
-   one service-card column ((1152 - 24) / 2) keeps that card aligned with the
-   cards above instead of stretching across the full canvas. */
-.contact-grid {
+/* Contact — two-column layout aligned with the service-grid above */
+.contact-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 5fr 7fr;
   gap: 24px;
-  max-width: 564px;
+  align-items: start;
 }
 
 .contact-card {
@@ -325,13 +315,19 @@ svg {
   margin: 0 0 24px;
 }
 
+.contact-email-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .contact-email {
-  margin: auto 0 0;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 0.95rem;
   color: var(--accent);
-  align-self: flex-start;
   border-bottom: 1px solid var(--accent);
 }
 
@@ -341,10 +337,147 @@ svg {
   transition: transform 0.15s ease;
 }
 
-.contact-card:hover .contact-email .arrow { transform: translateX(3px); }
+.contact-email:hover .arrow { transform: translateX(3px); }
 
-/* Footer -- inverted, closing the page the way anthropic.com does. The colour
-   change is the divider, so there is no rule along the top. */
+.btn-copy {
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.btn-copy:hover {
+  color: var(--text);
+  border-color: var(--divider);
+  background: var(--bg-alt);
+}
+
+/* Inquiry form */
+.form-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.form-header h3 { margin: 0; }
+
+.form-note {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.req { color: var(--accent); }
+
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inquiry-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-full { grid-column: 1 / -1; }
+
+.field label {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.94rem;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field select {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 108px;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--divider);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(160, 82, 45, 0.14);
+}
+
+.field input.invalid,
+.field select.invalid,
+.field textarea.invalid {
+  border-color: var(--error);
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.form-status {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.form-status.is-success { color: var(--success); }
+.form-status.is-error { color: var(--error); }
+
+/* Footer */
 .site-footer {
   background: var(--text);
   color: var(--bg);
@@ -397,13 +530,12 @@ svg {
 
 /* Responsive */
 @media (max-width: 900px) {
-  .service-grid { grid-template-columns: 1fr; }
+  .service-grid,
+  .contact-layout { grid-template-columns: 1fr; }
   .footer-cols { grid-template-columns: 1fr 1fr; gap: 32px; }
 }
 
 @media (max-width: 720px) {
-  /* One nav link and the CTA both fit on a phone once the gaps tighten, so the
-     header stays flat -- no menu to open. */
   .header-inner { gap: 20px; }
   .main-nav { gap: 20px; font-size: 0.9rem; }
   .header-cta { padding: 8px 14px; font-size: 0.9rem; }
@@ -411,5 +543,6 @@ svg {
   .hero { padding: 56px 0 48px; }
   .section { padding: 64px 0; }
   .service-card, .contact-card { padding: 28px; }
+  .form-grid { grid-template-columns: 1fr; }
   .footer-cols { grid-template-columns: 1fr; }
 }

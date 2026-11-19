@@ -55,7 +55,7 @@
           <dl class="card-meta">
             <div class="meta-row"><dt>Languages</dt><dd>Python, Tcl, Perl, SKILL</dd></div>
           </dl>
-          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
+          <a class="btn btn-primary card-cta" href="#contact" data-service="CAD Support">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
 
         <article class="service-card" id="pdk">
@@ -67,7 +67,7 @@
           <dl class="card-meta">
             <div class="meta-row"><dt>Tools</dt><dd>Virtuoso, Custom Compiler, Calibre, SKILL</dd></div>
           </dl>
-          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
+          <a class="btn btn-primary card-cta" href="#contact" data-service="PDK Support">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
 
         <article class="service-card" id="rule-deck">
@@ -79,7 +79,7 @@
           <dl class="card-meta">
             <div class="meta-row"><dt>Tools</dt><dd>Calibre DRC, Tcl, Python</dd></div>
           </dl>
-          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
+          <a class="btn btn-primary card-cta" href="#contact" data-service="Rule Deck Support">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
 
         <article class="service-card" id="physical-design">
@@ -91,7 +91,7 @@
           <dl class="card-meta">
             <div class="meta-row"><dt>Tools</dt><dd>Innovus, ICC2, Tcl</dd></div>
           </dl>
-          <a class="btn btn-primary card-cta" href="#contact">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
+          <a class="btn btn-primary card-cta" href="#contact" data-service="PD Support">Discuss this service <span class="arrow" aria-hidden="true">&rarr;</span></a>
         </article>
 
       </div>
@@ -103,15 +103,78 @@
       <h2 class="section-title">Contact</h2>
       <p class="section-sub">Reach out to discuss your project &mdash; scoping, engagement models, and technical questions on any of the four support lines.</p>
 
-      <div class="contact-grid">
-        <a class="contact-card" href="mailto:support@cadsemi.com">
+      <div class="contact-layout">
+        <!-- Left column: Direct Email (kept as fallback for attachments / existing clients) -->
+        <div class="contact-card">
           <div class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="4" y="10" width="40" height="28" rx="4"/><path d="M6 14l18 14 18-14"/></svg>
           </div>
-          <h3>Client &amp; Project Inquiries</h3>
-          <p class="contact-desc">Tell us which part of the flow you need covered and we will come back with a scope.</p>
-          <p class="contact-email">support@cadsemi.com <span class="arrow" aria-hidden="true">&rarr;</span></p>
-        </a>
+          <h3>Direct Email</h3>
+          <p class="contact-desc">Prefer to write directly from your mail client or attach a spec, NDA, or block list? Send your inquiry straight to our engineering team.</p>
+
+          <div class="contact-email-row">
+            <a class="contact-email" href="mailto:support@cadsemi.com">support@cadsemi.com <span class="arrow" aria-hidden="true">&rarr;</span></a>
+            <button type="button" class="btn-copy" id="copy-email" data-email="support@cadsemi.com">Copy</button>
+          </div>
+        </div>
+
+        <!-- Right column: Structured Inquiry Form (Web3Forms-ready) -->
+        <div class="contact-card contact-form-card">
+          <div class="form-header">
+            <h3>Project Inquiry</h3>
+            <p class="form-note">Fields marked with <span class="req" aria-hidden="true">*</span> are required.</p>
+          </div>
+
+          <form id="contact-form" class="inquiry-form" action="https://formsubmit.co/ajax/4f971524aabb7b252e770d15c67c6cde" method="POST" novalidate>
+            <!-- FormSubmit AJAX config -->
+            <input type="hidden" name="_subject" value="New Project Inquiry from cadsemi.com">
+            <input type="hidden" name="_template" value="table">
+            <input type="hidden" name="_captcha" value="false">
+            <!-- Honeypot spam trap -->
+            <input type="text" name="_honey" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="name">Name <span class="req" aria-hidden="true">*</span></label>
+                <input id="name" name="name" type="text" autocomplete="name" placeholder="Jane Chen" required>
+              </div>
+
+              <div class="field">
+                <label for="email">Work Email <span class="req" aria-hidden="true">*</span></label>
+                <input id="email" name="email" type="email" autocomplete="email" placeholder="jane@company.com" required>
+              </div>
+
+              <div class="field">
+                <label for="company">Company</label>
+                <input id="company" name="company" type="text" autocomplete="organization" placeholder="Fabless / Foundry / EDA">
+              </div>
+
+              <div class="field">
+                <label for="service">Service Interest <span class="req" aria-hidden="true">*</span></label>
+                <select id="service" name="service" required>
+                  <option value="" disabled selected>Select a support line...</option>
+                  <option value="CAD Support">CAD Support</option>
+                  <option value="PDK Support">PDK Support</option>
+                  <option value="Rule Deck Support">Rule Deck Support</option>
+                  <option value="PD Support">PD Support</option>
+                  <option value="General / Multiple Services">General / Multiple Services</option>
+                </select>
+              </div>
+
+              <div class="field field-full">
+                <label for="message">Project Details <span class="req" aria-hidden="true">*</span></label>
+                <textarea id="message" name="message" rows="4" placeholder="Tell us which part of the flow you need covered (foundry/node, EDA tools, timeline)..." required></textarea>
+              </div>
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn btn-primary" id="submit-btn">
+                Send inquiry <span class="arrow" aria-hidden="true">&rarr;</span>
+              </button>
+              <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </section>
