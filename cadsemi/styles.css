@@ -510,6 +510,15 @@ svg {
   padding-bottom: 48px;
 }
 
+/* While the "Get in touch" column is commented out (3 children total), use 3
+   desktop tracks so the right edge doesn't sit empty. Restoring the 4th column
+   automatically brings back the 4-column layout. */
+@media (min-width: 901px) {
+  .footer-cols:not(:has(> :nth-child(4))) {
+    grid-template-columns: 1.4fr repeat(2, 1fr);
+  }
+}
+
 .footer-tagline {
   margin: 12px 0 0;
   color: var(--footer-muted);

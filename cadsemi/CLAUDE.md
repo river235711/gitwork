@@ -44,7 +44,7 @@ print("dangling anchors:", dead or "none")
 PY
 ```
 
-The Contact section is a two-card grid (`.contact-layout`, 5fr/7fr): a Direct Email card and the inquiry form. The Direct Email card is currently commented out (`BEGIN-HIDE` / `END-HIDE` markers in `index.html`) until the support mailbox exists. While the form is alone, `.contact-card:only-child` caps it at 564px — one service-card column, `(1152 - 24) / 2` — so it lines up with the cards above; restoring the email card brings the split back with no CSS change.
+The Contact section is a two-card grid (`.contact-layout`, 5fr/7fr): a Direct Email card and the inquiry form. The Direct Email card is currently commented out until the support mailbox exists — see *Pending: support mailbox* below. While the form is alone, `.contact-card:only-child` caps it at 564px — one service-card column, `(1152 - 24) / 2` — so it lines up with the cards above; restoring the email card brings the split back with no CSS change.
 
 The form posts via AJAX to FormSubmit using the hashed endpoint, never the plain address, so no personal mailbox appears in the source. FormSubmit activates per origin: a new domain sends one confirmation mail to the owner before submissions are delivered.
 
@@ -63,6 +63,22 @@ The footer is inverted in light mode, and neither `--text-muted` nor `--accent` 
 The site follows the OS/browser setting through `@media (prefers-color-scheme: dark)` at the end of the token section — no toggle, no JavaScript. It only redefines tokens, which is why no component may hardcode a colour. The dark set is annotated with measured ratios like the light one; the copper is lifted to `#d68b61` there because `#a0522d` drops to 3.2:1 on the dark canvas. The footer can't invert in dark mode, so it sits one shade below `--bg` with a `--footer-edge` hairline on top. Check both schemes after any colour change (DevTools → Rendering → Emulate CSS `prefers-color-scheme`).
 
 Headings and UI are the display sans (Poppins), body copy is the serif (Lora). The wordmark is `CADSEMI`, caps with positive tracking; the `<title>` keeps title case (`Home \ Cadsemi`).
+
+## Pending: support mailbox
+
+`support@cadsemi.com` is not set up yet, so every place that shows it is hidden, not deleted. **Whenever the user works on this site, remind them that these are still hidden** until they say the mailbox works. Every spot carries the marker `EMAIL-PENDING`:
+
+```
+grep -n EMAIL-PENDING index.html script.js   # expect 3 hits while pending
+```
+
+When the mailbox is ready, restore all three together:
+
+1. `index.html` — Direct Email card in Contact: delete its `BEGIN-HIDE` / `END-HIDE` lines.
+2. `index.html` — footer "Get in touch" column: delete its `BEGIN-HIDE` / `END-HIDE` lines.
+3. `script.js` — form failure message: uncomment the `support@cadsemi.com` line and delete the temporary one.
+
+Then delete the `EMAIL-PENDING` note comments, bump the `?v=` on `styles.css` / `script.js`, send a real mail to `support@cadsemi.com` to confirm it arrives, and remove this section. `hr@cadsemi.com` (footer Careers link) was left visible — confirm with the user whether that mailbox works too.
 
 ## Editorial rules
 

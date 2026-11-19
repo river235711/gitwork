@@ -82,7 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch {
       statusEl.className = "form-status is-error";
-      statusEl.textContent = "Could not send right now. Please email support@cadsemi.com directly.";
+      // EMAIL-PENDING (3/3): swap back to the email fallback once support@cadsemi.com is set up:
+      // statusEl.textContent = "Could not send right now. Please email support@cadsemi.com directly.";
+      statusEl.textContent = "Could not send right now. Please try again in a moment.";
     } finally {
       submitBtn.disabled = false;
     }
