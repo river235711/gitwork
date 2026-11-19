@@ -6,7 +6,7 @@
    text as well as icons and rules. */
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --bg: #fefdfb;
   --bg-alt: #f5f2ea;
   --surface-border: #e2ded2;
@@ -22,6 +22,14 @@
   --error: #9e2a2b;         /* 6.9:1 on --card */
   --footer-muted: #8d897f;  /* 5.4:1 on --text */
   --footer-accent: #c9825a; /* 6.1:1 on --text */
+  /* Footer surface. Inverted in light mode -- the colour change is the divider. */
+  --footer-bg: var(--text);
+  --footer-text: var(--bg);
+  --footer-edge: transparent;
+  --footer-rule: rgba(255, 255, 255, 0.14);
+  --btn-hover: #33322e;
+  --selection: rgba(160, 82, 45, 0.18);
+  --focus-ring: rgba(160, 82, 45, 0.14);
   --radius-sm: 8px;
   --radius: 12px;
   --max-width: 1200px;
@@ -52,7 +60,7 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-::selection { background: rgba(160, 82, 45, 0.18); color: var(--text); }
+::selection { background: var(--selection); color: var(--text); }
 
 img, svg { display: block; max-width: 100%; }
 
@@ -144,7 +152,7 @@ svg {
   color: var(--bg);
 }
 
-.btn-primary:hover { background: #33322e; }
+.btn-primary:hover { background: var(--btn-hover); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn .arrow {
@@ -291,6 +299,14 @@ svg {
   grid-template-columns: 5fr 7fr;
   gap: 24px;
   align-items: start;
+}
+
+/* While the Direct Email card is commented out, the form is alone: give it one
+   service-card column ((1152 - 24) / 2) so it lines up with the cards above.
+   Restoring the email card stops this matching and the 5fr/7fr split returns. */
+.contact-layout > .contact-card:only-child {
+  grid-column: 1 / -1;
+  max-width: 564px;
 }
 
 .contact-card {
@@ -450,7 +466,7 @@ svg {
 .field textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(160, 82, 45, 0.14);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .field input.invalid,
@@ -479,12 +495,13 @@ svg {
 
 /* Footer */
 .site-footer {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  border-top: 1px solid var(--footer-edge);
   padding: 64px 0 32px;
 }
 
-.site-footer .logo-text { color: var(--bg); }
+.site-footer .logo-text { color: var(--footer-text); }
 
 .footer-cols {
   display: grid;
@@ -518,14 +535,45 @@ svg {
   font-size: 0.92rem;
 }
 
-.footer-col a { color: var(--bg); }
+.footer-col a { color: var(--footer-text); }
 .footer-col a:hover { color: var(--footer-accent); }
 
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--footer-rule);
   padding-top: 24px;
   color: var(--footer-muted);
   font-size: 0.85rem;
+}
+
+/* Dark mode -- follows the OS / browser setting, no toggle. Only tokens change;
+   every component reads its colours from :root. Ratios measured like the light set.
+   The copper is lifted (#a0522d is only 3.2:1 on this canvas), and the footer can
+   no longer invert, so it drops a shade below --bg and takes a hairline on top. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181715;
+    --bg-alt: #1f1e1b;
+    --surface-border: #3d3a35;  /* 1.47:1 on --bg-alt */
+    --card: #232220;
+    --card-rule: #35332e;
+    --input-bg: #1b1a18;
+    --input-border: #4d4a43;
+    --divider: #6e6a62;
+    --text: #ece9e2;            /* 14.8:1 on --bg, 13.1:1 on --card */
+    --text-muted: #a9a59b;      /* 7.3:1 on --bg, 6.5:1 on --card */
+    --accent: #d68b61;          /* 6.6:1 on --bg, 5.9:1 on --card */
+    --success: #86c49b;         /* 7.9:1 on --card */
+    --error: #ec8a87;           /* 6.5:1 on --card */
+    --footer-bg: #0f0e0d;
+    --footer-text: #ece9e2;     /* 15.9:1 on --footer-bg */
+    --footer-muted: #8f8b81;    /* 5.7:1 on --footer-bg */
+    --footer-accent: #d68b61;   /* 7.1:1 on --footer-bg */
+    --footer-edge: var(--surface-border);
+    --footer-rule: rgba(255, 255, 255, 0.10);
+    --btn-hover: #d4d0c7;       /* --bg on it: 11.6:1 */
+    --selection: rgba(214, 139, 97, 0.30);
+    --focus-ring: rgba(214, 139, 97, 0.22);
+  }
 }
 
 /* Responsive */

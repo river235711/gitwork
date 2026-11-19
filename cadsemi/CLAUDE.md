@@ -44,17 +44,23 @@ print("dangling anchors:", dead or "none")
 PY
 ```
 
-The Contact section's single card is capped at 564px — one service-card column, `(1152 - 24) / 2` — so it lines up with the cards above.
+The Contact section is a two-card grid (`.contact-layout`, 5fr/7fr): a Direct Email card and the inquiry form. The Direct Email card is currently commented out (`BEGIN-HIDE` / `END-HIDE` markers in `index.html`) until the support mailbox exists. While the form is alone, `.contact-card:only-child` caps it at 564px — one service-card column, `(1152 - 24) / 2` — so it lines up with the cards above; restoring the email card brings the split back with no CSS change.
+
+The form posts via AJAX to FormSubmit using the hashed endpoint, never the plain address, so no personal mailbox appears in the source. FormSubmit activates per origin: a new domain sends one confirmation mail to the owner before submissions are delivered.
 
 ## Design system
 
 Colors come from the `:root` tokens in `styles.css`; never hardcode a hex. Body text holds **4.5:1** contrast — the tokens are annotated with their measured ratios, so keep the annotations honest when adding one.
 
-Two spots in `index.html` mirror `--bg` as a literal and can't use the token — the `<meta name="theme-color">` and the inline SVG favicon's `fill`. Change `--bg` and both have to move with it.
+Two spots in `index.html` mirror `--bg` as a literal and can't use the token — the `<meta name="theme-color">` pair (one per `prefers-color-scheme`) and the inline SVG favicon's `fill` plus its embedded dark-scheme `<style>`. Change `--bg` in either scheme and the matching literals have to move with it.
 
 Cards are near-white on the warm canvas, so what separates them is `--surface-border`, not their fill. Keep that token dark enough to read against `--bg-alt` (it sits at 1.20:1); lighten it and the four service cards lose their edges against the services band.
 
-The footer is inverted, and neither `--text-muted` nor `--accent` survives there (the copper only reaches 3.36:1 on `--text`); it has its own `--footer-muted` and `--footer-accent`. Anything placed in the footer that inherits `color: var(--text)` — `.logo-text` did — needs an explicit override or it goes dark on dark.
+The footer is inverted in light mode, and neither `--text-muted` nor `--accent` survives there (the copper only reaches 3.36:1 on `--text`); it has its own `--footer-bg`, `--footer-text`, `--footer-muted` and `--footer-accent`. Anything placed in the footer must use those — inheriting `color: var(--text)` or `var(--bg)` breaks in one of the two schemes.
+
+### Dark mode
+
+The site follows the OS/browser setting through `@media (prefers-color-scheme: dark)` at the end of the token section — no toggle, no JavaScript. It only redefines tokens, which is why no component may hardcode a colour. The dark set is annotated with measured ratios like the light one; the copper is lifted to `#d68b61` there because `#a0522d` drops to 3.2:1 on the dark canvas. The footer can't invert in dark mode, so it sits one shade below `--bg` with a `--footer-edge` hairline on top. Check both schemes after any colour change (DevTools → Rendering → Emulate CSS `prefers-color-scheme`).
 
 Headings and UI are the display sans (Poppins), body copy is the serif (Lora). The wordmark is `CADSEMI`, caps with positive tracking; the `<title>` keeps title case (`Home \ Cadsemi`).
 
