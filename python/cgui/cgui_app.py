@@ -656,13 +656,8 @@ class CGui(tk.Tk):
         """Return the absolute path to the offline HTML PVFlow User Guide."""
         return os.path.abspath(os.path.join(config.DATA_DIR, "help", "index.html"))
 
-    def open_user_guide(self):
-        """Open the offline HTML PVFlow User Guide in the user's web browser."""
-        path = self.user_guide_path()
-        if not os.path.isfile(path):
-            messagebox.showerror("PVFlow Help", "User Guide file not found:\n%s" % path)
-            return
-        url = Path(path).as_uri()
+    def _open_url(self, url, error_title="pvflow", fallback_hint=None):
+        """Open a URL or file URI in the user's web browser."""
         base_env = config.desktop_env()
         forced = config.env_get("PVFLOW_BROWSER", "CGUI_BROWSER").strip()
         candidates = (forced,) if forced else (
@@ -695,11 +690,19 @@ class CGui(tk.Tk):
                 continue
         if not webbrowser.open(url):
             messagebox.showerror(
-                "PVFlow Help",
-                "Could not launch a web browser.\nOpen manually:\n%s" % path,
+                error_title,
+                "Could not launch a web browser.\nOpen manually:\n%s" % (fallback_hint or url),
             )
             return None
         return url
+
+    def open_user_guide(self):
+        """Open the offline HTML PVFlow User Guide in the user's web browser."""
+        path = self.user_guide_path()
+        if not os.path.isfile(path):
+            messagebox.showerror("PVFlow Help", "User Guide file not found:\n%s" % path)
+            return None
+        return self._open_url(Path(path).as_uri(), error_title="PVFlow Help", fallback_hint=path)
 
     def close_tab(self, tab_id):
         """Close a tab; opens a fresh Home tab if the last tab is closed."""
@@ -1068,27 +1071,50 @@ class CGui(tk.Tk):
         txt.pack(side="left", fill="both", expand=True)
         scroll.configure(command=txt.yview)
 
-        notices_text = (
-            "Third-Party Trademarks & Compatibility Notice\n\n"
-            "\"Calibre\" is a registered trademark of Siemens Industry Software Inc. "
-            "(Siemens EDA) and may be registered in certain jurisdictions. Cadsemi PVFlow "
-            "is an independent EDA workflow interface and is not affiliated with, "
-            "sponsored by, or endorsed by Siemens EDA. Command-line EDA engines are "
-            "invoked only from the user's own licensed environment.\n\n"
-            "\"KLayout\" is an open-source layout viewer licensed under the GNU General "
-            "Public License (GPL v2 or later / GPL v3; https://www.klayout.de). Cadsemi "
-            "PVFlow does not redistribute modified KLayout binaries and invokes an external "
-            "KLayout executable present in the user's environment.\n\n"
-            "Free and Open Source Software Notices\n\n"
-            "PVFlow includes or relies on open-source runtime components including Python "
-            "(PSF License), Tcl/Tk (Tcl/Tk License), Ed25519 signature verification "
-            "routines, and Nuitka (Apache License 2.0).\n\n"
-            "Trademark & Support Inquiries\n\n"
-            "For licensing, customization services, or legal inquiries, contact "
-            "%s or visit https://cadsemi.com."
-            % cgui_license.SUPPORT_EMAIL
+        txt.tag_configure("heading", font=config.ui_font(-1, "bold"), foreground=T["text"])
+        for tag, url in (("link_klayout", "https://www.klayout.de"),
+                         ("link_cadsemi", "https://cadsemi.com")):
+            txt.tag_configure(tag, foreground=T["accent"], underline=True)
+            txt.tag_bind(tag, "<Enter>", lambda _e: txt.configure(cursor="hand2"))
+            txt.tag_bind(tag, "<Leave>", lambda _e: txt.configure(cursor=""))
+            txt.tag_bind(tag, "<Button-1>", lambda _e, u=url: self._open_url(u))
+
+        txt.insert("end", "Third-Party Notices\n", "heading")
+        txt.insert(
+            "end",
+            "PVFlow is an independent verification workflow interface developed by "
+            "CADSEMI and is not affiliated with, sponsored by, or endorsed by any "
+            "external EDA vendor. Calibre\u00ae is a registered trademark of Siemens "
+            "Industry Software Inc. or its affiliates. All other product names and "
+            "trademarks are the property of their respective owners.\n\n"
+            "PVFlow does not bundle or redistribute commercial EDA software or KLayout. "
+            "Commercial verification tools are invoked solely as external processes "
+            "within the user's own licensed environment. KLayout (",
         )
-        txt.insert("1.0", notices_text)
+        txt.insert("end", "klayout.de", "link_klayout")
+        txt.insert(
+            "end",
+            "), licensed under the GNU GPL v3, is invoked strictly as an independent "
+            "external application installed in the user's environment.\n\n",
+        )
+        txt.insert("end", "Disclaimer\n", "heading")
+        txt.insert(
+            "end",
+            "PVFlow is provided \"AS IS\" without warranty of any kind. Users are solely "
+            "responsible for third-party EDA license compliance and for validating all "
+            "results against original vendor logs and reports prior to sign-off.\n\n",
+        )
+        txt.insert("end", "Open-Source Components\n", "heading")
+        txt.insert(
+            "end",
+            "PVFlow relies on Python (PSF License v2), Tcl/Tk 8.6 (Tcl/Tk License), and "
+            "Nuitka packaging (Apache License 2.0). Full component notices are shipped "
+            "in data/THIRD_PARTY_LICENSES.txt.\n\n"
+            "For licensing, customization services, or legal inquiries, contact "
+            "%s or visit " % cgui_license.SUPPORT_EMAIL,
+        )
+        txt.insert("end", "cadsemi.com", "link_cadsemi")
+        txt.insert("end", ".")
         txt.configure(state="disabled")
 
         foot = tk.Frame(win, bg=T["bg_alt"], padx=14, pady=9)

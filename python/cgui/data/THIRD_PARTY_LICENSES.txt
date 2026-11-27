@@ -1,0 +1,33 @@
+Cadsemi PVFlow - Third-Party Open-Source & External Tool Notices
+==================================================================
+
+1. Bundled / Runtime Open-Source Components
+-------------------------------------------
+
+- Python 3 (Python Software Foundation License v2)
+  Copyright (c) Python Software Foundation.
+  https://docs.python.org/3/license.html
+
+- Tcl/Tk 8.6 (Tcl/Tk License - BSD-style)
+  Copyright (c) Regents of the University of California, Sun Microsystems, Inc.,
+  Scriptics Corporation, and other parties.
+  https://www.tcl-lang.org/software/tcltk/license.html
+
+- Nuitka (Apache License 2.0 - build/packaging toolchain)
+  https://nuitka.net/
+
+2. External Tools (Not Bundled / Not Redistributed)
+---------------------------------------------------
+
+- KLayout (GNU General Public License v3)
+  https://www.klayout.de
+  PVFlow does not bundle or redistribute KLayout binaries. When installed in
+  the user's environment, KLayout is invoked strictly as an independent
+  external process.
+
+- Commercial EDA Verification Engines
+  Calibre(R) is a registered trademark of Siemens Industry Software Inc. or
+  its affiliates. PVFlow is an independent workflow interface developed by
+  CADSEMI and is not affiliated with, sponsored by, or endorsed by any
+  external EDA vendor. Commercial verification tools are invoked solely as
+  external processes within the user's own licensed environment.
