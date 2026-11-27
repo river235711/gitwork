@@ -1,0 +1,1565 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+pages/verify.py
+---------------
+Verification-flow pages:
+  - DRC class (DRC/ANT/WB/BUMP/DMDV/DPDO): calibre -drc, same run flow.
+  - LVS: calibre -lvs (LvsHier toggles -hier -turbo -turbo_all; the Hcell row's
+    'use' box adds -hcell <path> to the hierarchical run).
+  - XRC: calibre -lvs/-xrc + jivaro (LvsHier as in LVS; XrcReduction gates the
+    jivaro step).
+  - JIVARO: no command file -- a frequencyLimit, an errorMax, a post-layout
+    netlist (File) and a RunFolder; Run generates jivaro.xml (inputFile = File,
+    outputFile inserts '.red' before the .lump/.dist suffix, frequencyLimit and
+    errorMax from the fields) and a run script that calls jivaro -xml
+    jivaro.xml.
+
+Common:
+  - Bottom command-file text box (right + bottom scrollbars); initially loads
+    data/verify/<MODULE>.com.
+  - Parses LAYOUT/SOURCE PATH (-> absolute) and PRIMARY from the text (ignoring
+    lines starting with '//') into the fields. A relative path in a *loaded*
+    command file is relative to that file, and Load writes the resolved path
+    back into the text; a default template's './x' is left as it is.
+  - Run: create RunFolder, write calibre_<DESIGN>_<module>.com and run, open a
+    terminal to execute run.
+  - RunRve: rewrite run as calibre -rve <db> (LVS: -turbo 8 -rve -lvs svdb,
+    XRC: -turbo 8 -rve -pex svdb), open a terminal.
+  - LoadCmd/SaveCmd: *.com / * file dialogs.
+  - DRC family: a CmdFile row (Open / Edit with gvim) picks the Calibre rule
+    deck; the command text carries it as 'include "<CmdFile>"', preceded by a
+    'DRC ICSTATION YES' line.
+"""
+
+import os
+import re
+import json
+import shutil
+import subprocess
+
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+
+from .base import BasePage
+from .gdsview import open_gds_klayout
+from widgets import ScrolledText, button_kwargs
+import config
+
+DRC_CLASS = ("DRC", "ANT", "WB", "BUMP", "DMDV", "DPDO")
+
+_RE_LAYOUT_PATH = re.compile(r'LAYOUT\s+PATH\s+"([^"]+)"', re.IGNORECASE)
+_RE_LAYOUT_PRIMARY = re.compile(r'LAYOUT\s+PRIMARY\s+"([^"]+)"', re.IGNORECASE)
+_RE_SOURCE_PATH = re.compile(r'SOURCE\s+PATH\s+"([^"]+)"', re.IGNORECASE)
+_RE_SOURCE_PRIMARY = re.compile(r'SOURCE\s+PRIMARY\s+"([^"]+)"', re.IGNORECASE)
+_RE_RESULTS_DB = re.compile(r'RESULTS\s+DATABASE\s+"([^"]+)"', re.IGNORECASE)
+_RE_SUMMARY_REP = re.compile(r'SUMMARY\s+REPORT\s+"([^"]+)"', re.IGNORECASE)
+_RE_INCLUDE = re.compile(r'^\s*include\b', re.IGNORECASE)   # calibre include directive
+# the path an include line points at, quoted or not (CmdFile <- text)
+_RE_INCLUDE_VALUE = re.compile(r'^\s*include\s+"?([^"\s]*)"?', re.IGNORECASE)
+# a commented-out include placeholder ('// include "/path/to/drc_rule_deck"')
+_RE_INCLUDE_COMMENTED = re.compile(r'^\s*//\s*include\b', re.IGNORECASE)
+_RE_ICSTATION = re.compile(r'^\s*DRC\s+ICSTATION\b', re.IGNORECASE)
+_ICSTATION_LINE = "DRC ICSTATION YES"
+
+# XRC command-text rewrites (see pages/verify.py XRC spec):
+#   PEX NETLIST <KIND> "<file>" <FORMAT> <USENAME> [GROUND <g>] MASK DIRECT ...
+_RE_PEX_NETLIST = re.compile(
+    r'^(\s*PEX\s+NETLIST\s+\S+\s+"[^"]*"\s+)(\S+)(\s+)(\S+)(.*)$', re.IGNORECASE)
+_RE_PEX_GROUND = re.compile(r'(\bGROUND\s+)(\S+)', re.IGNORECASE)
+#   the kind, i.e. DISTRIBUTED / LUMPED / SIMPLE
+_RE_PEX_KIND = re.compile(r'PEX\s+NETLIST\s+(\S+)', re.IGNORECASE)
+# The SIMPLE netlist keeps the format it has: XrcFormat picks the format of the
+# extracted netlists, and the simple one stays SPECTRE. (It is the odd one out
+# in the other direction too -- it carries no GROUND clause.)
+_PEX_KEEPS_FORMAT = ("SIMPLE",)
+#   the quoted "<base>.<dist|lump|simple>" filename -> swap the <base>
+_RE_PEX_NETLIST_FILE = re.compile(
+    r'(PEX\s+NETLIST\s+\S+\s+")([^"]*)(\.(?:dist|lump|simple)")', re.IGNORECASE)
+#   include .../XRC_calibre.<ver>/<corner>/rules  -> swap the <corner> segment
+_RE_XRC_CORNER = re.compile(r'^(\s*include\s+.*/)([^/\s]+)(/rules\s*)$', re.IGNORECASE)
+
+# Field <-> text mapping: which text line to update when a field changes
+# (keyword, regex, realpath?)
+_FIELD_KEYWORDS = {
+    "LayoutPath": ("LAYOUT PATH", _RE_LAYOUT_PATH, True),
+    "LayoutPrimary": ("LAYOUT PRIMARY", _RE_LAYOUT_PRIMARY, False),
+    "SourcePath": ("SOURCE PATH", _RE_SOURCE_PATH, True),
+    "SourcePrimary": ("SOURCE PRIMARY", _RE_SOURCE_PRIMARY, False),
+}
+
+# Which cell name goes with which path. LVL has two layouts and no command file,
+# so its pair exists only as fields.
+_PRIMARY_OF = {"LayoutPath": "LayoutPrimary", "SourcePath": "SourcePrimary",
+               "LayoutPath1": "LayoutPrimary1", "LayoutPath2": "LayoutPrimary2"}
+_PATH_OF = {primary: path for path, primary in _PRIMARY_OF.items()}
+
+# The same four lines, this time matching an *empty* value as well, split into
+# (prefix, value, rest) so the value can be swapped.
+#
+# The regexes above require a value, which is right when reading one *out* of the
+# text -- an empty name is not a name -- but wrong when writing one *in*: a line
+# emptied a moment ago (LAYOUT PRIMARY "") was invisible to them, so the next
+# thing typed or pasted into the field never reached the text at all.
+_RE_FIELD_ANY = {
+    "LayoutPath": re.compile(r'^(\s*LAYOUT\s+PATH\s+")([^"]*)(".*)$', re.IGNORECASE),
+    "LayoutPrimary": re.compile(r'^(\s*LAYOUT\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
+    "SourcePath": re.compile(r'^(\s*SOURCE\s+PATH\s+")([^"]*)(".*)$', re.IGNORECASE),
+    "SourcePrimary": re.compile(r'^(\s*SOURCE\s+PRIMARY\s+")([^"]*)(".*)$', re.IGNORECASE),
+}
+_RE_PRIMARY_ANY = {key: _RE_FIELD_ANY[key]
+                   for key in ("LayoutPrimary", "SourcePrimary")}
+
+# Which kind of file each Open dialog should offer (see config.FILE_TYPES).
+# JIVARO's field is called File: it takes the *extracted* netlist, so it sees the
+# XRC output (.dist/.lump/.dspf) as well as the schematic netlist names.
+_FILE_KIND = {
+    "LayoutPath": "layout", "LayoutPath1": "layout", "LayoutPath2": "layout",
+    "SourcePath": "source",
+    "File": "extracted",
+}
+
+# jivaro's own default frequency limit (GHz) and maximum error (%), and so the
+# XRC fields'
+_JIVARO_FREQ_LIMIT = "20"
+_JIVARO_ERROR_MAX = "2"
+
+# LVL: dbdiff writes the comparison rules, calibre runs them, RVE opens what
+# that produced. Fixed names -- there is no command file to say otherwise.
+_LVL_TAB = "lvl"
+_LVL_RULES = "xor.rules"
+_LVL_RESULTS = "xor.rules.asc"
+
+# the terminal emulators live in config: the LOADING tab opens one too
+
+
+def _strip_comment_lines(text):
+    """Drop whole lines starting with '//', return the joined remainder."""
+    return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("//"))
+
+
+def _cell_name(path):
+    """The cell a layout or netlist file is named after: the basename without
+    its extension. A compressed layout loses both (top.gds.gz -> top), since
+    .gz alone would leave 'top.gds'."""
+    name = os.path.basename(path.strip())
+    root, ext = os.path.splitext(name)
+    if ext.lower() == ".gz":
+        root = os.path.splitext(root)[0] or root
+    return root or name
+
+
+class VerifyPage(BasePage):
+    def __init__(self, master, app, module_name,
+                 initial_state=None, persist_session=True):
+        self.module = module_name
+        self._initial_state = initial_state
+        self._persist_session = persist_session
+        super().__init__(master, app)
+
+    def build(self):
+        self.entries = {}
+        self.cmd_text = None       # JIVARO has no command box (guards in state/bind)
+        self._syncing = False      # prevent field<->text feedback loops
+        self._save_job = None       # after() id for the debounced save
+        self._path_seen = {}        # PATH each PRIMARY was named after
+        self._text_base = None      # directory the command text was loaded from
+        if self.module == "LVS":
+            self._build_lvs()
+        elif self.module == "LVL":
+            self._build_lvl()
+        elif self.module == "XRC":
+            self._build_xrc()
+        elif self.module == "JIVARO":
+            self._build_jivaro()
+        elif self.module in DRC_CLASS:
+            self._build_drc_class()
+        else:
+            self._build_generic()
+
+    # ==================================================================
+    # Layout builder helpers
+    # ==================================================================
+    def _title(self):
+        T = config.THEME
+        tk.Label(self, text="%s Verification" % self.module, bg=self.bg, fg=T["text"],
+                 font=config.ui_font(3, "bold")).grid(
+                     row=0, column=0, columnspan=4, pady=(2, 12))
+
+    def _entry_row(self, row, key, buttons=(), default=None, check=None):
+        """One field with its label and its buttons.
+
+        check=(key, text, default) puts a checkbutton at the head of the field,
+        sharing the row: LVS's Hcell is a path *and* a yes/no, and the answer
+        belongs beside the path it applies to rather than on a row of its own.
+        The entry then sits in a holder frame -- still the full width, since the
+        holder is what the column stretches."""
+        T = config.THEME
+        tk.Label(self, text=key, bg=self.bg, fg=T["text"]).grid(
+            row=row, column=0, sticky="w", pady=3)
+        if check is None:
+            parent = self
+            grid = dict(row=row, column=1, sticky="we", padx=6, pady=3, ipady=3)
+        else:
+            parent = tk.Frame(self, bg=self.bg)
+            parent.grid(row=row, column=1, sticky="we", padx=6, pady=3)
+            parent.grid_columnconfigure(1, weight=1)
+            check_key, check_text, check_default = check
+            var = tk.BooleanVar(value=check_default)
+            tk.Checkbutton(parent, variable=var, text=check_text, bg=self.bg,
+                           fg=T["text"], activebackground=self.bg,
+                           selectcolor=T["input_bg"], highlightthickness=0,
+                           command=self._schedule_save).grid(row=0, column=0, sticky="w")
+            self.entries[check_key] = var
+            grid = dict(row=0, column=1, sticky="we", padx=(4, 0), ipady=3)
+        e = tk.Entry(parent)
+        e.grid(**grid)
+        if default:
+            e.insert(0, default)
+        self.entries[key] = e
+        col = 2
+        btn_kw = button_kwargs("secondary")
+        for text, cmd in buttons:
+            tk.Button(self, text=text, command=cmd, padx=10, pady=2,
+                      **btn_kw).grid(row=row, column=col, sticky="we", padx=3, pady=3)
+            col += 1
+
+    def _combo_row(self, row, key, values, default=None):
+        tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
+        cb = ttk.Combobox(self, values=values, state="readonly")
+        cb.set(default if default is not None else (values[0] if values else ""))
+        cb.grid(row=row, column=1, sticky="we", padx=4)
+        self.entries[key] = cb
+
+    def _check_row(self, row, key, text="", default=False, extras=()):
+        """A yes/no on its own row.
+
+        extras is a sequence of (key, label, default, unit) specs, each putting
+        a small field after the box, for the numbers the option itself needs:
+        XrcReduction is 'run' *and* the frequency the reduction is accurate to
+        *and* the error it may introduce, and they belong together."""
+        tk.Label(self, text=key, bg=self.bg).grid(row=row, column=0, sticky="w")
+        var = tk.BooleanVar(value=default)
+        if not extras:
+            tk.Checkbutton(self, variable=var, text=text, bg=self.bg,
+                           command=self._schedule_save).grid(row=row, column=1, sticky="w")
+        else:
+            holder = tk.Frame(self, bg=self.bg)
+            holder.grid(row=row, column=1, sticky="w")
+            tk.Checkbutton(holder, variable=var, text=text, bg=self.bg,
+                           command=self._schedule_save).pack(side="left")
+            for spec in extras:
+                self._number_widgets(holder, *spec)
+        self.entries[key] = var
+
+    def _number_row(self, row, key, label, default, unit=""):
+        """A row holding one short number and its unit (JIVARO's frequency
+        limit and maximum error). The label spells the number's name, which is
+        not the key: the name is jivaro's, lower-case f and all."""
+        tk.Label(self, text=label, bg=self.bg).grid(row=row, column=0, sticky="w")
+        holder = tk.Frame(self, bg=self.bg)
+        holder.grid(row=row, column=1, sticky="w")
+        self._number_widgets(holder, key, "", default, unit)
+
+    def _number_widgets(self, parent, key, label, default, unit=""):
+        """A short number field, its name before it and its unit after, packed
+        into parent. Shared by the XrcReduction row (where these follow the
+        checkbox) and JIVARO's number rows (where one is the whole row)."""
+        if label:
+            tk.Label(parent, text=label, bg=self.bg).pack(side="left", padx=(6, 0))
+        e = tk.Entry(parent, width=6)
+        e.insert(0, default)
+        e.pack(side="left", padx=4)
+        self.entries[key] = e
+        if unit:
+            tk.Label(parent, text=unit, bg=self.bg).pack(side="left")
+
+    def _open_btn(self, key):
+        return ("Open", lambda: self._browse_path(key))
+
+    def _opendir_btn(self, key):
+        return ("Open", lambda: self._browse_path(key, directory=True))
+
+    def _action_buttons(self, row):
+        bf = tk.Frame(self, bg=self.bg)
+        bf.grid(row=row, column=0, columnspan=4, pady=12)
+        for text, cmd in (("Run", self._on_run), ("RunRve", self._on_rve)):
+            kind = "primary" if text == "Run" else "secondary"
+            tk.Button(bf, text=text, width=12, pady=4, command=cmd,
+                      **button_kwargs(kind)).pack(side="left", padx=5)
+
+    def _command_box(self, row):
+        self.cmd_text = ScrolledText(self, wrap="none", font=config.mono_font())
+        self.cmd_text.grid(row=row, column=0, columnspan=4, sticky="nsew", pady=(6, 0))
+        self.grid_rowconfigure(row, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self._finalize()
+
+    def _finalize(self):
+        # RunFolder default = the directory cgui was launched from
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+
+        # Read order: 1) explicit initial_state (tab restore / recent run)
+        #             2) last session (when persist_session=True)
+        #             3) else the default (seeded from built-in template)
+        if self._initial_state:
+            self._syncing = True
+            try:
+                self._apply_state(self._initial_state)
+            finally:
+                self._syncing = False
+            self._sync_fields_from_text()
+            self._follow_paths(fill_blank=True, rename=False)
+        elif self._persist_session and self._load_state():
+            # A session migrated from the old .commandfile holds only the command
+            # text, so derive the Layout/Source fields from it (for a full
+            # session this is a no-op -- fields and text are kept in sync).
+            self._sync_fields_from_text()
+            self._follow_paths(fill_blank=True, rename=False)
+        else:
+            self._load_default()
+
+        # An empty Hcell/Xcell takes the central XRC.inc path (the first open,
+        # and every session saved before the fields existed)
+        self._fill_cell_fields()
+
+        # On open: refresh the include line to the latest fab deck from central .inc
+        self._refresh_include()
+
+        self._bind_changes()
+
+    def on_show(self):
+        """The page is kept between visits, so pick up a central deck that has
+        been updated since it was built (what _finalize does on first open)."""
+        if self.cmd_text is not None:
+            self._refresh_include()
+
+    def _central_deck_path(self):
+        """First valid line of <CENTRAL>/<DESIGN>/<MODULE>.inc (latest deck path);
+        None when absent."""
+        for line in config.read_lines(config.central_include_file(self.module, config.DESIGN_NAME)):
+            return line
+        return None
+
+    def _refresh_include(self):
+        """Rewrite the command-text include line(s) to the latest paths from the
+        central .inc. XRC carries four paths (hcell/xcell/rules/deck); every other
+        module has a single deck-path line. A page with a CmdFile field (the
+        DRC family) takes the deck from that field instead."""
+        if "CmdFile" in self.entries:
+            self._apply_cmdfile_include()
+            return
+        if self.module == "XRC":
+            self._xrc_refresh_from_central()
+            return
+        deck = self._central_deck_path()
+        if not deck:
+            return
+        new_line = "include %s" % deck
+        lines = self.cmd_text.get_text().split("\n")
+        replaced = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            if _RE_INCLUDE.match(ln):
+                if lines[i] != new_line:
+                    lines[i] = new_line
+                replaced = True
+                break   # only the first (the fab deck usually has one include)
+        if not replaced:
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            lines.append(new_line)
+        self._syncing = True
+        try:
+            self.cmd_text.set_text("\n".join(lines))
+        finally:
+            self._syncing = False
+
+    def _apply_cmdfile_include(self):
+        """Write the CmdFile field into the command text as
+        'include "<CmdFile>"', with a 'DRC ICSTATION YES' line right above it.
+
+        The first active include line is rewritten; failing that, the
+        commented-out placeholder ('// include ...') is replaced; failing that
+        too, the line is appended. The ICSTATION line is only added when the
+        text has none, so a hand-written 'DRC ICSTATION NO' is left alone."""
+        if self._syncing or self.cmd_text is None:
+            return
+        path = os.path.expanduser(self._entry("CmdFile"))
+        new_line = 'include "%s"' % path
+        lines = self.cmd_text.get_text().split("\n")
+
+        idx = None
+        for i, ln in enumerate(lines):
+            if not ln.lstrip().startswith("//") and _RE_INCLUDE.match(ln):
+                idx = i
+                break
+        if idx is None:
+            for i, ln in enumerate(lines):
+                if _RE_INCLUDE_COMMENTED.match(ln):
+                    idx = i
+                    break
+        if idx is None:
+            while lines and not lines[-1].strip():
+                lines.pop()
+            if lines:
+                lines.append("")
+            lines.append(new_line)
+            idx = len(lines) - 1
+        else:
+            lines[idx] = new_line
+
+        has_icstation = any(_RE_ICSTATION.match(ln) for ln in lines
+                            if not ln.lstrip().startswith("//"))
+        if not has_icstation:
+            lines.insert(idx, _ICSTATION_LINE)
+
+        new_text = "\n".join(lines)
+        if new_text != self.cmd_text.get_text():
+            self._set_text_keep_cursor(new_text)
+
+    def _xrc_central(self):
+        return config.central_xrc_paths(config.DESIGN_NAME)
+
+    def _cell_default(self, key):
+        """Where the Hcell / Xcell field starts: the path the central XRC.inc
+        gives, else <XRC_HCELL_DIR>/<name>. These are the lists calibre is
+        handed as -hcell / -xcell; the field is a plain path, so a run can use
+        one of its own without touching central.
+
+        LVS reads XRC.inc too, hcell being a property of the process rather than
+        of the tab -- there is nowhere else it is written down."""
+        name = key.lower()
+        return (self._xrc_central().get(name)
+                or "%s/%s" % (config.XRC_HCELL_DIR, name))
+
+    def _fill_cell_fields(self, force=False):
+        """Fill the Hcell/Xcell fields from central. A page without them
+        (everything but LVS and XRC) reads nothing.
+
+        Normally only an empty one is filled -- a path put there by hand is what
+        the next run should use. force overwrites whatever is there, which is
+        what LoadDefault means: these paths come from the same central XRC.inc
+        as the command file and the includes it hands back."""
+        for key in ("Hcell", "Xcell"):
+            w = self.entries.get(key)
+            if w is not None and (force or not w.get().strip()):
+                self._fill_entry(key, self._cell_default(key))
+
+    def _xrc_refresh_from_central(self):
+        """Rebuild the two XRC include lines from the central XRC.inc:
+          - the corner rules:  include <rules>/<XrcRCCorner>/rules
+          - the DFM deck:       include <deck>
+        Missing keys are left untouched; the hcell/xcell keys drive the run
+        script (see _run_script_xrc), not the command text."""
+        conf = self._xrc_central()
+        if not conf:
+            return
+        w = self.entries.get("XrcRCCorner")
+        corner = (w.get() if w is not None else "") or "typical"
+        rules_line = ("include %s/%s/rules" % (conf["rules"].rstrip("/"), corner)
+                      if conf.get("rules") else None)
+        deck_line = "include %s" % conf["deck"] if conf.get("deck") else None
+
+        lines = self.cmd_text.get_text().split("\n")
+        rules_done = deck_done = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//") or not _RE_INCLUDE.match(ln):
+                continue
+            if _RE_XRC_CORNER.match(ln):        # the .../<corner>/rules include
+                if rules_line and not rules_done:
+                    lines[i] = rules_line
+                    rules_done = True
+            elif deck_line and not deck_done:   # any other include -> the deck
+                lines[i] = deck_line
+                deck_done = True
+        appended = []
+        if rules_line and not rules_done:
+            appended.append(rules_line)
+        if deck_line and not deck_done:
+            appended.append(deck_line)
+        if appended:
+            if lines and lines[-1].strip() != "":
+                lines.append("")
+            lines.extend(appended)
+        self._syncing = True
+        try:
+            self.cmd_text.set_text("\n".join(lines))
+        finally:
+            self._syncing = False
+
+    def _bind_changes(self):
+        # text change -> update the fields above + save (JIVARO has no text box)
+        if self.cmd_text is not None:
+            self.cmd_text.text.bind("<KeyRelease>", lambda e: self._on_text_change())
+            self._bind_paste(self.cmd_text.text, self._on_text_change)
+        # field change -> push down to the text (Layout/Source) + save
+        for key, w in self.entries.items():
+            if isinstance(w, tk.BooleanVar):
+                continue  # checkbutton already bound in _check_row
+            if isinstance(w, ttk.Combobox):
+                w.bind("<<ComboboxSelected>>", lambda e, k=key: self._on_field_change(k))
+            else:
+                w.bind("<KeyRelease>", lambda e, k=key: self._on_field_change(k))
+                self._bind_paste(w, self._on_field_change, key)
+
+    def _bind_paste(self, widget, handler, *args):
+        """React to text arriving by paste, not just by keyboard.
+
+        Pasting with the middle mouse button is an X11 selection paste: it sends
+        no key event at all, so a field filled that way never reached the command
+        text below -- the name was deleted (a keystroke, which did propagate) and
+        pasted back (which did not), leaving the text with an empty one.
+
+        after_idle because these bindings run *before* Tk's own class binding
+        does the inserting, so the widget still holds its old value here."""
+        for sequence in ("<<Paste>>",            # Ctrl-V, and the Tk paste event
+                         "<ButtonRelease-2>"):   # X11 middle-click paste
+            widget.bind(sequence,
+                        lambda e, h=handler, a=args: self.after_idle(h, *a),
+                        add="+")
+        # last resort: anything else that changed the value is picked up when
+        # the field is left (drag-and-drop, an input method, a paste menu)
+        widget.bind("<FocusOut>",
+                    lambda e, h=handler, a=args: h(*a), add="+")
+
+    # ==================================================================
+    # Per-family layouts
+    # ==================================================================
+    def _build_drc_class(self):
+        self._title()
+        r = 1
+        self._entry_row(r, "LayoutPath",
+                        [self._open_btn("LayoutPath"), ("View", self._on_view)]); r += 1
+        self._entry_row(r, "LayoutPrimary"); r += 1
+        # the Calibre rule deck, written into the text as include "<CmdFile>"
+        self._entry_row(r, "CmdFile",
+                        [self._open_btn("CmdFile"),
+                         ("Edit", lambda: self._edit_entry("CmdFile"))]); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
+        self._action_buttons(r); r += 1
+        self._command_box(r)
+
+    def _build_lvs(self):
+        self._title()
+        r = 1
+        self._entry_row(r, "LayoutPath",
+                        [self._open_btn("LayoutPath"), ("View", self._on_view)]); r += 1
+        self._entry_row(r, "LayoutPrimary"); r += 1
+        self._entry_row(r, "SourcePath",
+                        [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
+        self._entry_row(r, "SourcePrimary"); r += 1
+        self._check_row(r, "LvsHier", default=True); r += 1
+        # The hcell list, off by default: an LVS run that never had one must
+        # keep running the way it did. Its path comes from the same central
+        # XRC.inc the XRC tab reads (there is one hcell list per process).
+        self._entry_row(r, "Hcell",
+                        [self._open_btn("Hcell"), ("Edit", lambda: self._edit_entry("Hcell"))],
+                        check=("HcellUse", "use", False)); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
+        self._action_buttons(r); r += 1
+        self._command_box(r)
+
+    def _build_xrc(self):
+        self._title()
+        r = 1
+        self._entry_row(r, "LayoutPath",
+                        [self._open_btn("LayoutPath"), ("View", self._on_view)]); r += 1
+        self._entry_row(r, "LayoutPrimary"); r += 1
+        self._entry_row(r, "SourcePath",
+                        [self._open_btn("SourcePath"), ("Edit", self._on_edit_source)]); r += 1
+        self._entry_row(r, "SourcePrimary"); r += 1
+        self._check_row(r, "LvsHier", default=True); r += 1
+        # The two cell lists calibre is given (-hcell / -xcell). They start at
+        # the central XRC.inc paths, filled in by _fill_cell_fields().
+        for key in ("Hcell", "Xcell"):
+            self._entry_row(r, key, [self._open_btn(key),
+                                     ("Edit", lambda k=key: self._edit_entry(k))]); r += 1
+        self._combo_row(r, "XrcFormat", ["SPECTRE", "DSPF"], "SPECTRE"); r += 1
+        self._combo_row(r, "XrcUseName", ["SOURCE", "LAYOUT"], "SOURCE"); r += 1
+        self._entry_row(r, "XrcGround", default="GND"); r += 1
+        self._combo_row(r, "XrcRCCorner", ["typical", "cbest", "cworst", "rcbest", "rcworst"], "typical"); r += 1
+        self._combo_row(r, "XrcExtType", ["c", "rcc"], "c"); r += 1
+        self._check_row(r, "XrcReduction", "run,", default=False,
+                        extras=(("FrequencyLimit", "frequencyLimit",
+                                 _JIVARO_FREQ_LIMIT, "GHz"),
+                                ("ErrorMax", "errorMax",
+                                 _JIVARO_ERROR_MAX, "%"))); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
+        self._action_buttons(r); r += 1
+        self._command_box(r)
+
+    def _build_lvl(self):
+        """LVL: layout against layout. Two layouts, no command file -- dbdiff
+        writes the comparison rules itself, so there is nothing for a user to
+        edit and nothing to load from central."""
+        self._title()
+        r = 1
+        for n in ("1", "2"):
+            self._entry_row(r, "LayoutPath" + n,
+                            [self._open_btn("LayoutPath" + n),
+                             ("View", lambda k="LayoutPath" + n: self._view(k))]); r += 1
+            self._entry_row(r, "LayoutPrimary" + n); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"),
+                         ("FileManager", self._on_filemanager)]); r += 1
+
+        bf = tk.Frame(self, bg=self.bg)
+        bf.grid(row=r, column=0, columnspan=4, pady=12)
+        for text, cmd in (("Run", self._on_run), ("RunRve", self._on_rve)):
+            kind = "primary" if text == "Run" else "secondary"
+            tk.Button(bf, text=text, width=12, pady=4, command=cmd,
+                      **button_kwargs(kind)).pack(side="left", padx=5)
+        r += 1
+        self.grid_columnconfigure(1, weight=1)
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+        self._load_state()
+        self._bind_changes()
+
+    def _build_jivaro(self):
+        """JIVARO: no command file. Pick a post-layout netlist (File), a
+        RunFolder, and Run -> generate jivaro.xml + run script."""
+        self._title()
+        r = 1
+        # above the netlist it applies to, the way the XRC tab has it beside the
+        # box that turns the reduction on
+        self._number_row(r, "FrequencyLimit", "frequencyLimit",
+                         _JIVARO_FREQ_LIMIT, "GHz"); r += 1
+        self._number_row(r, "ErrorMax", "errorMax",
+                         _JIVARO_ERROR_MAX, "%"); r += 1
+        self._entry_row(r, "File",
+                        [self._open_btn("File"), ("Edit", self._on_edit_file)]); r += 1
+        self._entry_row(r, "RunFolder",
+                        [self._opendir_btn("RunFolder"), ("FileManager", self._on_filemanager)]); r += 1
+        bf = tk.Frame(self, bg=self.bg)
+        bf.grid(row=r, column=0, columnspan=4, pady=10)
+        tk.Button(bf, text="Run", width=12, command=self._on_run).pack(side="left", padx=4)
+        r += 1
+        self.grid_columnconfigure(1, weight=1)
+        # RunFolder default = launch dir, then restore last session, then bind
+        rf = self.entries.get("RunFolder")
+        if rf is not None and not rf.get().strip():
+            rf.insert(0, self.app.launch_dir)
+        self._load_state()
+        self._bind_changes()
+
+    # ==================================================================
+    # Parse fields from the text (ignoring lines starting with '//')
+    # ==================================================================
+    def _sync_fields_from_text(self):
+        """Read the four values out of the command text into the fields.
+
+        A line emptied by hand (`LAYOUT PRIMARY ""`) empties its field too. The
+        value regexes require a value, which used to leave the field showing a
+        name the command file no longer had -- and the Run writes the text, so
+        the field was quietly lying about what would be run."""
+        if self._syncing:
+            return
+        self._syncing = True
+        try:
+            lines = _strip_comment_lines(self.cmd_text.get_text()).split("\n")
+
+            for key, (_kw, _regex, real) in _FIELD_KEYWORDS.items():
+                w = self.entries.get(key)
+                if w is None or not hasattr(w, "delete"):
+                    continue
+                regex = _RE_FIELD_ANY[key]
+                index = self._active_line(lines, regex)
+                if index is None:
+                    continue
+                val = regex.match(lines[index]).group(2)
+                # realpath("") is the current directory, which is not what an
+                # empty path means
+                if real and val:
+                    val = self._resolve_path(val)
+                w.delete(0, tk.END)
+                w.insert(0, val)
+
+            # the include line -> CmdFile (DRC family)
+            w = self.entries.get("CmdFile")
+            if w is not None:
+                for ln in lines:
+                    m = _RE_INCLUDE_VALUE.match(ln)
+                    if m:
+                        if w.get() != m.group(1):
+                            w.delete(0, tk.END)
+                            w.insert(0, m.group(1))
+                        break
+        finally:
+            self._syncing = False
+
+    def _resolve_path(self, value):
+        """A path out of the command text, made absolute.
+
+        A relative path in a command file is relative to *that file*, which is
+        what the fab writes and what a user copying a .com around expects. It is
+        not relative to where cgui happens to have been started, which is what
+        realpath() alone assumed -- so loading someone else's .com used to put a
+        path into the field that pointed at nothing.
+
+        Falls back to the launch directory when there is no such file to be
+        relative to: a default template (whose "./CELL_NAME.gds" means the
+        user's own directory, not central's), or a session migrated from the old
+        .commandfile, which kept the text only."""
+        if not os.path.isabs(value):
+            value = os.path.join(self._text_base or self.app.launch_dir, value)
+        return os.path.realpath(value)
+
+    def _absolutise_text_paths(self):
+        """Write the resolved paths back into the command text, after a load.
+
+        The Run writes the *text* into the run folder, so a "../x.gds" left
+        there would be read relative to the run folder -- a different directory
+        from the one it was written against, pointing at the wrong file or at
+        none. The field and the text now say the same absolute thing."""
+        for key, (_kw, _regex, real) in _FIELD_KEYWORDS.items():
+            # only a path, and only one that has a value: writing an empty one
+            # would add a `LAYOUT PATH ""` line the loaded file never had
+            if real and key in self.entries and self._entry(key):
+                self._sync_text_from_field(key)
+
+    def _follow_paths(self, fill_blank=False, rename=True, force=None):
+        """Keep each PRIMARY named after the file its PATH points at.
+
+        The cell is named after the file it sits in, so pointing at another file
+        renames the cell -- wherever the new path came from: the Open button, the
+        field typed into, the PATH line edited in the text, or a loaded command
+        file. Both the field and the text line are written, since the Run writes
+        the text.
+
+        Only a path that actually *moved* triggers a rename, which is what lets a
+        name typed by hand stand: it survives until the file changes under it.
+
+        force names one path field to rename anyway. Choosing a file in the Open
+        dialog is a deliberate "use this one", so it re-derives the name even when
+        the same file comes back -- otherwise a cell renamed by hand could only be
+        put right by picking some other file first. It is one field, not all of
+        them: opening a layout must not rename the source cell.
+
+        fill_blank additionally names a cell the command file leaves unnamed
+        (`LAYOUT PRIMARY ""`, or no such line). For loads only -- on a keystroke
+        it would refill the name as fast as it could be deleted.
+
+        rename=False only seeds the memory, for restoring a saved session: what
+        the user left there is what they get back."""
+        lines = self.cmd_text.get_text().split("\n") if self.cmd_text else []
+        changed = False
+
+        for primary_key, path_key in _PATH_OF.items():
+            if primary_key not in self.entries:
+                continue                       # DRC-family pages have no source
+            path_widget = self.entries.get(path_key)
+            if path_widget is None:
+                continue
+            path = path_widget.get().strip()
+            moved = path != self._path_seen.get(path_key) or path_key == force
+            self._path_seen[path_key] = path
+
+            name = _cell_name(path)
+            if not name:
+                continue                       # no path to take a name from
+
+            regex = _RE_FIELD_ANY.get(primary_key) if self.cmd_text else None
+            if regex is None:
+                # a pair that lives only as fields (LVL's two layouts): there is
+                # no command file for the name to be written into
+                if rename and moved:
+                    self._fill_entry(primary_key, name)
+                continue
+
+            index = self._active_line(lines, regex)
+            named = index is not None and regex.match(lines[index]).group(2).strip()
+            if rename and moved:
+                pass                     # the file changed: the name follows it
+            elif fill_blank and not named:
+                pass                     # a load, and the file names no cell
+            else:
+                # nothing moved; a blank name here is one being typed, and
+                # refilling it would make it impossible to delete
+                continue
+
+            if index is None:
+                # no such line: put one where it belongs, beside its PATH line
+                lines.insert(self._insert_at(lines, primary_key), '%s "%s"'
+                             % (_FIELD_KEYWORDS[primary_key][0], name))
+            else:
+                m = regex.match(lines[index])
+                if m.group(2) == name:
+                    continue                   # already right
+                lines[index] = m.group(1) + name + m.group(3)
+            changed = True
+            self._fill_entry(primary_key, name)
+
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
+            if self.module == "XRC":
+                self._xrc_rewrite_netlist_names(
+                    self.entries["SourcePrimary"].get().strip())
+
+    @staticmethod
+    def _active_line(lines, regex):
+        """Index of the first non-comment line the regex matches, else None."""
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            if regex.search(ln):
+                return i
+        return None
+
+    def _sync_text_from_field(self, key):
+        """When a field changes, write its value into the matching text line
+        (ignoring '//' lines).
+
+        The line is written even when it currently holds nothing, and created
+        when it is not there at all. The Run reads the text, not the fields, so a
+        value with nowhere to go would be silently dropped -- which is what used
+        to happen to a name deleted and then typed back."""
+        if self._syncing or key not in _FIELD_KEYWORDS:
+            return
+        keyword, _regex, real = _FIELD_KEYWORDS[key]
+        regex = _RE_FIELD_ANY[key]
+        val = self.entries[key].get()
+        if real and val:
+            val = os.path.realpath(val)
+
+        lines = self.cmd_text.get_text().split("\n")
+        index = self._active_line(lines, regex)
+        if index is not None:
+            m = regex.match(lines[index])
+            if m.group(2) == val:
+                return                       # already says this
+            lines[index] = m.group(1) + val + m.group(3)
+        else:
+            lines.insert(self._insert_at(lines, key), '%s "%s"' % (keyword, val))
+        self._set_text_keep_cursor("\n".join(lines))
+
+    def _insert_at(self, lines, key):
+        """Where a missing line goes: beside its partner, keeping the order these
+        command files are written in -- PRIMARY then PATH -- or after the last
+        line of the file when there is no partner either."""
+        if key in _PRIMARY_OF:                       # a path: after its primary
+            at = self._active_line(lines, _RE_FIELD_ANY[_PRIMARY_OF[key]])
+            if at is not None:
+                return at + 1
+        elif key in _PATH_OF:                        # a primary: before its path
+            at = self._active_line(lines, _RE_FIELD_ANY[_PATH_OF[key]])
+            if at is not None:
+                return at
+        end = len(lines)
+        while end and not lines[end - 1].strip():    # not after the trailing blanks
+            end -= 1
+        return end
+
+    def _set_text_keep_cursor(self, new_text):
+        """Replace the command text without moving the caret (used by every
+        field->text rewrite)."""
+        self._syncing = True
+        try:
+            pos = self.cmd_text.text.index("insert")
+            self.cmd_text.set_text(new_text)
+            try:
+                self.cmd_text.text.mark_set("insert", pos)
+            except Exception:
+                pass
+        finally:
+            self._syncing = False
+
+    # ------------------------------------------------------------------
+    # XRC field -> command-text rewrites (Format / UseName / Ground / Corner)
+    # ------------------------------------------------------------------
+    def _xrc_sync_from_field(self, key):
+        if key == "XrcFormat":
+            self._xrc_rewrite_netlist(fmt=self.entries[key].get())
+        elif key == "XrcUseName":
+            self._xrc_rewrite_netlist(usename=self.entries[key].get())
+        elif key == "XrcGround":
+            g = self.entries[key].get().strip()
+            if g:
+                self._xrc_rewrite_netlist(ground=g)
+        elif key == "XrcRCCorner":
+            self._xrc_rewrite_corner(self.entries[key].get())
+        elif key == "SourcePrimary":
+            self._xrc_rewrite_netlist_names(self.entries[key].get().strip())
+
+    def _xrc_netlist_base(self):
+        """Base name of the PEX NETLIST output files = SourcePrimary (the netlist
+        files are '<SourcePrimary>.dist/.lump/.simple'); drives the rm-glob and
+        the jivaro input file."""
+        w = self.entries.get("SourcePrimary")
+        return (w.get().strip() if w is not None else "") or "top"
+
+    def _xrc_exttype(self):
+        w = self.entries.get("XrcExtType")
+        return w.get() if w is not None else "c"
+
+    def _xrc_netlist_ext(self):
+        """-c extracts the lumped netlist (.lump); -rcc the distributed (.dist)."""
+        return "lump" if self._xrc_exttype() == "c" else "dist"
+
+    def _xrc_rewrite_netlist_names(self, base):
+        """Rewrite the quoted '<base>.<dist|lump|simple>' filename on the three
+        PEX NETLIST lines when SourcePrimary changes (keep each extension)."""
+        if self._syncing or not base:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            new = _RE_PEX_NETLIST_FILE.sub(
+                lambda m: m.group(1) + base + m.group(3), ln, count=1)
+            if new != ln:
+                lines[i] = new
+                changed = True
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
+
+    def _xrc_rewrite_netlist(self, fmt=None, usename=None, ground=None):
+        """Rewrite the PEX NETLIST lines: format token, usename token, and the
+        GROUND <name> value.
+
+        Two lines are left alone on purpose: the SIMPLE netlist keeps its own
+        format, and only the lines that already carry a GROUND clause get one."""
+        if self._syncing:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        changed = False
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            m = _RE_PEX_NETLIST.match(ln)
+            if not m:
+                continue
+            pre, f, sp, u, rest = m.groups()
+            kind = _RE_PEX_KIND.search(ln)
+            keeps_format = kind and kind.group(1).upper() in _PEX_KEEPS_FORMAT
+            if fmt is not None and not keeps_format:
+                f = fmt
+            if usename is not None:
+                u = usename
+            new = pre + f + sp + u + rest
+            if ground is not None:
+                new = _RE_PEX_GROUND.sub(lambda mm: mm.group(1) + ground, new)
+            if new != ln:
+                lines[i] = new
+                changed = True
+        if changed:
+            self._set_text_keep_cursor("\n".join(lines))
+
+    def _xrc_rewrite_corner(self, corner):
+        """Swap the <corner> segment of the active .../<corner>/rules include."""
+        if self._syncing or not corner:
+            return
+        lines = self.cmd_text.get_text().split("\n")
+        for i, ln in enumerate(lines):
+            if ln.lstrip().startswith("//"):
+                continue
+            m = _RE_XRC_CORNER.match(ln)
+            if m:
+                new = m.group(1) + corner + m.group(3)
+                if new != ln:
+                    lines[i] = new
+                    self._set_text_keep_cursor("\n".join(lines))
+                break
+
+    def _on_field_change(self, key, force=False):
+        if key == "CmdFile":
+            self._apply_cmdfile_include()
+        self._sync_text_from_field(key)
+        # a new path renames the cell; force also when the same file is chosen
+        # again from the Open dialog
+        self._follow_paths(force=key if force else None)
+        if self.module == "XRC":
+            self._xrc_sync_from_field(key)
+        self._schedule_save()
+
+    def _on_text_change(self):
+        self._sync_fields_from_text()
+        self._follow_paths()            # the PATH line may have been edited
+        # editing SOURCE PRIMARY in the text must also rename the PEX NETLIST
+        # output files (same rule as editing the SourcePrimary field). Use the
+        # raw field value: while it is empty mid-edit, leave the names alone.
+        if self.module == "XRC":
+            w = self.entries.get("SourcePrimary")
+            if w is not None:
+                self._xrc_rewrite_netlist_names(w.get().strip())
+        self._schedule_save()
+
+    # ==================================================================
+    # State save / restore (~/.cgui/session/<DESIGN>/<MODULE>.json)
+    # ==================================================================
+    def _state_path(self):
+        return config.user_session_file(self.module, config.DESIGN_NAME)
+
+    def _collect_state(self):
+        st = {}
+        for key, w in self.entries.items():
+            st[key] = bool(w.get()) if isinstance(w, tk.BooleanVar) else w.get()
+        if self.cmd_text is not None:
+            st["__command__"] = self.cmd_text.get_text()
+        if self._text_base:
+            # so a reopened tab resolves the text the way the load did
+            st["__base__"] = self._text_base
+        return st
+
+    def _apply_state(self, st):
+        for key, w in self.entries.items():
+            if key not in st:
+                continue
+            val = st[key]
+            if isinstance(w, tk.BooleanVar):
+                w.set(bool(val))
+            elif isinstance(w, ttk.Combobox):
+                w.set(val)
+            elif hasattr(w, "delete"):
+                w.delete(0, tk.END)
+                w.insert(0, val)
+        if st.get("__base__"):
+            self._text_base = st["__base__"]
+        if "__command__" in st and self.cmd_text is not None:
+            self.cmd_text.set_text(st["__command__"])
+
+    def _load_state(self):
+        path = self._state_path()
+        if not os.path.isfile(path):
+            return False
+        try:
+            with open(path, encoding="utf-8") as f:
+                st = json.load(f)
+        except (OSError, ValueError):
+            return False
+        self._syncing = True
+        try:
+            self._apply_state(st)
+        finally:
+            self._syncing = False
+        return True
+
+    def _save_state(self):
+        self._save_job = None
+        if not self._persist_session:
+            return
+        path = self._state_path()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(self._collect_state(), f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
+
+    def _schedule_save(self):
+        """Debounced save (avoids writing on every keystroke; NFS-home friendly)."""
+        if self._save_job is not None:
+            try:
+                self.after_cancel(self._save_job)
+            except Exception:
+                pass
+        self._save_job = self.after(500, self._save_state)
+
+    def flush(self):
+        """Save immediately before leaving the page / closing the window."""
+        if self._save_job is not None:
+            try:
+                self.after_cancel(self._save_job)
+            except Exception:
+                pass
+            self._save_job = None
+        self._save_state()
+
+    # ==================================================================
+    # run / com content
+    # ==================================================================
+    @staticmethod
+    def _module_load_line(mod):
+        return "module load %s\n" % mod if mod else ""
+
+    def _calibre_env(self):
+        return self.app.env.get("calibre") or ""
+
+    def _jivaro_env(self):
+        return self.app.env.get("jivaro") or ""
+
+    def _com_filename(self):
+        return "calibre_%s.com" % self.module.lower()
+
+    def _checked(self, key):
+        w = self.entries.get(key)
+        return bool(w.get()) if isinstance(w, tk.BooleanVar) else False
+
+    def _text(self):
+        """The command text without its comment lines (empty when the page has
+        no command box, as on JIVARO)."""
+        if self.cmd_text is None:
+            return ""
+        return _strip_comment_lines(self.cmd_text.get_text())
+
+    def _report_name(self):
+        m = _RE_SUMMARY_REP.search(self._text())
+        return m.group(1) if m else "%s.rep" % self.module
+
+    def _results_db(self):
+        """The DRC-family results database, whose name the command file picks.
+        LVS and XRC do not go through here: they always write svdb."""
+        m = _RE_RESULTS_DB.search(self._text())
+        return m.group(1) if m else "%s_RES.db" % self.module
+
+    # --- DRC class ---
+    def _run_script_drc(self):
+        tab = self.module.lower()
+        return (
+            "#!/bin/bash\n"
+            "%s"
+            "echo \"Using calibre: $(command -v calibre || echo 'NOT FOUND in PATH')\"\n"
+            "rm -rf %s.log %s\n"
+            "calibre -64 -drc -hier -turbo -turbo_all %s | tee %s.log\n"
+        ) % (self._module_load_line(self._calibre_env()),
+             tab, self._report_name(), self._com_filename(), tab)
+
+    # --- LVS ---
+    def _run_script_lvs(self):
+        # -hcell rides on the hierarchical run: it says which cells stay
+        # hierarchical, which a flat LVS has no use for. So the hcell list is
+        # passed only when both boxes are ticked -- LvsHier off means plain
+        # 'calibre -64 -lvs <com>' whatever the Hcell row says.
+        opts = ""
+        if self._checked("LvsHier"):
+            opts = "-hier -turbo -turbo_all "
+            # An emptied field means no list: the run does what the page shows,
+            # and clearing it is the only way to say "not this time". The
+            # central path comes back on the next open of the tab.
+            if self._checked("HcellUse") and self._entry("Hcell"):
+                opts += "-hcell %s " % self._entry("Hcell")
+        tab = self.module.lower()
+        return (
+            "#!/bin/bash -l\n"
+            "module load %s\n"
+            "rm -rf %s.log %s.rep svdb/\n"
+            "calibre -64 -lvs %s%s | tee %s.log\n"
+        ) % (self._calibre_env(), tab, tab, opts, self._com_filename(), tab)
+
+    # --- XRC ---
+    def _run_script_xrc(self):
+        exttype = self._xrc_exttype()
+        primary = self._xrc_netlist_base()   # netlist files use SourcePrimary
+        com = self._com_filename()
+        # The cell lists go to calibre as full paths, straight from the fields
+        # (which start at the central XRC.inc). There used to be an 'ln -sf'
+        # pair and a plain '-hcell hcell' instead; the run folder no longer
+        # collects those two links.
+        # An emptied field means no list at all rather than the central path
+        # quietly coming back: the run does what the page shows. The default
+        # returns on the next open of the tab.
+        conf = self._xrc_central()
+        hcell_opt = "-hcell %s " % self._entry("Hcell") if self._entry("Hcell") else ""
+        xcell_opt = "-xcell %s " % self._entry("Xcell") if self._entry("Xcell") else ""
+        # The hierarchical LVS also takes the hcell list: -hcell is what makes
+        # the cells in it hierarchical, so a flat run (LvsHier off) has nothing
+        # to say about them and is given neither.
+        lvs_opts = ("-hier -turbo -turbo_all " + hcell_opt
+                    if self._checked("LvsHier") else "")
+        # netlist output cleaned by rm depends on the extraction type:
+        #   -c   -> lumped netlist (<primary>.lump*)
+        #   -rcc -> distributed netlist (<primary>.dist*)
+        netlist_ext = self._xrc_netlist_ext()
+        # Processes whose deck needs the DFM rules set 'dfm' in XRC.inc; those
+        # that do not simply leave the line out (a blank line stays instead).
+        dfm = conf.get("dfm")
+        dfm_line = "export TSMC_CAL_DFM_PATH=%s\n" % dfm if dfm else "\n"
+        script = (
+            "#!/bin/bash -l\n"
+            "module load %s\n"
+            "module load %s\n"
+            "%s"
+            "rm -rf lvs.log pdb.log fmt.log %s.%s* svdb/\n"
+            "calibre -64 -lvs %s%s | tee lvs.log\n"
+            "calibre -64 -xrc -pdb -turbo -turbo_all %s-%s %s | tee pdb.log\n"
+            "calibre -64 -xrc -fmt %s-%s %s | tee fmt.log\n"
+        ) % (self._calibre_env(), self._jivaro_env(), dfm_line, primary,
+             netlist_ext, lvs_opts, com, xcell_opt, exttype, com,
+             xcell_opt, exttype, com)
+        if self._checked("XrcReduction"):
+            script += "jivaro -xml jivaro.xml\n"
+        return script
+
+    def _run_script(self):
+        if self.module == "LVS":
+            return self._run_script_lvs()
+        if self.module == "LVL":
+            return self._run_script_lvl()
+        if self.module == "XRC":
+            return self._run_script_xrc()
+        return self._run_script_drc()
+
+    # --- LVL ---
+    def _run_script_lvl(self):
+        """dbdiff compares the two layouts and writes the rules that describe the
+        difference; calibre then runs those rules, so the XOR shows up as DRC
+        results. There is no command file -- dbdiff writes the only one."""
+        return (
+            "#!/bin/bash -l\n"
+            "module load %s\n"
+            "rm -rf %s.log %s*\n"
+            "dbdiff -system GDS -design %s %s -refdesign %s %s"
+            " -write_xor_rules %s -turbo\n"
+            "calibre -drc -hier -turbo -hyper -fx %s | tee %s.log\n"
+        ) % (self._calibre_env(), _LVL_TAB, _LVL_RULES,
+             self._entry("LayoutPath1"), self._entry("LayoutPrimary1"),
+             self._entry("LayoutPath2"), self._entry("LayoutPrimary2"),
+             _LVL_RULES, _LVL_RULES, _LVL_TAB)
+
+    def _run_script_rve(self):
+        """Open the results in RVE. LVS and XRC read the svdb directory -- always
+        that name, since calibre writes it, not the command file -- and need to be
+        told which view to open (-lvs / -pex). The DRC family opens the results
+        database its command file names."""
+        if self.module == "LVS":
+            view = "calibre -turbo 8 -rve -lvs svdb"
+        elif self.module == "XRC":
+            view = "calibre -turbo 8 -rve -pex svdb"
+        elif self.module == "LVL":
+            # the results of running dbdiff's rules, named after them
+            view = "calibre -rve %s" % _LVL_RESULTS
+        else:
+            view = "calibre -rve %s" % self._results_db()
+        return (
+            "#!/bin/bash\n"
+            "%s"
+            "echo \"Using calibre: $(command -v calibre || echo 'NOT FOUND in PATH')\"\n"
+            "%s\n"
+        ) % (self._module_load_line(self._calibre_env()), view)
+
+    # ==================================================================
+    # Action buttons
+    # ==================================================================
+    def _prepare_folder(self):
+        folder = self.entries["RunFolder"].get().strip()
+        if not folder:
+            messagebox.showerror("cgui", "Please fill in RunFolder first")
+            return None
+        folder = os.path.expanduser(folder)
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except OSError as e:
+            messagebox.showerror("cgui", "Failed to create RunFolder:\n%s" % e)
+            return None
+        return folder
+
+    def _write_run(self, folder, content):
+        run_path = os.path.join(folder, "run")
+        with open(run_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.chmod(run_path, 0o755)
+
+    def _on_run(self):
+        if (hasattr(self.app, "ensure_license")
+                and not self.app.ensure_license("run %s" % self.module)):
+            return
+        # a verification is the worst thing to run from a superseded release
+        if not self.app.confirm_if_outdated():
+            return
+        folder = self._prepare_folder()
+        if not folder:
+            return
+        if self.module == "JIVARO":
+            self._run_jivaro(folder)
+            return
+        if self.module == "LVL":
+            # no command file: dbdiff writes the rules the run then uses
+            try:
+                self._write_run(folder, self._run_script())
+            except OSError as e:
+                messagebox.showerror("cgui", "Failed to write run:\n%s" % e)
+                return
+            self._launch_terminal(folder)
+            return
+        self._refresh_include()   # before Run, ensure include = latest central deck
+        if "CmdFile" in self.entries:
+            deck = os.path.expanduser(self._entry("CmdFile"))
+            if not deck:
+                messagebox.showerror("cgui", "Please choose CmdFile (DRC rule deck) first")
+                return
+            if not os.path.isfile(deck) and not messagebox.askyesno(
+                    "cgui", "CmdFile not found:\n%s\n\nRun anyway?" % deck):
+                return
+        try:
+            com_path = os.path.join(folder, self._com_filename())
+            with open(com_path, "w", encoding="utf-8") as f:
+                f.write(self.cmd_text.get_text())
+            self._write_run(folder, self._run_script())
+            # XRC + XrcReduction: also drop a jivaro.xml (the run appends
+            # 'jivaro -xml jivaro.xml') reducing the extracted netlist.
+            if self.module == "XRC" and self._checked("XrcReduction"):
+                infile = "%s.%s" % (self._xrc_netlist_base(), self._xrc_netlist_ext())
+                with open(os.path.join(folder, "jivaro.xml"), "w",
+                          encoding="utf-8") as f:
+                    f.write(self._jivaro_xml(infile))
+        except OSError as e:
+            messagebox.showerror("cgui", "Failed to write files:\n%s" % e)
+            return
+        if self.module in DRC_CLASS and hasattr(self.app, "record_recent_run"):
+            self.app.record_recent_run(self._collect_state())
+        self._launch_terminal(folder)
+
+    # --- JIVARO run: generate jivaro.xml + run script ---
+    def _jivaro_output_name(self, infile):
+        """Output netlist name: insert '.red' before the .lump/.dist suffix,
+        prefixed with './'.  foo.lump -> ./foo.red.lump"""
+        base = os.path.basename(infile)
+        for ext in (".lump", ".dist"):
+            if base.endswith(ext):
+                return "./" + base[:-len(ext)] + ".red" + ext
+        root, ext = os.path.splitext(base)
+        return "./" + root + ".red" + ext
+
+    def _jivaro_xml(self, infile):
+        return (
+            '<?xml version="1.0" ?>\n\n'
+            '<reductionParameters version="2020.1">\n'
+            '<options>\n\n'
+            '    <inputFile value="%s"/>\n'
+            '    <outputFile value="%s"/>\n'
+            '    <logVerboseLevel value="trace"/>\n'
+            '    <outputProgression value="false"/>\n'
+            '    <cpu value="1"/>\n\n\n'
+            '<!-- Parsing Options -->\n\n\n'
+            '<!-- Hierarchy management Options -->\n\n\n'
+            '<!-- Parasitics management Options -->\n\n'
+            '    <reduceNegativeResistors value="true"/>\n\n'
+            '<!-- Reduced File Tuning -->\n\n\n'
+            '<!-- Reduction settings -->\n\n'
+            '    <criterion value="accurate"/>\n'
+            '    <errorMax  value="%s"/>\n'
+            '    <frequencyLimit  value="%s"/>\n'
+            '    <negativeCapacitor value="false"/>\n'
+            '    <decouplingAutoThreshold value="false"/>\n\n'
+            '</options>\n\n'
+            '</reductionParameters>\n'
+        ) % (infile, self._jivaro_output_name(infile), self._error_max(),
+             self._frequency_limit())
+
+    def _frequency_limit(self):
+        """The frequency the reduction stays accurate to, in GHz. Both tabs that
+        write a jivaro.xml have a field for it -- beside the XrcReduction box on
+        XRC, on a row of its own on JIVARO -- and an emptied one writes jivaro's
+        usual 20, since the file has to carry a number."""
+        return self._entry("FrequencyLimit") or _JIVARO_FREQ_LIMIT
+
+    def _error_max(self):
+        """The error the reduction may introduce, in percent. Sits beside the
+        frequency limit on both tabs that write a jivaro.xml, and an emptied one
+        writes jivaro's usual 2, since the file has to carry a number."""
+        return self._entry("ErrorMax") or _JIVARO_ERROR_MAX
+
+    def _run_jivaro(self, folder):
+        infile = self.entries["File"].get().strip()
+        if not infile:
+            messagebox.showerror("cgui", "Please choose a post-layout netlist File first")
+            return
+        infile = os.path.expanduser(infile)
+        try:
+            with open(os.path.join(folder, "jivaro.xml"), "w", encoding="utf-8") as f:
+                f.write(self._jivaro_xml(infile))
+            self._write_run(folder,
+                            "#!/bin/bash -l\n"
+                            "module load %s\n"
+                            "jivaro -xml jivaro.xml\n" % self._jivaro_env())
+        except OSError as e:
+            messagebox.showerror("cgui", "Failed to write files:\n%s" % e)
+            return
+        self._launch_terminal(folder)
+
+    def _on_rve(self):
+        if (hasattr(self.app, "ensure_license")
+                and not self.app.ensure_license("open RVE")):
+            return
+        folder = self._prepare_folder()
+        if not folder:
+            return
+        try:
+            self._write_run(folder, self._run_script_rve())
+        except OSError as e:
+            messagebox.showerror("cgui", "Failed to write run:\n%s" % e)
+            return
+        self._launch_terminal(folder)
+
+    def _load_default(self):
+        """Load the command file from the central default dir; fall back to the
+        built-in template if not found."""
+        path = config.central_default_file(self.module, config.DESIGN_NAME)
+        if not os.path.isfile(path):
+            path = config.page_file(self.module)
+        self.cmd_text.load_file(path)
+        # A default is a *template*: its "./CELL_NAME.gds" stands for a file in
+        # the user's own working directory, not for one sitting beside the
+        # template in the central directory. So the base is dropped rather than
+        # set to where this came from, and the placeholder is left in the text.
+        # Only Load, which reads a command file someone actually wrote, goes by
+        # the file's own directory.
+        self._text_base = None
+        self._sync_fields_from_text()
+        self._follow_paths(fill_blank=True)
+        # the cell lists are central too, so they come back with the rest
+        self._fill_cell_fields(force=True)
+
+    def _on_load(self):
+        path = filedialog.askopenfilename(
+            filetypes=[("Command file", "*.com"), ("All files", "*")])
+        if path:
+            self.cmd_text.load_file(path)
+            self._text_base = os.path.dirname(os.path.abspath(path))
+            self._sync_fields_from_text()
+            self._absolutise_text_paths()
+            self._follow_paths(fill_blank=True)
+            # DRC family: normalise include "<CmdFile>" + DRC ICSTATION YES
+            if "CmdFile" in self.entries:
+                self._refresh_include()
+            self._schedule_save()
+
+    def _on_save(self):
+        path = filedialog.asksaveasfilename(
+            defaultextension=".com",
+            filetypes=[("Command file", "*.com"), ("All files", "*")])
+        if path:
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(self.cmd_text.get_text())
+            except OSError as e:
+                messagebox.showerror("cgui", "Save failed:\n%s" % e)
+
+    # ==================================================================
+    # External programs
+    # ==================================================================
+    def _launch_terminal(self, folder):
+        if not os.environ.get("DISPLAY"):
+            messagebox.showerror("cgui", "No DISPLAY, cannot open a terminal.\n"
+                                         "Run it manually:\n%s/run" % folder)
+            return
+        wrapper = os.path.join(folder, ".cgui_run.sh")
+        try:
+            with open(wrapper, "w", encoding="utf-8") as f:
+                f.write('#!/bin/bash\n'
+                        # foreground white / background black (OSC 10/11) and the
+                        # window title (OSC 0). An escape sequence rather than a
+                        # per-terminal flag: gnome-terminal dropped --title.
+                        "printf '\\033]10;white\\007\\033]11;black\\007"
+                        "\\033]0;%s\\007'\n" % self._terminal_title() +
+                        'cd "$(dirname "$0")"\n'
+                        './run\n'
+                        'echo\n'
+                        'echo "===== Done. Press Enter to close ====="\n'
+                        'read\n')
+            os.chmod(wrapper, 0o755)
+        except OSError as e:
+            messagebox.showerror("cgui", "Failed to create run wrapper:\n%s" % e)
+            return
+        for term in config.terminals():
+            if shutil.which(term[0]):
+                try:
+                    subprocess.Popen(term + [wrapper])
+                    return
+                except Exception:
+                    continue
+        messagebox.showerror("cgui",
+                             "No usable terminal found. Run it manually:\n%s/run" % folder)
+
+    def _terminal_title(self):
+        """Title for the run window, so several of them stay tellable apart:
+        '.cgui_run.sh - <TAB>'. Quotes and percent signs would upset the printf
+        that emits it, so they are dropped."""
+        title = ".cgui_run.sh - %s" % self.module
+        return title.replace("'", "").replace("%", "")
+
+    def _on_view(self):
+        self._view("LayoutPath")
+
+    def _view(self, key):
+        # open the layout GDS with KLayout (3-tier lookup)
+        open_gds_klayout(self.app, self.entries[key].get())
+
+    def _on_edit_source(self):
+        self._edit_entry("SourcePath")
+
+    def _on_edit_file(self):
+        self._edit_entry("File")
+
+    def _edit_entry(self, key):
+        path = self.entries[key].get().strip()
+        if not path:
+            messagebox.showwarning("cgui", "%s is empty" % key)
+            return
+        editor = self.app.env.get("editor") or "gvim"
+        self._spawn([editor], path, "editor not found: %s" % editor)
+
+    def _on_filemanager(self):
+        folder = self.entries["RunFolder"].get().strip()
+        folder = os.path.expanduser(folder) if folder else "."
+        self._spawn(config.file_managers(), folder, "no file manager found")
+
+    def _spawn(self, candidates, arg, not_found_msg):
+        """Open something in a desktop program (file manager, editor)."""
+        for prog in candidates:
+            if shutil.which(prog):
+                try:
+                    subprocess.Popen([prog, arg], env=config.desktop_env())
+                    return
+                except Exception:
+                    continue
+        messagebox.showinfo("cgui", not_found_msg)
+
+    # ------------------------------------------------------------------
+    def _browse_path(self, key, directory=False):
+        """Fill a path field from the file dialog.
+
+        Picking a layout or a source netlist also fills in the cell name beside
+        it, since the file is named after the cell. Both changes go down into the
+        command text the same way typing them would -- the run reads the text,
+        not the fields."""
+        if directory:
+            path = filedialog.askdirectory()
+        else:
+            path = filedialog.askopenfilename(
+                filetypes=config.file_types(_FILE_KIND.get(key)))
+        if not path:
+            return
+        self._fill_entry(key, path)
+        # _on_field_change writes it down into the text and renames the cell
+        # after the chosen file -- force, so picking the same file again still
+        # puts a hand-edited name back
+        self._on_field_change(key, force=True)
+
+    def _entry(self, key):
+        w = self.entries.get(key)
+        return w.get().strip() if w is not None else ""
+
+    def _fill_entry(self, key, value):
+        w = self.entries[key]
+        w.delete(0, tk.END)
+        w.insert(0, value)
+
+    # ==================================================================
+    # JIVARO etc.: existing simple layout
+    # ==================================================================
+    def _build_generic(self):
+        self._title()
+        fields = [("LayoutPath", True), ("LayoutPrimary", False), ("RunFolder", True)]
+        row = 1
+        for label, has_open in fields:
+            tk.Label(self, text=label, bg=self.bg).grid(row=row, column=0, sticky="w")
+            ent = tk.Entry(self, width=90)
+            ent.grid(row=row, column=1, columnspan=2, sticky="we", padx=4)
+            self.entries[label] = ent
+            if has_open:
+                tk.Button(self, text="Open",
+                          command=lambda k=label: self._browse_path(k)).grid(row=row, column=3, padx=2)
+            row += 1
+        self.grid_columnconfigure(1, weight=1)
+        self._action_buttons(row); row += 1
+        self._command_box(row)

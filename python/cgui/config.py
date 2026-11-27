@@ -1,0 +1,911 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+config.py
+---------
+Central configuration for cgui.
+
+* You mainly specify here "which file each tab reads". *
+Every page (pages/*.py) obtains its file path via page_file(<module>), so paths
+are not hard-coded in the page logic. To swap a file, just edit PAGE_FILES.
+
+Three ways to specify a file:
+  1. filename relative to data/ (default)   e.g. "system.txt"
+  2. absolute path                           e.g. "/datacenter/proj/system.txt"
+  3. environment-variable override           e.g. CGUI_SYSTEM_FILE=/path/xxx.txt
+"""
+
+import os
+import re
+import sys
+import json
+import time
+import socket
+
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if "__compiled__" in globals() or getattr(sys, "frozen", False):
+    APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
+else:
+    APP_DIR = BASE_DIR
+DATA_DIR = (
+    os.path.join(BASE_DIR, "data")
+    if os.path.isdir(os.path.join(BASE_DIR, "data"))
+    else os.path.join(APP_DIR, "data")
+)
+
+# --------------------------------------------------------------------------
+# Default command files: kept in a central (golden) directory, one subdir per
+# design:   <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com
+# Override via env CGUI_DEFAULT_DIR.
+#
+# It sits NEXT TO the version directories, not inside one:
+#   <bin>/_cgui/<version>/cgui/       the program (one dir per release)
+#   <bin>/_cgui/current -> <version>
+#   <bin>/_cgui/central/              this directory, shared by every version
+# so a deck update (edit one .inc) needs no release, and rolling the program
+# back does not silently roll the decks back with it.
+# --------------------------------------------------------------------------
+DEFAULT_COM_DIR = os.environ.get(
+    "CGUI_DEFAULT_DIR",
+    "/datacenter/techLibs/cad/bin/_cgui/central",   # <- change to your central dir
+)
+
+
+def central_default_file(module, design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com -- central default command file."""
+    return os.path.join(DEFAULT_COM_DIR, design, "%s.com" % module)
+
+
+def central_include_file(module, design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc -- latest fab deck path (one line).
+
+    On tab open / on Run, cgui rewrites the command file's include line to the
+    path stored here. To update the deck, just edit this one-line file."""
+    return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
+
+
+def central_xrc_paths(design):
+    """XRC.inc as a 'key = value' file (parsed by read_conf), holding the four
+    central XRC files:  hcell, xcell (the -hcell / -xcell cell lists, which the
+    XRC tab shows in two fields of its own), rules (the
+    .../include_for_xrc/XRC_calibre.<ver> base) and deck (the DFM_LVS_RC deck),
+    plus an optional fifth:  dfm, exported as TSMC_CAL_DFM_PATH by the run
+    script for the processes whose deck needs it.
+    Returns {} when the file is absent. Unlike DRC.inc (a single deck-path line)
+    XRC.inc is multi-key because XRC needs several paths."""
+    return read_conf(central_include_file("XRC", design))
+
+
+def central_skipper_conf(design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/SKIPPER.conf -- skipper viewer paths
+    (keys: cdsTech, cdsDisp, cdsLayerMap, init; init optional)."""
+    return os.path.join(DEFAULT_COM_DIR, design, "SKIPPER.conf")
+
+
+# --------------------------------------------------------------------------
+# Per-user state directory (each user's "last time" working state; override via
+# env CGUI_USER_DIR).
+#   <USER_DIR>/session/<DESIGN>/<MODULE>.json   per-tab fields + command text
+# --------------------------------------------------------------------------
+USER_DIR = os.path.expanduser(os.environ.get("CGUI_USER_DIR", "~/.cgui"))
+SESSION_SUBDIR = "session"
+
+
+def user_session_file(module, design):
+    """<USER_DIR>/session/<DESIGN>/<MODULE>.json -- each user's last state."""
+    return os.path.join(USER_DIR, SESSION_SUBDIR, design, "%s.json" % module)
+
+
+def user_global_file(name):
+    """<USER_DIR>/session/<name>.json -- global (not per-design) session state,
+    e.g. the PROCESS design and ENV tool selections."""
+    return os.path.join(USER_DIR, SESSION_SUBDIR, "%s.json" % name)
+
+
+# --------------------------------------------------------------------------
+# Timing (CGUI_TIMING=1)
+# --------------------------------------------------------------------------
+# The cost that matters is NFS latency on the EDA hosts, which cannot be
+# measured anywhere else -- so cgui can report its own, to stderr.
+TIMING = os.environ.get("CGUI_TIMING") not in (None, "", "0")
+
+
+def timed(label):
+    """Context manager printing how long a step took, when timing is on."""
+    return _Timer(label) if TIMING else _NoTimer()
+
+
+class _Timer(object):
+    def __init__(self, label):
+        self.label = label
+
+    def __enter__(self):
+        self._start = time.time()
+        return self
+
+    def __exit__(self, *exc):
+        sys.stderr.write("[cgui] %-34s %6.1f ms\n"
+                         % (self.label, (time.time() - self._start) * 1000))
+        return False
+
+
+class _NoTimer(object):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+# --------------------------------------------------------------------------
+# File cache
+# --------------------------------------------------------------------------
+# Everything lives on NFS, where each open is a network round trip, and the
+# same central files are read several times per action (XRC.inc alone is read
+# on tab open and twice more per Run). Contents are cached against the file's
+# timestamp and size, so a repeat read costs one stat instead of an open.
+#
+# This keeps the promise the central layout is built on: edit an .inc and it is
+# picked up on the next tab open or Run. A changed file has a new timestamp, so
+# the cache misses and the new content is read.
+#
+# One difference worth knowing on NFS: opening a file revalidates its attributes
+# with the server, while a stat can be answered from the client's attribute
+# cache (seconds, per the mount's acregmin/acregmax). So a deck edited on
+# another host can take a few seconds longer to be noticed than it used to.
+# CGUI_NO_CACHE=1 turns the cache off and reads every time, for when that
+# matters or to rule the cache out while debugging.
+# --------------------------------------------------------------------------
+CACHE_ENABLED = os.environ.get("CGUI_NO_CACHE") in (None, "", "0")
+
+_cache = {}     # path -> (mtime_ns, size, value)
+
+
+def clear_cache(path=None):
+    """Forget one path, or everything (used after a write, and by the tests)."""
+    if path is None:
+        _cache.clear()
+    else:
+        _cache.pop(path, None)
+
+
+def _cached(path, loader):
+    """loader() result for path, reused while the file is untouched."""
+    if not CACHE_ENABLED:
+        return loader()
+    try:
+        info = os.stat(path)
+        stamp = (info.st_mtime_ns, info.st_size)
+    except OSError:
+        _cache.pop(path, None)
+        return loader()          # let the loader deal with the missing file
+    hit = _cache.get(path)
+    if hit is not None and hit[0] == stamp[0] and hit[1] == stamp[1]:
+        return hit[2]
+    value = loader()
+    _cache[path] = (stamp[0], stamp[1], value)
+    return value
+
+
+def load_json(path, default=None):
+    """Read a JSON file; return default (or {}) on failure.
+
+    Parsed fresh each call from the cached text rather than caching the result:
+    callers get a dict of their own, so one that modifies what it reads cannot
+    corrupt what everyone else sees."""
+    text = read_text(path, default=None)
+    if text is None:
+        return {} if default is None else default
+    try:
+        return json.loads(text)
+    except ValueError:
+        return {} if default is None else default
+
+
+def save_json(path, obj):
+    """Write obj as JSON (no exception on failure)."""
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+    finally:
+        clear_cache(path)   # the next read must see what we just wrote
+
+# --------------------------------------------------------------------------
+# General settings
+# --------------------------------------------------------------------------
+DESIGN_NAME = "default"             # internal session key (not shown in window title)
+
+
+def hostname():
+    """Short name of the machine, for the window title -- with several sessions
+    open across hosts it says which one this window belongs to."""
+    try:
+        return socket.gethostname().split(".")[0]
+    except Exception:
+        return ""
+
+
+def window_title(subject=None):
+    """'cgui v<release> (on <host>)' or 'cgui - <subject> (on <host>)'.
+
+    The release and the host are each left out when they cannot be determined
+    (not started from a release directory, e.g. a source checkout; no host
+    name), so the title never shows an empty field or an invented version."""
+    release = running_release()
+    title = "cgui v%s" % release if release else "cgui"
+    if subject:
+        title += " - %s" % subject
+    host = hostname()
+    if host:
+        title += " (on %s)" % host
+    return title
+
+
+def latest_revision():
+    """Return latest revision string from system.txt, else running_release or 'dev'."""
+    for ln in read_lines(page_file("SYSTEM")):
+        tok = ln.split()[0] if ln.split() else ""
+        if re.match(r"^\d+(?:\.\d+)+$", tok):
+            return tok
+    return running_release() or "dev"
+
+
+def load_recent_runs(max_items=5):
+    """Return list of saved recent DRC run entries (newest first)."""
+    data = load_json(user_global_file("RECENT_RUNS"))
+    if isinstance(data, list):
+        return data[:max_items]
+    return []
+
+
+def record_recent_run(label, layout_path, run_folder, state, max_items=5):
+    """Persist a DRC run in RECENT_RUNS, deduplicating by (run_folder, layout_path)."""
+    path = user_global_file("RECENT_RUNS")
+    existing = load_json(path)
+    items = existing if isinstance(existing, list) else []
+    key = (run_folder or "", layout_path or "")
+    filtered = [
+        item for item in items
+        if isinstance(item, dict)
+        and (item.get("run_folder", ""), item.get("layout_path", "")) != key
+    ]
+    entry = {
+        "label": label,
+        "layout_path": layout_path or "",
+        "run_folder": run_folder or "",
+        "state": state,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M"),
+    }
+    save_json(path, [entry] + filtered[:max_items - 1])
+
+# --------------------------------------------------------------------------
+# Fonts -- one place to make the whole GUI bigger, and to keep it the same size
+# on every machine.
+#
+# Most widgets set no font of their own and follow Tk's named fonts, which the
+# app points at these on start; the few that do ask for one go through
+# ui_font()/mono_font(), so everything moves together. Set CGUI_FONT_PX=17 to
+# enlarge the whole interface.
+#
+# Two things used to differ per machine:
+#
+#   the family -- it was "Arial"/"Courier New", which are Windows fonts and are
+#   not installed on these hosts. Tk does not complain about a family it does
+#   not have; it silently picks something similar, and what it picks depends on
+#   what that host has. So the family is *chosen* here from what is actually
+#   installed, rather than named and hoped for. (Tk has no CSS-style fallback
+#   list -- "Arial DejaVu Sans" is read as one family name.)
+#
+#   the size -- a positive size is in *points*, which Tk multiplies by the X
+#   server's `tk scaling`. The same 11 came out as 14 px on one display and 27
+#   on another. A negative size is in pixels and ignores scaling entirely.
+#
+# Liberation first because it is metric-compatible with Arial/Courier New, which
+# is what this layout was drawn against; DejaVu is on practically every Linux.
+# --------------------------------------------------------------------------
+UI_FONT_CANDIDATES = ("Liberation Sans", "DejaVu Sans", "Nimbus Sans",
+                      "Helvetica", "Arial")
+MONO_FONT_CANDIDATES = ("Liberation Mono", "DejaVu Sans Mono", "Nimbus Mono PS",
+                        "Courier", "Courier New")
+
+UI_FONT_BASE_PX = 12                # pixel size the layout was drawn at
+UI_FONT_PX = int(os.environ.get("CGUI_FONT_PX", "15"))
+# CGUI_FONT_SIZE is the older setting and is in points -- still honoured, but
+# it brings the per-machine scaling back with it.
+UI_FONT_POINTS = int(os.environ.get("CGUI_FONT_SIZE", "0")) or None
+
+# Window size at UI_FONT_BASE_PX; scaled with the font so nothing gets cramped.
+WINDOW_W, WINDOW_H = 980, 560
+
+_families = {}                      # resolved once, on first use
+
+
+def _pick_family(candidates, override=None):
+    """The first candidate this machine actually has.
+
+    None when it has none of them, which leaves the choice to Tk -- no worse
+    than naming a font that is not there. An override is used as given: if
+    someone asks for a particular font, that is the answer, installed or not."""
+    if override:
+        return override
+    try:
+        from tkinter import font as tkfont
+        installed = set(tkfont.families())
+    except Exception:
+        return None                 # no Tk root yet, or no display
+    for name in candidates:
+        if name in installed:
+            return name
+    return None
+
+
+def ui_font(delta=0, weight=None):
+    """(family, size[, weight]) for a normal widget; delta shifts from the base."""
+    return _font(UI_FONT_CANDIDATES, "CGUI_FONT_FAMILY", delta, weight)
+
+
+def mono_font(delta=0):
+    """Fixed-width font, kept in step with the interface size."""
+    return _font(MONO_FONT_CANDIDATES, "CGUI_MONO_FAMILY", delta)
+
+
+def _font(candidates, env_var, delta, weight=None):
+    key = env_var
+    if key not in _families:
+        _families[key] = _pick_family(candidates, os.environ.get(env_var))
+    family = _families[key]
+    if UI_FONT_POINTS:
+        size = max(6, UI_FONT_POINTS + delta)          # points: scaled by the DPI
+    else:
+        size = -max(8, UI_FONT_PX + delta)             # pixels: the same anywhere
+    spec = (family, size) if family else ("", size)
+    return spec + (weight,) if weight else spec
+
+
+def font_report():
+    """What the fonts resolved to, for the SYSTEM tab -- the quickest way to
+    tell whether two machines really are showing the same thing."""
+    ui, mono = ui_font(), mono_font()
+    unit = "pt" if UI_FONT_POINTS else "px"
+    return "%s / %s, %d%s" % (ui[0] or "(Tk default)", mono[0] or "(Tk default)",
+                              abs(ui[1]), unit)
+
+
+def clear_font_cache():
+    """Forget the resolved families (the tests change the environment)."""
+    _families.clear()
+
+
+def window_geometry():
+    """Default window size, grown in proportion to the chosen font size."""
+    scale = float(UI_FONT_PX) / UI_FONT_BASE_PX
+    return "%dx%d" % (int(WINDOW_W * scale), int(WINDOW_H * scale))
+
+# --- Logo settings: point this at your own image ---
+LOGO_PATH = os.path.join(BASE_DIR, "company_logo.png")
+LOGO_TEXT = "cadsemi"             # fallback text when the image is not found
+
+# --------------------------------------------------------------------------
+# Colour theme -- light palette taken from cadsemi.com (its :root CSS
+# variables, light / prefers-color-scheme: light set): warm off-white
+# surfaces, near-black text, hairline borders, a sienna accent, and dark
+# "primary" buttons. Every widget reads its colours from here.
+# --------------------------------------------------------------------------
+THEME = {
+    "bg":            "#fefdfb",   # --bg          page / content background
+    "bg_alt":        "#f5f2ea",   # --bg-alt      sidebar, status bar
+    "card":          "#fdfbf7",   # --card        panels
+    "border":        "#e2ded2",   # --surface-border  hairline borders
+    "input_bg":      "#ffffff",   # --input-bg
+    "input_border":  "#d4cfc2",   # --input-border
+    "divider":       "#b0aea5",   # --divider     disabled / placeholder text
+    "text":          "#141413",   # --text
+    "text_muted":    "#5f5e59",   # --text-muted
+    "accent":        "#a0522d",   # --accent      selected tab, focus ring
+    "success":       "#2a5c3d",   # --success
+    "error":         "#9e2a2b",   # --error
+    "btn_bg":        "#141413",   # .btn-primary  background (= --text)
+    "btn_fg":        "#fefdfb",   # .btn-primary  text       (= --bg)
+    "btn_hover":     "#33322e",   # --btn-hover
+    "hover":         "#ece8de",   # secondary button / menu hover
+    "selection":     "#edded6",   # --selection (accent 18% on --bg)
+    "footer_bg":     "#141413",   # --footer-bg
+    "footer_fg":     "#fefdfb",   # --footer-text
+    # license / status banners, warm tones that sit with the palette
+    "warn_bg":       "#f8efd9", "warn_fg": "#7a5a12",
+    "grace_bg":      "#f6e3d3", "grace_fg": "#8a3b17",
+    "error_bg":      "#f6e1df", "error_fg": "#9e2a2b",
+}
+
+LOGO_BG = THEME["footer_bg"]
+LOGO_FG = THEME["footer_fg"]
+
+# --------------------------------------------------------------------------
+# Desktop helpers (file manager, editor, PDF viewer)
+# --------------------------------------------------------------------------
+# xdg-open comes last on purpose. On some setups it hands the .desktop Exec
+# line to the program without expanding the field codes, so the file manager is
+# launched as `dolphin %i -caption "%c" <path>` and opens a tab literally named
+# "%i". Calling a file manager directly avoids the whole indirection.
+# CGUI_FILEMANAGER forces one (e.g. CGUI_FILEMANAGER=caja).
+FILE_MANAGERS = ("caja", "nautilus", "thunar", "nemo", "pcmanfm", "dolphin",
+                 "xdg-open")
+
+
+def file_managers():
+    """File managers to try, best first; CGUI_FILEMANAGER wins."""
+    forced = os.environ.get("CGUI_FILEMANAGER")
+    return (forced,) if forced else FILE_MANAGERS
+
+
+# --------------------------------------------------------------------------
+# What each Open dialog offers in its "files of type" list. Kept here because
+# the layout list is wanted by two different pages (the verify tabs and the GDS
+# viewers), and because these are the site's naming habits rather than logic:
+# netlists are not named consistently enough to filter on an extension, so the
+# patterns match anywhere in the name.
+#
+# Each kind is *one* entry matching all of its patterns at once, so a directory
+# holding both .gds and .gds.gz shows both without switching entries. "All types"
+# stays separate, and last, so a file that follows no convention is reachable.
+# --------------------------------------------------------------------------
+_ALL_TYPES = ("All types", "*")
+
+
+def _one_of(*patterns):
+    """One "files of type" entry offering all of these at once.
+
+    The label is the patterns themselves, which is how these lists have always
+    read; Tk shows an entry as "label (patterns)". Space-separated is what Tcl
+    parses as a pattern *list*, and that is what makes one entry match several
+    globs."""
+    joined = " ".join(patterns)
+    return (joined, joined)
+
+
+FILE_TYPES = {
+    # layouts: the compressed ones do not match *.gds, hence the second pattern
+    "layout": [_one_of("*.gds", "*.gds.gz"), _ALL_TYPES],
+    # schematic netlists for LVS/XRC. No *spi*: a name holding "spi" holds "sp",
+    # so *sp* already matches it.
+    "source": [_one_of("*sp*", "*netlist*"), _ALL_TYPES],
+    # JIVARO reduces an extracted netlist, so it sees the XRC output too. *dspf*
+    # is matched by *sp* as well, but is named anyway: the list is also how
+    # someone finds out that a .dspf is offered at all.
+    "extracted": [_one_of("*sp*", "*netlist*", "*dist*", "*dspf*", "*lump*"),
+                  _ALL_TYPES],
+}
+
+
+def file_types(kind):
+    """The 'files of type' list for an Open dialog; () when anything goes."""
+    return FILE_TYPES.get(kind, ())
+
+
+# Terminal emulators to try, best first, each with the flag that means "run this
+# command". Shared by the Run buttons (a verification in its own window) and the
+# LOADING tab (a shell on another machine).
+# CGUI_TERMINAL forces one, e.g. CGUI_TERMINAL=mate-terminal.
+TERMINALS = (
+    ["xterm", "-fg", "white", "-bg", "black", "-e"],
+    ["gnome-terminal", "--"], ["konsole", "-e"],
+    ["xfce4-terminal", "-e"], ["mate-terminal", "-e"],
+)
+
+
+def terminals():
+    """Terminal emulators to try, best first; CGUI_TERMINAL wins.
+
+    A forced one is given "-e", which every emulator here but gnome-terminal
+    understands; use CGUI_TERMINAL only to pick between the known ones."""
+    forced = os.environ.get("CGUI_TERMINAL")
+    if not forced:
+        return TERMINALS
+    for term in TERMINALS:
+        if term[0] == forced:
+            return (term,)
+    return ([forced, "-e"],)
+
+
+def desktop_env():
+    """Environment for launching an ordinary desktop application.
+
+    cgui runs in a shell with EDA modules loaded, so LD_LIBRARY_PATH points
+    into the tool trees; a desktop program inheriting it loads those libraries
+    instead of the system ones (dolphin failed on calibre's libpng15 exactly
+    this way). These programs are built against the system libraries, so the
+    variable is dropped for them. The GDS viewers are unaffected -- they are
+    started from a shell script that does its own `module load`."""
+    env = dict(os.environ)
+    for var in ("LD_LIBRARY_PATH", "LD_PRELOAD", "PYTHONHOME", "PYTHONPATH",
+                "TCL_LIBRARY", "TK_LIBRARY"):
+        env.pop(var, None)
+    return env
+
+
+# klayout executable for the KLAYOUT tab (independent of PROCESS / design).
+# Override via env CGUI_KLAYOUT.
+KLAYOUT_BIN = os.environ.get("CGUI_KLAYOUT", "/usr/bin/klayout")
+
+# Left-hand menu items (simplified Calibre DRC trial build)
+MENU_ITEMS = ["DRC", "SYSTEM"]
+
+# Modules that use the "verification flow" page template
+VERIFY_MODULES = ["DRC"]
+
+# --------------------------------------------------------------------------
+# * Each tab -> the file it reads (path relative to data/) *
+# --------------------------------------------------------------------------
+PAGE_FILES = {
+    "SYSTEM":  "system.txt",     # revision history (ships with the release)
+    "PROCESS": "process.txt",    # selectable process / design list (one per line)
+    "ENV":     "env.txt",        # tool version settings
+    "LOADING": "hosts.txt",      # machines whose load the LOADING tab watches
+    # SKIPPER / KLAYOUT have no entry on purpose: their GDS lists come from the
+    # user's own session, and seeding them from a file only put an example path
+    # nobody wants in front of everyone.
+    # command files for the verify modules:
+    "DRC":     "verify/DRC.com",
+    "ANT":     "verify/ANT.com",
+    "WB":      "verify/WB.com",
+    "BUMP":    "verify/BUMP.com",
+    "DMDV":    "verify/DMDV.com",
+    "DPDO":    "verify/DPDO.com",
+    "LVS":     "verify/LVS.com",
+    "XRC":     "verify/XRC.com",
+    "JIVARO":  "verify/JIVARO.com",
+}
+
+# --------------------------------------------------------------------------
+# DOC page
+# --------------------------------------------------------------------------
+# Document index: one line per document, three '|' separated fields
+#     <Doc. No.>|<Doc ID>|<Title>
+# e.g. DesignRule|T-N22-CL-DR-001|TSMC 22 NM ... DESIGN RULE (CLN22ULP/...)
+# It lives in the central dir per PROCESS/design (see central_doc_file). There
+# is deliberately no built-in fallback: one process's document list is wrong for
+# another, so a missing index says so rather than showing someone else's.
+
+# The PDFs live in the central dir too, next to the DOC.txt of that process:
+#     <DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf
+# DOC_ROOT defaults to the central dir, so everything belonging to a process
+# stays under <DEFAULT_COM_DIR>/<DESIGN>/. Point CGUI_DOC_ROOT elsewhere only
+# if the PDF tree has to be hosted on a different share.
+DOC_ROOT = os.environ.get("CGUI_DOC_ROOT", DEFAULT_COM_DIR)
+DOC_SUBDIR = "doc"
+
+
+def central_doc_file(design):
+    """<DEFAULT_COM_DIR>/<DESIGN>/DOC.txt -- the document index for this process."""
+    return os.path.join(DEFAULT_COM_DIR, design, "DOC.txt")
+
+
+def doc_index_file(design):
+    """The DOC index for this process (may not exist; the page says so)."""
+    return central_doc_file(design)
+
+
+def doc_group_dir(design, docno, docid):
+    """<DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID> -- that document's .pdf files."""
+    return os.path.join(DOC_ROOT, design, DOC_SUBDIR, docno, docid)
+
+
+def read_doc_index(design):
+    """Parse the DOC index into [(docno, docid, title), ...] keeping file order.
+    Lines that are blank, '#' comments, or lack the two separators are skipped."""
+    docs = []
+    for line in read_lines(doc_index_file(design)):
+        parts = line.split("|", 2)          # title may itself contain '|'
+        if len(parts) == 3:
+            docno, docid, title = (p.strip() for p in parts)
+            if docno and docid:
+                docs.append((docno, docid, title))
+    return docs
+
+
+# --------------------------------------------------------------------------
+# Deployed-version detection
+# --------------------------------------------------------------------------
+# Releases live in <bin>/_cgui/<version>/cgui/ and <bin>/_cgui/current is
+# the symlink naming the release everyone should be on. Switching version just
+# repoints it, so an instance that is already running stays on the release it
+# started from.
+#
+# The live release is read from that symlink, not from <bin>/cgui: the entry
+# point users type may be a *copy* of the launcher rather than a symlink into a
+# release, in which case resolving it yields <bin> and tells us nothing.
+#
+# The link is derived from where we are running (APP_DIR is the install/binary
+# directory), so no absolute path is hard-coded and a source checkout simply
+# finds nothing. Override with CGUI_CURRENT_LINK.
+RELEASE_LINK = "current"
+
+
+def current_link():
+    """<releases root>/current -- sibling of the release we run from."""
+    return (os.environ.get("CGUI_CURRENT_LINK")
+            or os.path.join(os.path.dirname(os.path.dirname(APP_DIR)), RELEASE_LINK))
+
+
+def live_install_dir():
+    """Install directory inside the release <current> points at, else None."""
+    try:
+        link = current_link()
+        if not os.path.exists(link):
+            return None
+        # keep our own sub-directory name (…/<version>/cgui)
+        live = os.path.join(os.path.realpath(link), os.path.basename(APP_DIR))
+        return live if os.path.isdir(live) else None
+    except OSError:
+        return None
+
+
+def live_launcher():
+    """The launcher script inside the live release (what a restart should run)."""
+    live = live_install_dir()
+    return os.path.join(live, "cgui") if live else None
+
+
+def release_name(path):
+    """Display name of a release directory: '/..._cgui/2026.0728/cgui'
+    -> '2026.0728' (the version dir), otherwise the directory's own name."""
+    path = path.rstrip(os.sep)
+    head, tail = os.path.split(path)
+    return os.path.basename(head) if tail == "cgui" and head else tail
+
+
+def running_release():
+    """Name of the release this instance is installed as, else None.
+
+    None means we are not part of the tree the 'current' symlink governs -- a
+    source checkout, or a link pointing at someone else's tree -- in which case
+    that symlink says nothing about us and no version should be claimed."""
+    try:
+        link = current_link()
+        if not os.path.exists(link):
+            return None
+        releases_root = os.path.dirname(os.path.realpath(link))
+        running = os.path.realpath(APP_DIR)
+        if (os.path.normpath(os.path.dirname(os.path.dirname(running)))
+                != os.path.normpath(releases_root)):
+            return None
+        return release_name(running)
+    except OSError:
+        return None
+
+
+def pending_update():
+    """(running release, live release, live dir) when the deployed version has
+    moved on, else None.
+
+    None also when the link is missing or unreadable, or we are not installed in
+    its tree -- a source checkout or a broken share must never disturb the GUI."""
+    live = live_install_dir()
+    running_name = running_release()
+    if not live or not running_name:
+        return None
+    if os.path.normpath(live) == os.path.normpath(os.path.realpath(APP_DIR)):
+        return None
+    return running_name, release_name(live), live
+
+
+# Directory holding the XRC hcell / xcell cell lists (per PDK / process). Used
+# only as the fallback for the XRC tab's Hcell / Xcell fields when the central
+# XRC.inc names no path of its own; the run passes the field as -hcell / -xcell.
+# Override via env CGUI_XRC_HCELL_DIR.
+XRC_HCELL_DIR = os.environ.get(
+    "CGUI_XRC_HCELL_DIR",
+    "/datacenter/techLibs/tsmc/T22N/tools/pdk_sirius/T22N/calibre_layout/"
+    "tsmc/T22/T22ULL_1P7M_4X1Z1U/layout_run/xrc",
+)
+
+# To override a tab's file via an environment variable, list the mapping here.
+# e.g. export CGUI_SYSTEM_FILE=/path/to/xxx.txt
+_ENV_OVERRIDES = {
+    "SYSTEM":  "CGUI_SYSTEM_FILE",
+    "PROCESS": "CGUI_PROCESS_FILE",
+    "ENV":     "CGUI_ENV_FILE",
+    "LOADING": "CGUI_LOADING_FILE",
+}
+
+
+def page_file(module_name):
+    """Return the absolute path of the file a tab should read.
+
+    Priority: environment-variable override > PAGE_FILES (the file shipped in
+    data/, alongside the release). Returns None when there is no setting.
+    """
+    env_var = _ENV_OVERRIDES.get(module_name)
+    if env_var and os.environ.get(env_var):
+        return os.path.abspath(os.path.expanduser(os.environ[env_var]))
+
+    rel = PAGE_FILES.get(module_name)
+    if rel is None:
+        return None
+    if os.path.isabs(rel):
+        return rel
+    return os.path.join(DATA_DIR, rel)
+
+
+def read_text(path, default=""):
+    """Read a plain text file; return default on failure (no exception).
+
+    Cached against the file's timestamp (see _cached), which is what spares the
+    repeat reads: read_lines and read_conf are built on this, so every central
+    file benefits and only the parsing is redone."""
+    if not path:
+        return default
+
+    def read():
+        try:
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+        except OSError:
+            return default
+    return _cached(path, read)
+
+
+def read_lines(path):
+    """Read a file and return non-empty, non-comment (#) lines."""
+    lines = []
+    for raw in read_text(path).splitlines():
+        s = raw.strip()
+        if s and not s.startswith("#"):
+            lines.append(s)
+    return lines
+
+
+def read_conf(path):
+    """Parse 'key = value' lines into a dict (uses read_lines, so #-comments and
+    blank lines are skipped)."""
+    conf = {}
+    for line in read_lines(path):
+        if "=" in line:
+            k, v = line.split("=", 1)
+            conf[k.strip()] = v.strip()
+    return conf
+
+
+# --------------------------------------------------------------------------
+# One-time migration from the pre-session layout. Old files sit directly in
+# USER_DIR, module and design concatenated without a separator:
+#   .pdkgui.<module lowercase><DESIGN>.commandfile   verify tabs, raw command text
+#     -> session/<DESIGN>/<MODULE>.json   {"__command__": text}
+#   .pdkgui.<module lowercase><DESIGN>.gui           GDS lists, 'layout_pathN <path>'
+#     -> session/<DESIGN>/<MODULE>.json   {"gds": [path, ...]}
+# The old files are never deleted; the marker records which steps already ran.
+# --------------------------------------------------------------------------
+LEGACY_PREFIX = ".pdkgui."
+LEGACY_MARKER = ".migrated"                 # JSON {"version": n, "done": [step]}
+LEGACY_MARKER_V1 = ".migrated_commandfile"  # marker written by the first version
+# Bumped whenever the steps change: a marker from an older version is ignored so
+# every step runs once more (they merge, so this cannot lose anything).
+MIGRATION_VERSION = 2
+GDS_LIST_MODULES = ["SKIPPER", "KLAYOUT"]
+GDS_LIST_ROWS = 15                          # pad to the row count of the GDS pages
+
+_RE_LEGACY_GDS_ROW = re.compile(r'^layout_path(\d+)\s+(.+?)\s*$', re.IGNORECASE)
+
+
+def _split_legacy_stem(stem, modules):
+    """'drct22_1p7m_4x1z1u' -> ('DRC', 't22_1p7m_4x1z1u').
+
+    Module and design are concatenated without a separator, so match the known
+    module names (longest first) against the front of the stem."""
+    for module in sorted(modules, key=len, reverse=True):
+        low = module.lower()
+        if stem.startswith(low) and len(stem) > len(low):
+            return module, stem[len(low):]
+    return None
+
+
+def _legacy_command_state(path, existing):
+    """Old .commandfile -> verify-tab session state. The old text is used only
+    when the session has no command of its own, so newer work is never lost."""
+    if (existing.get("__command__") or "").strip():
+        return None
+    text = read_text(path, default=None)
+    if text is None:
+        return None
+    state = dict(existing)
+    state["__command__"] = text
+    return state
+
+
+def _legacy_gds_state(path, existing):
+    """Old .gui ('layout_path1 <path>' per line) -> GDS-list session state.
+
+    Rows are placed by their number; a row the user already filled in is kept
+    and only the empty ones are taken from the old file."""
+    rows = {}
+    for line in read_text(path).splitlines():
+        m = _RE_LEGACY_GDS_ROW.match(line.strip())
+        if m:
+            rows[int(m.group(1))] = m.group(2)
+    if not rows:
+        return None
+    current = existing.get("gds") or []
+    if not isinstance(current, list):
+        current = []
+    merged = []
+    for i in range(max(GDS_LIST_ROWS, max(rows), len(current))):
+        cur = current[i] if i < len(current) and isinstance(current[i], str) else ""
+        merged.append(cur if cur.strip() else rows.get(i + 1, ""))
+    if merged == current:
+        return None             # the list already holds everything
+    state = dict(existing)
+    state["gds"] = merged
+    return state
+
+
+def _migrate_step(names, suffix, modules, build_state):
+    """Convert every USER_DIR file with this suffix, merging into any session
+    JSON that already exists (build_state returns None when there is nothing to
+    add, so existing work is never overwritten)."""
+    migrated = []
+    for name in names:
+        if not (name.startswith(LEGACY_PREFIX) and name.endswith(suffix)):
+            continue
+        parsed = _split_legacy_stem(name[len(LEGACY_PREFIX):-len(suffix)], modules)
+        if not parsed:
+            continue
+        module, design = parsed
+        dest = user_session_file(module, design)
+        existing = load_json(dest) if os.path.exists(dest) else {}
+        if not isinstance(existing, dict):
+            existing = {}
+        state = build_state(os.path.join(USER_DIR, name), existing)
+        if not state:
+            continue
+        save_json(dest, state)
+        migrated.append((name, dest))
+    return migrated
+
+
+def _migrations_done():
+    """Steps already carried out (understands the first version's marker too).
+
+    A marker written by an older MIGRATION_VERSION is ignored: the steps became
+    merge-based (they only fill in what is missing), so running them once more
+    is safe and recovers state an earlier, skip-if-present run left behind."""
+    data = load_json(os.path.join(USER_DIR, LEGACY_MARKER))
+    if data.get("version", 1) < MIGRATION_VERSION:
+        return set()
+    done = set(data.get("done", []))
+    if os.path.exists(os.path.join(USER_DIR, LEGACY_MARKER_V1)):
+        done.add("commandfile")
+    return done
+
+
+def migrate_legacy_user_files():
+    """Convert the old per-tab files into session JSONs. Returns [(old, new), ...].
+
+    Each step runs at most once; new steps still run for users who already
+    migrated with an earlier version."""
+    steps = (
+        ("commandfile", ".commandfile", VERIFY_MODULES, _legacy_command_state),
+        ("gui", ".gui", GDS_LIST_MODULES, _legacy_gds_state),
+    )
+    done = _migrations_done()
+    todo = [s for s in steps if s[0] not in done]
+    if not todo:
+        return []
+    try:
+        names = os.listdir(USER_DIR)
+    except OSError:
+        return []               # no ~/.cgui yet: nothing to migrate
+
+    migrated = []
+    for step, suffix, modules, build_state in todo:
+        migrated += _migrate_step(names, suffix, modules, build_state)
+        done.add(step)
+    # recorded even when nothing matched, so each scan happens only once
+    save_json(os.path.join(USER_DIR, LEGACY_MARKER),
+              {"version": MIGRATION_VERSION, "done": sorted(done)})
+    return migrated

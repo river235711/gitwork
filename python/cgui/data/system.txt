@@ -1,0 +1,10 @@
+cgui @cadsemi
+
+Revision     Date          Description
+----------   ----------    ------------------------------------------------------------
+1.0.0        2026/11/26    * Initial public release of Cadsemi CGUI for Linux (RHEL / CentOS 7+)
+                           * Multi-tab workspace with Home launcher tiles (DRC, GdsViewer, LVS/XRC custom-on-request, Help) and File -> Recent Runs history
+                           * DRC Verification workspace (LayoutPath, LayoutPrimary, CmdFile with DRC ICSTATION YES, RunFolder, Run, RunRVE, Edit, View, File -> Open/Save Cmd)
+                           * GdsViewer with pure-Python binary GDSII/.gds.gz Scan Cells, .layermap -> .lyp converter, and 3-tier KLayout lookup
+                           * Offline Ed25519 licensing (cadsemi.lic auto-discovery, CADSEMI_LICENSE_FILE, License Info popup, Select License File, expiry/grace banner)
+                           * Offline HTML User Guide (F1 / Help -> CGUI Help) and branded About CGUI / Legal Notices dialogs

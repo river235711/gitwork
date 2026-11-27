@@ -1,0 +1,3 @@
+# PROCESS / design list (one per line); the PROCESS tab dropdown reads this.
+# Selecting one updates the window title "cgui - <name>".
+demo_process

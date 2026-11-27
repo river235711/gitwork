@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGUI User Guide - cadsemi</title>
+<style type="text/css">
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #fefdfb;
+    color: #141413;
+    font-family: "DejaVu Sans", "Liberation Sans", Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Top Header Bar (table layout for full Firefox/Chrome/Konqueror compatibility) */
+  table.topbar-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #f5f2ea;
+    border-bottom: 2px solid #a0522d;
+  }
+  td.topbar-left {
+    padding: 12px 18px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  td.topbar-right {
+    padding: 10px 18px;
+    vertical-align: middle;
+    text-align: right;
+  }
+  a.brand {
+    text-decoration: none;
+    color: #141413;
+    font-weight: bold;
+    font-size: 16px;
+  }
+  span.brand-mark {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    background-color: #a0522d;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  span.brand-sub {
+    color: #625f58;
+    font-weight: normal;
+    font-size: 13px;
+    padding-left: 10px;
+    margin-left: 8px;
+    border-left: 1px solid #cec8b8;
+  }
+
+  .search-box {
+    display: inline-block;
+    background-color: #fefdfb;
+    border: 1px solid #cec8b8;
+    padding: 3px 6px;
+  }
+  .search-input {
+    width: 340px;
+    border: 0;
+    outline: none;
+    background-color: #fefdfb;
+    color: #141413;
+    font-size: 13px;
+    padding: 3px 4px;
+    font-family: inherit;
+  }
+  .search-clear {
+    border: 0;
+    background-color: #fefdfb;
+    color: #625f58;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 6px;
+    display: none;
+  }
+  .search-clear.visible {
+    display: inline;
+  }
+
+  /* Two-Column Portal Layout */
+  table.layout-tbl {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  td.sidebar-cell {
+    width: 265px;
+    vertical-align: top;
+    background-color: #f5f2ea;
+    border-right: 1px solid #e2ded2;
+    padding: 14px 10px 28px 10px;
+  }
+  td.main-cell {
+    vertical-align: top;
+    background-color: #fefdfb;
+    padding: 22px 34px 52px 34px;
+  }
+  .main-inner {
+    max-width: 920px;
+  }
+
+  .sidebar-header {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #625f58;
+    padding: 2px 8px 10px 8px;
+    border-bottom: 1px solid #e2ded2;
+    margin-bottom: 10px;
+  }
+  .search-status {
+    font-size: 12px;
+    color: #625f58;
+    padding: 4px 8px 8px 8px;
+    display: none;
+  }
+  .search-status.visible {
+    display: block;
+  }
+
+  .toc-group {
+    margin-bottom: 8px;
+  }
+  .toc-group-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background-color: #f5f2ea;
+    border: 0;
+    padding: 6px 8px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #141413;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .toc-group-btn:hover {
+    background-color: #efeae0;
+  }
+  .toc-arrow {
+    font-size: 10px;
+    color: #a0522d;
+    display: inline-block;
+    width: 14px;
+  }
+  .toc-children {
+    display: none;
+    padding-left: 14px;
+    margin-top: 2px;
+  }
+  .toc-group.open .toc-children {
+    display: block;
+  }
+  a.toc-link {
+    display: block;
+    padding: 5px 10px;
+    margin: 1px 0;
+    text-decoration: none;
+    color: #625f58;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+  }
+  a.toc-link:hover {
+    background-color: #efeae0;
+    color: #141413;
+  }
+  a.toc-link.active {
+    background-color: #f5ebe4;
+    color: #a0522d;
+    font-weight: bold;
+    border-left: 2px solid #a0522d;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: #625f58;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e2ded2;
+  }
+  h1 {
+    font-size: 24px;
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    color: #141413;
+  }
+  p.lead {
+    color: #625f58;
+    font-size: 14px;
+    margin: 0 0 22px 0;
+  }
+  div.topic {
+    margin-bottom: 32px;
+  }
+  div.topic.hidden-by-search {
+    display: none;
+  }
+  h2 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2ded2;
+    color: #141413;
+  }
+  span.sec-num {
+    color: #a0522d;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Consolas, monospace;
+    font-size: 14px;
+    margin-right: 6px;
+  }
+  h3 {
+    font-size: 15px;
+    margin: 0 0 8px 0;
+    color: #141413;
+  }
+  p {
+    margin: 8px 0;
+  }
+  ul, ol {
+    margin: 8px 0 12px 0;
+    padding-left: 22px;
+  }
+  li {
+    margin: 4px 0;
+  }
+
+  table.cards-tbl {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 10px 0 14px 0;
+  }
+  td.card-col {
+    width: 50%;
+    vertical-align: top;
+    padding: 0 12px 0 0;
+  }
+  td.card-col-right {
+    width: 50%;
+    vertical-align: top;
+    padding: 0;
+  }
+  .card {
+    background-color: #fdfbf7;
+    border: 1px solid #e2ded2;
+    padding: 14px 16px;
+    margin: 10px 0 14px 0;
+  }
+  .callout {
+    background-color: #f5ebe4;
+    border-left: 3px solid #a0522d;
+    padding: 10px 14px;
+    margin: 12px 0 16px 0;
+    font-size: 13.5px;
+  }
+  .callout strong {
+    color: #833f20;
+  }
+
+  table.data-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    background-color: #fdfbf7;
+    border: 1px solid #e2ded2;
+    font-size: 13px;
+  }
+  table.data-tbl th,
+  table.data-tbl td {
+    text-align: left;
+    padding: 8px 11px;
+    border-bottom: 1px solid #e2ded2;
+    vertical-align: top;
+  }
+  table.data-tbl th {
+    background-color: #f5f2ea;
+    font-weight: bold;
+    color: #141413;
+  }
+
+  code {
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Consolas, monospace;
+    font-size: 12.5px;
+    background-color: #f4f1e8;
+    border: 1px solid #e2ded2;
+    padding: 1px 5px;
+  }
+  pre {
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Consolas, monospace;
+    font-size: 12.5px;
+    background-color: #f4f1e8;
+    border: 1px solid #e2ded2;
+    padding: 11px 14px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Consolas, monospace;
+    font-size: 11.5px;
+    color: #141413;
+    background-color: #fdfbf7;
+    border: 1px solid #cec8b8;
+    border-bottom-width: 2px;
+  }
+  .diagram-box {
+    background-color: #fdfbf7;
+    border: 1px solid #e2ded2;
+    padding: 14px;
+    margin: 12px 0 18px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .empty-search {
+    display: none;
+    padding: 20px;
+    border: 1px dashed #cec8b8;
+    background-color: #fdfbf7;
+    color: #625f58;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .empty-search.visible {
+    display: block;
+  }
+  .footer {
+    margin-top: 34px;
+    padding-top: 14px;
+    border-top: 1px solid #e2ded2;
+    color: #625f58;
+    font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+
+<table class="topbar-tbl" role="presentation">
+  <tr>
+    <td class="topbar-left">
+      <a class="brand" href="#getting-started">
+        <span class="brand-mark"></span>CGUI User Documentation
+      </a>
+      <span class="brand-sub">cadsemi.com</span>
+    </td>
+    <td class="topbar-right">
+      <span class="search-box">
+        <input id="searchInput" class="search-input" type="text"
+               placeholder="Search topics, buttons, shortcuts (e.g. KLayout, CmdFile)...">
+        <button id="searchClear" class="search-clear" type="button" title="Clear search">&times;</button>
+      </span>
+    </td>
+  </tr>
+</table>
+
+<table class="layout-tbl" role="presentation">
+  <tr>
+    <td class="sidebar-cell" id="sidebar">
+      <div class="sidebar-header">Contents</div>
+      <div id="searchStatus" class="search-status"></div>
+
+      <div class="toc-group open">
+        <button class="toc-group-btn" type="button">
+          <span class="toc-arrow">&#9656;</span>Getting Started
+        </button>
+        <div class="toc-children">
+          <a class="toc-link active" href="#getting-started">Home &amp; Workspace Overview</a>
+          <a class="toc-link" href="#workflow-map">IC Verification Workflow</a>
+          <a class="toc-link" href="#tabs-windows">Tabs, New Window &amp; Recent Runs</a>
+        </div>
+      </div>
+
+      <div class="toc-group open">
+        <button class="toc-group-btn" type="button">
+          <span class="toc-arrow">&#9656;</span>DRC Verification
+        </button>
+        <div class="toc-children">
+          <a class="toc-link" href="#drc-overview">DRC Workspace Setup</a>
+          <a class="toc-link" href="#drc-actions">Run, RunRVE &amp; View</a>
+        </div>
+      </div>
+
+      <div class="toc-group open">
+        <button class="toc-group-btn" type="button">
+          <span class="toc-arrow">&#9656;</span>GDS Viewer (KLayout)
+        </button>
+        <div class="toc-children">
+          <a class="toc-link" href="#gdsviewer-overview">Opening Layouts &amp; Scan Cells</a>
+          <a class="toc-link" href="#gdsviewer-layermap">Layermap (.layermap &rarr; .lyp)</a>
+          <a class="toc-link" href="#klayout-lookup">KLayout Resolution Priority</a>
+        </div>
+      </div>
+
+      <div class="toc-group open">
+        <button class="toc-group-btn" type="button">
+          <span class="toc-arrow">&#9656;</span>Menus, License &amp; CLI
+        </button>
+        <div class="toc-children">
+          <a class="toc-link" href="#menu-reference">Menu Bar Reference</a>
+          <a class="toc-link" href="#shortcuts">Keyboard Shortcuts</a>
+          <a class="toc-link" href="#license-cli">License &amp; CLI Options</a>
+          <a class="toc-link" href="#troubleshooting">Support &amp; Troubleshooting</a>
+        </div>
+      </div>
+    </td>
+
+    <td class="main-cell">
+      <div class="main-inner">
+        <div class="breadcrumb" id="breadcrumbText">Home &rsaquo; Getting Started &rsaquo; Home &amp; Workspace Overview</div>
+
+        <h1>CGUI User Guide</h1>
+        <p class="lead">
+          Offline documentation for <strong>Cadsemi CGUI</strong> &mdash; unified launcher and workspace for
+          <strong>DRC Verification</strong>, interactive <strong>RVE</strong> debugging, and
+          <strong>KLayout GDS Viewer</strong> inspection on Linux workstations.
+        </p>
+
+        <div id="emptySearch" class="empty-search">
+          No matching sections found. Clear the search box to restore all topics.
+        </div>
+
+        <div id="getting-started" class="topic" data-keywords="home workspace tools tiles drc gdsviewer help tab bar">
+          <h2><span class="sec-num">01</span> Home &amp; Workspace Overview</h2>
+          <p>
+            When CGUI launches, the <strong>Home</strong> tab displays the available <strong>Tools</strong> tiles and
+            provides direct access to every application in a tabbed environment:
+          </p>
+          <table class="cards-tbl" role="presentation">
+            <tr>
+              <td class="card-col">
+                <div class="card">
+                  <h3>Tools Tiles on Home</h3>
+                  <ul>
+                    <li><strong>DRC (DRC Verification):</strong> Opens the DRC runner tab (<code>LayoutPath</code>, <code>LayoutPrimary</code>, <code>CmdFile</code>, <code>RunFolder</code>).</li>
+                    <li><strong>GdsViewer (KLayout GDS):</strong> Opens the standalone GDS/OASIS cell scanner and KLayout launcher.</li>
+                    <li><strong>LVS / XRC:</strong> Custom on request &mdash; Cadsemi can customize LVS and XRC workflows upon customer request (<a href="mailto:support@cadsemi.com">support@cadsemi.com</a>).</li>
+                    <li><strong>Help (User Guide):</strong> Opens this offline User Guide in your web browser (<kbd>F1</kbd>).</li>
+                  </ul>
+                </div>
+              </td>
+              <td class="card-col-right">
+                <div class="card">
+                  <h3>Quick Navigation</h3>
+                  <ul>
+                    <li>Press <kbd>+</kbd> in the tab strip or <kbd>Ctrl+T</kbd> to open a new <strong>Home</strong> tab.</li>
+                    <li>Use <strong>File &rarr; Recent Runs</strong> to reopen previously remembered DRC sessions.</li>
+                    <li>Use <strong>License &rarr; License Info...</strong> at any time to inspect license details.</li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div id="workflow-map" class="topic" data-keywords="workflow flow diagram drc rve klayout gdsviewer">
+          <h2><span class="sec-num">02</span> IC Verification Workflow</h2>
+          <p>Follow the verification workflow below or use the sidebar Contents to jump directly to any topic.</p>
+          <div class="diagram-box">
+            <svg viewBox="0 0 760 155" width="720" height="155" role="img" aria-label="CGUI Workflow Diagram" style="max-width:100%;height:auto;display:block;margin:0 auto;">
+              <rect x="12" y="38" width="150" height="72" rx="6" fill="#f5f2ea" stroke="#a0522d" stroke-width="1.5"/>
+              <text x="87" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">1. Select Input</text>
+              <text x="87" y="88" text-anchor="middle" font-size="11" fill="#625f58">GDS / .gds.gz + Top Cell</text>
+
+              <line x1="162" y1="74" x2="202" y2="74" stroke="#a0522d" stroke-width="1.5"/>
+              <polygon points="204,74 196,70 196,78" fill="#a0522d"/>
+
+              <rect x="206" y="14" width="166" height="54" rx="6" fill="#fdfbf7" stroke="#cec8b8" stroke-width="1.5"/>
+              <text x="289" y="38" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">2a. DRC Verification</text>
+              <text x="289" y="55" text-anchor="middle" font-size="11" fill="#625f58">CmdFile + RunFolder</text>
+
+              <rect x="206" y="84" width="166" height="54" rx="6" fill="#fdfbf7" stroke="#cec8b8" stroke-width="1.5"/>
+              <text x="289" y="108" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">2b. GdsViewer</text>
+              <text x="289" y="125" text-anchor="middle" font-size="11" fill="#625f58">Scan Cells + .layermap</text>
+
+              <line x1="372" y1="41" x2="416" y2="41" stroke="#a0522d" stroke-width="1.5"/>
+              <polygon points="418,41 410,37 410,45" fill="#a0522d"/>
+              <line x1="372" y1="111" x2="416" y2="111" stroke="#a0522d" stroke-width="1.5"/>
+              <polygon points="418,111 410,107 410,115" fill="#a0522d"/>
+
+              <rect x="420" y="14" width="150" height="54" rx="6" fill="#fdfbf7" stroke="#cec8b8" stroke-width="1.5"/>
+              <text x="495" y="38" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">3a. Results Viewer</text>
+              <text x="495" y="55" text-anchor="middle" font-size="11" fill="#625f58">Interactive RVE Debug</text>
+
+              <rect x="420" y="84" width="150" height="54" rx="6" fill="#fdfbf7" stroke="#cec8b8" stroke-width="1.5"/>
+              <text x="495" y="108" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">3b. KLayout</text>
+              <text x="495" y="125" text-anchor="middle" font-size="11" fill="#625f58">Inspect Layout &amp; Layers</text>
+
+              <line x1="570" y1="41" x2="606" y2="66" stroke="#a0522d" stroke-width="1.5"/>
+              <polygon points="608,68 599,66 604,60" fill="#a0522d"/>
+              <line x1="570" y1="111" x2="606" y2="86" stroke="#a0522d" stroke-width="1.5"/>
+              <polygon points="608,84 604,92 599,86" fill="#a0522d"/>
+
+              <rect x="610" y="42" width="136" height="68" rx="6" fill="#f5ebe4" stroke="#a0522d" stroke-width="1.5"/>
+              <text x="678" y="71" text-anchor="middle" font-size="13" font-weight="bold" fill="#833f20">Open/Save Cmd &amp;</text>
+              <text x="678" y="90" text-anchor="middle" font-size="12" fill="#141413">Recent Runs</text>
+            </svg>
+          </div>
+        </div>
+
+        <div id="tabs-windows" class="topic" data-keywords="tabs close window recent runs clear history">
+          <h2><span class="sec-num">03</span> Tabs, New Window &amp; Recent Runs</h2>
+          <ul>
+            <li><strong>Dynamic Tab Strip:</strong> Each open tool tab displays a close button (<code>&times;</code>). Opening many tabs compacts tab widths smoothly, while the <kbd>+</kbd> button creates additional <strong>Home</strong> tabs.</li>
+            <li><strong>File &rarr; Recent Runs:</strong> Remembered DRC runs (layout file &amp; rule/command mode) appear in the <strong>File &rarr; Recent Runs</strong> submenu. Select an entry to reopen it directly in a tab, or click <strong>Clear Recent Runs</strong> to reset history.</li>
+            <li><strong>Multiple Windows:</strong> Use <strong>Window &rarr; New Window</strong> (<kbd>Ctrl+N</kbd>) when you want side-by-side CGUI windows on multi-monitor desktops.</li>
+          </ul>
+        </div>
+
+        <div id="drc-overview" class="topic" data-keywords="drc verification layoutpath layoutprimary cmdfile runfolder icstation gds.gz">
+          <h2><span class="sec-num">04</span> DRC Workspace Setup</h2>
+          <p>Open <strong>DRC</strong> from the <strong>Home</strong> tile grid or via <strong>Tools &rarr; DRC Verification</strong>.</p>
+          <table class="data-tbl">
+            <thead>
+              <tr><th>Field</th><th>Purpose &amp; Behavior</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>LayoutPath</code></td>
+                <td>Select your input <code>.gds</code> or <code>.gds.gz</code> layout file. CGUI resolves relative paths and assists in filling <code>LayoutPrimary</code> when choosing a layout file.</td>
+              </tr>
+              <tr>
+                <td><code>LayoutPrimary</code></td>
+                <td>Top cell name in the layout used for hierarchical DRC checking.</td>
+              </tr>
+              <tr>
+                <td><code>CmdFile</code></td>
+                <td>Select or manage your DRC rule / command file.</td>
+              </tr>
+              <tr>
+                <td><code>RunFolder</code></td>
+                <td>Target directory where DRC run scripts, transcripts, and result databases are generated.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            <strong>Tip:</strong> When reusing an existing deck with <strong>File &rarr; Open Cmd...</strong>, CGUI normalizes relative <code>../</code> includes so your command file runs reliably from the chosen <code>RunFolder</code>, and automatically manages <code>DRC ICSTATION YES</code> settings when configured.
+          </div>
+        </div>
+
+        <div id="drc-actions" class="topic" data-keywords="run runrve open cmd save cmd view klayout drc">
+          <h2><span class="sec-num">05</span> Run, RunRVE &amp; View</h2>
+          <table class="data-tbl">
+            <thead>
+              <tr><th>Control</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>File &rarr; Open Cmd...</strong></td><td>Loads fields and rule parameters from an existing DRC command file.</td></tr>
+              <tr><td><strong>File &rarr; Save Cmd...</strong></td><td>Writes the current DRC settings back to the configured command file.</td></tr>
+              <tr><td><strong>Edit</strong></td><td>Opens the command file in your configured text editor (<em>Options &rarr; Editor</em>).</td></tr>
+              <tr><td><strong>Run</strong></td><td>Starts the user-licensed DRC verification command in the specified <code>RunFolder</code>.</td></tr>
+              <tr><td><strong>RunRVE</strong></td><td>Launches the user-licensed results viewer (RVE) against the DRC results database.</td></tr>
+              <tr><td><strong>View</strong></td><td>Opens the configured layout in <strong>KLayout</strong> using CGUI's 3-tier KLayout resolution.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="gdsviewer-overview" class="topic" data-keywords="gdsviewer gds viewer scan cells binary gdsii oasis top cell">
+          <h2><span class="sec-num">06</span> GDS Viewer: Opening Layouts &amp; Scan Cells</h2>
+          <p>
+            Open <strong>GdsViewer</strong> from the <strong>Home</strong> tile grid or <strong>Tools &rarr; GDS Viewer</strong>.
+            GdsViewer lets you inspect <code>.gds</code>, <code>.gds.gz</code>, <code>.oas</code>, and <code>.oasis</code> layouts in KLayout without running DRC first.
+          </p>
+          <ol>
+            <li>Select the layout file in <strong>LayoutFile</strong>.</li>
+            <li>Click <strong>Scan Cells</strong> to inspect cell names directly inside binary <code>.gds</code> / <code>.gds.gz</code> files using CGUI's built-in pure-Python GDSII scanner (no external Python GDS packages required).</li>
+            <li>Double-click or select a cell from the cell list to pass that TopCell directly to KLayout, or click <strong>Open KLayout</strong> to launch KLayout.</li>
+          </ol>
+        </div>
+
+        <div id="gdsviewer-layermap" class="topic" data-keywords="layermap lyp layer properties klayout palette color stipple">
+          <h2><span class="sec-num">07</span> Layermap Conversion (<code>.layermap</code> &rarr; <code>.lyp</code>)</h2>
+          <p>
+            If your PDK provides a Virtuoso/EDA <code>.layermap</code> file instead of a KLayout <code>.lyp</code> layer-properties file,
+            you can supply either format in GdsViewer:
+          </p>
+          <ul>
+            <li>Providing an existing <code>.lyp</code> file passes it directly to KLayout (<code>-l &lt;file.lyp&gt;</code>).</li>
+            <li>Providing a <code>.layermap</code> file triggers CGUI's built-in <code>layermap_to_lyp</code> converter, automatically generating a ready-to-use KLayout <code>.lyp</code> palette with layer names, layer/datatype pairs, colors, and stipple patterns before launching KLayout.</li>
+          </ul>
+        </div>
+
+        <div id="klayout-lookup" class="topic" data-keywords="klayout path CGUI_KLAYOUT tools/klayout binary executable">
+          <h2><span class="sec-num">08</span> KLayout Resolution Priority</h2>
+          <p>Both <strong>GdsViewer</strong> and the DRC <strong>View</strong> button locate the KLayout executable in strict order:</p>
+          <ol>
+            <li><strong><code>CGUI_KLAYOUT</code> environment variable:</strong> Explicit path set by the user or CAD environment wrapper.</li>
+            <li><strong>System <code>PATH</code> (<code>klayout</code>):</strong> Pre-installed customer KLayout on the workstation or via environment modules.</li>
+            <li><strong>Bundled fallback (<code>tools/klayout</code>):</strong> Optional self-contained fallback location inside the CGUI installation directory.</li>
+          </ol>
+        </div>
+
+        <div id="menu-reference" class="topic" data-keywords="menu bar file tools license options window help about notices">
+          <h2><span class="sec-num">09</span> Menu Bar Reference</h2>
+          <table class="data-tbl">
+            <thead>
+              <tr><th>Menu</th><th>Items</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>File</strong></td>
+                <td><code>Open Cmd...</code> / <code>Save Cmd...</code> (when viewing a DRC tab), <code>Recent Runs &rarr;</code> (remembered runs &amp; <code>Clear Recent Runs</code>), <code>Close Current Tab</code> (<kbd>Ctrl+W</kbd>), <code>Quit</code> (<kbd>Ctrl+Q</kbd>).</td>
+              </tr>
+              <tr>
+                <td><strong>Tools</strong></td>
+                <td><code>DRC Verification</code>, <code>GDS Viewer</code>, <code>LVS (Custom on request)</code>, <code>XRC (Custom on request)</code>, <code>Terminal</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Options</strong></td>
+                <td><code>Font Size</code> (<code>13 px</code>, <code>15 px</code>, <code>17 px</code>, <code>19 px</code>) and <code>Editor</code> (<code>gvim</code>, <code>gedit</code>).</td>
+              </tr>
+              <tr>
+                <td><strong>Window</strong></td>
+                <td><code>New Window</code> (<kbd>Ctrl+N</kbd>), <code>New Tab</code> (<kbd>Ctrl+T</kbd>), <code>Full Screen</code> (<kbd>F11</kbd>), <code>Keyboard Shortcuts</code>, and quick jump list to numbered tabs.</td>
+              </tr>
+              <tr>
+                <td><strong>License</strong></td>
+                <td><code>License Info...</code> (popup summary of license status, customer, domain, expiry, features, and active license path), <code>Select License File...</code>, <code>Reload License</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Help</strong></td>
+                <td><code>CGUI Help</code> (<kbd>F1</kbd> &mdash; opens this User Guide), <code>About CGUI</code> (version, copyright, and <code>Notices</code> button for third-party trademarks &amp; open-source legal notices).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="shortcuts" class="topic" data-keywords="keyboard shortcuts hotkeys f1 f11 ctrl+t ctrl+n ctrl+w ctrl+q">
+          <h2><span class="sec-num">10</span> Keyboard Shortcuts</h2>
+          <table class="data-tbl">
+            <thead>
+              <tr><th>Shortcut</th><th>Command</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><kbd>F1</kbd></td><td>Open <strong>CGUI Help</strong> (this User Guide in your web browser).</td></tr>
+              <tr><td><kbd>F11</kbd></td><td>Toggle Full Screen mode.</td></tr>
+              <tr><td><kbd>Ctrl+T</kbd></td><td>Open a new <strong>Home</strong> tab.</td></tr>
+              <tr><td><kbd>Ctrl+N</kbd></td><td>Open a new CGUI window.</td></tr>
+              <tr><td><kbd>Ctrl+W</kbd></td><td>Close the current active tab.</td></tr>
+              <tr><td><kbd>Ctrl+Q</kbd></td><td>Quit CGUI.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="license-cli" class="topic" data-keywords="license cli CADSEMI_LICENSE_FILE -L -only expiring grace valid trial">
+          <h2><span class="sec-num">11</span> License &amp; CLI Reference</h2>
+          <p>CGUI verifies its signed license at startup without needing an external flexlm daemon.</p>
+          <pre>cgui                       # Standard launch (checks CADSEMI_LICENSE_FILE and default license paths)
+cgui -L /path/to/site.lic  # Specify a license file explicitly on the command line
+cgui -only                 # Minimal workspace mode</pre>
+          <ul>
+            <li><strong>Quick Trial Setup:</strong> Place <code>cadsemi.lic</code> directly inside the extracted <code>cgui/</code> directory next to the <code>cgui</code> launcher to start without setting environment variables.</li>
+            <li><strong>Environment Variable:</strong> Set <code>CADSEMI_LICENSE_FILE=/path/to/license.lic</code> in your shell startup or modulefile.</li>
+            <li><strong>Normal Valid State:</strong> Keeps the workspace uncluttered with no persistent bottom bar; inspect full details anytime via <strong>License &rarr; License Info...</strong>.</li>
+            <li><strong>Expiring / Grace / Invalid States:</strong> Displays a warning banner at the bottom of the window so administrators can renew or select a new <code>.lic</code> file via <strong>License &rarr; Select License File...</strong>.</li>
+          </ul>
+        </div>
+
+        <div id="troubleshooting" class="topic" data-keywords="support email bug display klayout browser help troubleshooting">
+          <h2><span class="sec-num">12</span> Support &amp; Troubleshooting</h2>
+          <div class="card">
+            <ul>
+              <li><strong>Browser did not launch on <kbd>F1</kbd>:</strong> CGUI tries <code>CGUI_BROWSER</code> (if set), then <code>google-chrome</code>, <code>chromium</code>, <code>chromium-browser</code>, <code>xdg-open</code>, <code>firefox</code>, and Python's <code>webbrowser</code> fallback. On minimal headless/VNC servers, verify one of these browsers is in <code>PATH</code> or open <code>data/help/index.html</code> directly.</li>
+              <li><strong>KLayout not found:</strong> Ensure <code>klayout</code> is on <code>PATH</code>, set <code>CGUI_KLAYOUT=/path/to/klayout</code>, or place the binary at <code>tools/klayout</code> next to <code>cgui</code>.</li>
+              <li><strong>Customer Support:</strong> Email <a href="mailto:support@cadsemi.com">support@cadsemi.com</a> or visit <a href="https://cadsemi.com">https://cadsemi.com</a>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer">
+          &copy; cadsemi.com &mdash; Cadsemi CGUI Offline Documentation &nbsp;|&nbsp;
+          Support: <a href="mailto:support@cadsemi.com">support@cadsemi.com</a>
+        </div>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+(function () {
+  function trimStr(s) {
+    return (s || "").replace(/^\s+|\s+$/g, "");
+  }
+  function hasClass(el, cls) {
+    return (" " + el.className + " ").indexOf(" " + cls + " ") !== -1;
+  }
+  function addClass(el, cls) {
+    if (!hasClass(el, cls)) {
+      el.className = el.className ? (el.className + " " + cls) : cls;
+    }
+  }
+  function removeClass(el, cls) {
+    var parts = el.className.split(/\s+/);
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i] && parts[i] !== cls) out.push(parts[i]);
+    }
+    el.className = out.join(" ");
+  }
+  function parentGroup(el) {
+    var cur = el;
+    while (cur && cur.tagName) {
+      if (hasClass(cur, "toc-group")) return cur;
+      cur = cur.parentNode;
+    }
+    return null;
+  }
+
+  var searchInput = document.getElementById("searchInput");
+  var searchClear = document.getElementById("searchClear");
+  var searchStatus = document.getElementById("searchStatus");
+  var emptySearch = document.getElementById("emptySearch");
+  var breadcrumb = document.getElementById("breadcrumbText");
+
+  var allDivs = document.getElementsByTagName("div");
+  var groups = [];
+  var sections = [];
+  for (var i = 0; i < allDivs.length; i++) {
+    if (hasClass(allDivs[i], "toc-group")) groups.push(allDivs[i]);
+    if (hasClass(allDivs[i], "topic")) sections.push(allDivs[i]);
+  }
+  var allLinks = document.getElementsByTagName("a");
+  var links = [];
+  for (var j = 0; j < allLinks.length; j++) {
+    if (hasClass(allLinks[j], "toc-link")) links.push(allLinks[j]);
+  }
+
+  // Collapsible TOC group headers
+  for (var g = 0; g < groups.length; g++) {
+    (function (group) {
+      var btns = group.getElementsByTagName("button");
+      if (btns.length > 0) {
+        btns[0].onclick = function () {
+          if (hasClass(group, "open")) {
+            removeClass(group, "open");
+          } else {
+            addClass(group, "open");
+          }
+        };
+      }
+    })(groups[g]);
+  }
+
+  function setActiveLink(id) {
+    for (var k = 0; k < links.length; k++) {
+      var href = links[k].getAttribute("href");
+      if (href === "#" + id) {
+        addClass(links[k], "active");
+        var grp = parentGroup(links[k]);
+        var grpName = "Guide";
+        if (grp) {
+          var gb = grp.getElementsByTagName("button");
+          if (gb.length > 0) {
+            grpName = trimStr((gb[0].innerText || gb[0].textContent || "").replace(/^\s*[\u25b8]\s*/, ""));
+          }
+        }
+        var title = trimStr(links[k].innerText || links[k].textContent || "");
+        breadcrumb.innerHTML = "Home &rsaquo; " + grpName + " &rsaquo; " + title;
+      } else {
+        removeClass(links[k], "active");
+      }
+    }
+  }
+
+  function applySearch(rawQuery) {
+    var q = trimStr(rawQuery).toLowerCase();
+    if (q.length > 0) addClass(searchClear, "visible");
+    else removeClass(searchClear, "visible");
+
+    if (!q) {
+      for (var s = 0; s < sections.length; s++) removeClass(sections[s], "hidden-by-search");
+      for (var l = 0; l < links.length; l++) links[l].style.display = "block";
+      removeClass(searchStatus, "visible");
+      removeClass(emptySearch, "visible");
+      return;
+    }
+
+    var terms = q.split(/\s+/);
+    var visibleIds = {};
+    var count = 0;
+
+    for (var s = 0; s < sections.length; s++) {
+      var sec = sections[s];
+      var hay = ((sec.innerText || sec.textContent || "") + " " + (sec.getAttribute("data-keywords") || "")).toLowerCase();
+      var ok = true;
+      for (var t = 0; t < terms.length; t++) {
+        if (hay.indexOf(terms[t]) === -1) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        removeClass(sec, "hidden-by-search");
+        visibleIds[sec.id] = true;
+        count += 1;
+      } else {
+        addClass(sec, "hidden-by-search");
+      }
+    }
+
+    for (var l = 0; l < links.length; l++) {
+      var id = links[l].getAttribute("href").slice(1);
+      if (visibleIds[id]) {
+        links[l].style.display = "block";
+        var grp = parentGroup(links[l]);
+        if (grp) addClass(grp, "open");
+      } else {
+        links[l].style.display = "none";
+      }
+    }
+
+    searchStatus.innerHTML = count + " matching section(s)";
+    addClass(searchStatus, "visible");
+    if (count === 0) addClass(emptySearch, "visible");
+    else removeClass(emptySearch, "visible");
+  }
+
+  for (var l = 0; l < links.length; l++) {
+    (function (link) {
+      link.onclick = function () {
+        var id = link.getAttribute("href").slice(1);
+        if (trimStr(searchInput.value)) {
+          searchInput.value = "";
+          applySearch("");
+        }
+        setActiveLink(id);
+      };
+    })(links[l]);
+  }
+
+  searchInput.onkeyup = function () {
+    applySearch(searchInput.value);
+  };
+  searchClear.onclick = function () {
+    searchInput.value = "";
+    applySearch("");
+    searchInput.focus();
+  };
+})();
+</script>
+</body>
+</html>
