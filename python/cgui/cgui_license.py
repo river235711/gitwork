@@ -750,14 +750,9 @@ def check_license(
 
 
 def format_terminal_notice(result, use_color=None):
-    """Format warning/grace notice for terminal output (yellow ANSI when TTY)."""
+    """Format warning/grace notice for terminal output (plain text by default)."""
     if not result.notice:
         return ""
-    if use_color is None:
-        try:
-            use_color = sys.stderr.isatty()
-        except Exception:
-            use_color = False
     if use_color:
         return "\033[1;33m%s\033[0m" % result.notice
     return result.notice

@@ -979,5 +979,34 @@ class TestGdsViewer(unittest.TestCase):
                     self.assertEqual(gdsview.find_klayout(), fake_bin)
 
 
+class TestTerminalOutput(unittest.TestCase):
+    def test_terminal_notice_uses_default_color(self):
+        res = cgui_license.LicenseResult(
+            allowed=True,
+            status=cgui_license.STATUS_EXPIRING,
+            notice="[Notice] License will expire on 2026-11-30.",
+        )
+        with mock.patch.object(sys.stderr, "isatty", return_value=True):
+            out = cgui_license.format_terminal_notice(res)
+        self.assertEqual(out, res.notice)
+        self.assertNotIn("\033[", out)
+
+    def test_format_eda_tool_status_found_and_missing(self):
+        import cgui_app
+        with mock.patch.dict(os.environ, {"LOADEDMODULES": "calibre/2024.1_36.20:other/1.0"}):
+            with mock.patch.object(cgui_app.shutil, "which", return_value="/eda/calibre/bin/calibre"), \
+                 mock.patch("pages.gdsview.find_klayout", return_value="/usr/bin/klayout"):
+                out = cgui_app.format_eda_tool_status()
+        self.assertIn("[Tool] calibre : OK (/eda/calibre/bin/calibre, module: calibre/2024.1_36.20)", out)
+        self.assertIn("[Tool] klayout : OK (/usr/bin/klayout)", out)
+
+        with mock.patch.dict(os.environ, {"LOADEDMODULES": ""}):
+            with mock.patch.object(cgui_app.shutil, "which", return_value=None), \
+                 mock.patch("pages.gdsview.find_klayout", return_value=None):
+                out_missing = cgui_app.format_eda_tool_status()
+        self.assertIn("[Tool] calibre : NOT FOUND (not sourced or module loaded)", out_missing)
+        self.assertIn("[Tool] klayout : NOT FOUND (not sourced or module loaded)", out_missing)
+
+
 if __name__ == "__main__":
     unittest.main()

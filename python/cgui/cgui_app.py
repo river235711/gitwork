@@ -1249,6 +1249,38 @@ def parse_argv(argv):
     return None, "cgui: unknown option %s\n\n%s" % (" ".join(argv), USAGE), 2
 
 
+def _loaded_module_for(tool_name):
+    """Return matching entry from LOADEDMODULES (e.g. 'calibre/2024.1_36.20'), or None."""
+    loaded = os.environ.get("LOADEDMODULES", "")
+    if not loaded:
+        return None
+    prefix = tool_name + "/"
+    for mod in loaded.split(":"):
+        mod = mod.strip()
+        if mod == tool_name or mod.startswith(prefix):
+            return mod
+    return None
+
+
+def format_eda_tool_status():
+    """Return multi-line status of required EDA tools (calibre, klayout)."""
+    from pages.gdsview import find_klayout
+
+    tools = (
+        ("calibre", shutil.which("calibre")),
+        ("klayout", find_klayout()),
+    )
+    lines = []
+    for name, path in tools:
+        mod = _loaded_module_for(name)
+        if path:
+            detail = "%s, module: %s" % (path, mod) if mod else path
+            lines.append("[Tool] %-7s : OK (%s)" % (name, detail))
+        else:
+            lines.append("[Tool] %-7s : NOT FOUND (not sourced or module loaded)" % name)
+    return "\n".join(lines)
+
+
 def _show_gui_license_error(message):
     if not os.environ.get("DISPLAY"):
         return
@@ -1274,6 +1306,8 @@ def main(argv=None):
                 return 3
             if res.notice:
                 sys.stderr.write(cgui_license.format_terminal_notice(res) + "\n")
+            sys.stderr.write(format_eda_tool_status() + "\n")
+            sys.stderr.flush()
         return cgui_eng.main(argv[1:])
 
     only, message, status = parse_argv(argv)
@@ -1297,6 +1331,8 @@ def main(argv=None):
         return 3
     if res.notice:
         sys.stderr.write(cgui_license.format_terminal_notice(res) + "\n")
+    sys.stderr.write(format_eda_tool_status() + "\n")
+    sys.stderr.flush()
 
     CGui(only=only, license_result=res).mainloop()
     return 0
