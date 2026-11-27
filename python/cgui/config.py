@@ -22,6 +22,22 @@ import json
 import time
 import socket
 
+APP_NAME = "pvflow"
+PRODUCT_NAME = "PVFlow"
+
+
+def env_get(primary, legacy=None, default=""):
+    """Read primary env var, falling back to legacy env var, then default."""
+    val = os.environ.get(primary)
+    if val not in (None, ""):
+        return val
+    if legacy:
+        val = os.environ.get(legacy)
+        if val not in (None, ""):
+            return val
+    return default
+
+
 # --------------------------------------------------------------------------
 # Paths
 # --------------------------------------------------------------------------
@@ -30,25 +46,37 @@ if "__compiled__" in globals() or getattr(sys, "frozen", False):
     APP_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
 else:
     APP_DIR = BASE_DIR
-DATA_DIR = (
-    os.path.join(BASE_DIR, "data")
-    if os.path.isdir(os.path.join(BASE_DIR, "data"))
-    else os.path.join(APP_DIR, "data")
+
+# In EDA release layout (<version>/libexec/pvflow.bin), INSTALL_DIR is <version>/.
+# In flat / dev layout (cgui.py or flat dist), INSTALL_DIR == APP_DIR.
+if os.path.basename(APP_DIR) == "libexec":
+    INSTALL_DIR = os.path.dirname(APP_DIR)
+else:
+    INSTALL_DIR = APP_DIR
+
+DATA_DIR = next(
+    (d for d in (
+        os.path.join(INSTALL_DIR, "data"),
+        os.path.join(BASE_DIR, "data"),
+        os.path.join(APP_DIR, "data"),
+    ) if os.path.isdir(d)),
+    os.path.join(INSTALL_DIR, "data"),
 )
 
 # --------------------------------------------------------------------------
 # Default command files: kept in a central (golden) directory, one subdir per
 # design:   <DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.com
-# Override via env CGUI_DEFAULT_DIR.
+# Override via env PVFLOW_DEFAULT_DIR (or legacy CGUI_DEFAULT_DIR).
 #
 # It sits NEXT TO the version directories, not inside one:
-#   <bin>/_cgui/<version>/cgui/       the program (one dir per release)
-#   <bin>/_cgui/current -> <version>
-#   <bin>/_cgui/central/              this directory, shared by every version
+#   /apps/cadsemi/pvflow/<version>/    the program (one dir per release)
+#   /apps/cadsemi/pvflow/current -> <version>
+#   /apps/cadsemi/pvflow/central/      optional central decks shared by versions
 # so a deck update (edit one .inc) needs no release, and rolling the program
 # back does not silently roll the decks back with it.
 # --------------------------------------------------------------------------
-DEFAULT_COM_DIR = os.environ.get(
+DEFAULT_COM_DIR = env_get(
+    "PVFLOW_DEFAULT_DIR",
     "CGUI_DEFAULT_DIR",
     "/datacenter/techLibs/cad/bin/_cgui/central",   # <- change to your central dir
 )
@@ -62,7 +90,7 @@ def central_default_file(module, design):
 def central_include_file(module, design):
     """<DEFAULT_COM_DIR>/<DESIGN>/<MODULE>.inc -- latest fab deck path (one line).
 
-    On tab open / on Run, cgui rewrites the command file's include line to the
+    On tab open / on Run, pvflow rewrites the command file's include line to the
     path stored here. To update the deck, just edit this one-line file."""
     return os.path.join(DEFAULT_COM_DIR, design, "%s.inc" % module)
 
@@ -87,10 +115,10 @@ def central_skipper_conf(design):
 
 # --------------------------------------------------------------------------
 # Per-user state directory (each user's "last time" working state; override via
-# env CGUI_USER_DIR).
+# env PVFLOW_USER_DIR or legacy CGUI_USER_DIR).
 #   <USER_DIR>/session/<DESIGN>/<MODULE>.json   per-tab fields + command text
 # --------------------------------------------------------------------------
-USER_DIR = os.path.expanduser(os.environ.get("CGUI_USER_DIR", "~/.cgui"))
+USER_DIR = os.path.expanduser(env_get("PVFLOW_USER_DIR", "CGUI_USER_DIR", "~/.pvflow"))
 SESSION_SUBDIR = "session"
 
 
@@ -106,11 +134,11 @@ def user_global_file(name):
 
 
 # --------------------------------------------------------------------------
-# Timing (CGUI_TIMING=1)
+# Timing (PVFLOW_TIMING=1 or legacy CGUI_TIMING=1)
 # --------------------------------------------------------------------------
 # The cost that matters is NFS latency on the EDA hosts, which cannot be
-# measured anywhere else -- so cgui can report its own, to stderr.
-TIMING = os.environ.get("CGUI_TIMING") not in (None, "", "0")
+# measured anywhere else -- so pvflow can report its own, to stderr.
+TIMING = env_get("PVFLOW_TIMING", "CGUI_TIMING", "0") not in (None, "", "0")
 
 
 def timed(label):
@@ -127,7 +155,7 @@ class _Timer(object):
         return self
 
     def __exit__(self, *exc):
-        sys.stderr.write("[cgui] %-34s %6.1f ms\n"
+        sys.stderr.write("[pvflow] %-34s %6.1f ms\n"
                          % (self.label, (time.time() - self._start) * 1000))
         return False
 
@@ -156,10 +184,9 @@ class _NoTimer(object):
 # with the server, while a stat can be answered from the client's attribute
 # cache (seconds, per the mount's acregmin/acregmax). So a deck edited on
 # another host can take a few seconds longer to be noticed than it used to.
-# CGUI_NO_CACHE=1 turns the cache off and reads every time, for when that
-# matters or to rule the cache out while debugging.
+# PVFLOW_NO_CACHE=1 (or CGUI_NO_CACHE=1) turns the cache off and reads every time.
 # --------------------------------------------------------------------------
-CACHE_ENABLED = os.environ.get("CGUI_NO_CACHE") in (None, "", "0")
+CACHE_ENABLED = env_get("PVFLOW_NO_CACHE", "CGUI_NO_CACHE", "0") in (None, "", "0")
 
 _cache = {}     # path -> (mtime_ns, size, value)
 
@@ -232,13 +259,13 @@ def hostname():
 
 
 def window_title(subject=None):
-    """'cgui v<release> (on <host>)' or 'cgui - <subject> (on <host>)'.
+    """'pvflow v<release> (on <host>)' or 'pvflow - <subject> (on <host>)'.
 
     The release and the host are each left out when they cannot be determined
     (not started from a release directory, e.g. a source checkout; no host
     name), so the title never shows an empty field or an invented version."""
     release = running_release()
-    title = "cgui v%s" % release if release else "cgui"
+    title = "%s v%s" % (APP_NAME, release) if release else APP_NAME
     if subject:
         title += " - %s" % subject
     host = hostname()
@@ -290,8 +317,8 @@ def record_recent_run(label, layout_path, run_folder, state, max_items=5):
 #
 # Most widgets set no font of their own and follow Tk's named fonts, which the
 # app points at these on start; the few that do ask for one go through
-# ui_font()/mono_font(), so everything moves together. Set CGUI_FONT_PX=17 to
-# enlarge the whole interface.
+# ui_font()/mono_font(), so everything moves together. Set PVFLOW_FONT_PX=17
+# (or legacy CGUI_FONT_PX=17) to enlarge the whole interface.
 #
 # Two things used to differ per machine:
 #
@@ -315,10 +342,10 @@ MONO_FONT_CANDIDATES = ("Liberation Mono", "DejaVu Sans Mono", "Nimbus Mono PS",
                         "Courier", "Courier New")
 
 UI_FONT_BASE_PX = 12                # pixel size the layout was drawn at
-UI_FONT_PX = int(os.environ.get("CGUI_FONT_PX", "15"))
-# CGUI_FONT_SIZE is the older setting and is in points -- still honoured, but
-# it brings the per-machine scaling back with it.
-UI_FONT_POINTS = int(os.environ.get("CGUI_FONT_SIZE", "0")) or None
+UI_FONT_PX = int(env_get("PVFLOW_FONT_PX", "CGUI_FONT_PX", "15"))
+# PVFLOW_FONT_SIZE / CGUI_FONT_SIZE is the older setting in points -- still
+# honoured, but it brings the per-machine scaling back with it.
+UI_FONT_POINTS = int(env_get("PVFLOW_FONT_SIZE", "CGUI_FONT_SIZE", "0")) or None
 
 # Window size at UI_FONT_BASE_PX; scaled with the font so nothing gets cramped.
 WINDOW_W, WINDOW_H = 980, 560
@@ -347,18 +374,19 @@ def _pick_family(candidates, override=None):
 
 def ui_font(delta=0, weight=None):
     """(family, size[, weight]) for a normal widget; delta shifts from the base."""
-    return _font(UI_FONT_CANDIDATES, "CGUI_FONT_FAMILY", delta, weight)
+    return _font(UI_FONT_CANDIDATES, ("PVFLOW_FONT_FAMILY", "CGUI_FONT_FAMILY"), delta, weight)
 
 
 def mono_font(delta=0):
     """Fixed-width font, kept in step with the interface size."""
-    return _font(MONO_FONT_CANDIDATES, "CGUI_MONO_FAMILY", delta)
+    return _font(MONO_FONT_CANDIDATES, ("PVFLOW_MONO_FAMILY", "CGUI_MONO_FAMILY"), delta)
 
 
-def _font(candidates, env_var, delta, weight=None):
-    key = env_var
+def _font(candidates, env_vars, delta, weight=None):
+    key = env_vars[0]
     if key not in _families:
-        _families[key] = _pick_family(candidates, os.environ.get(env_var))
+        override = env_get(env_vars[0], env_vars[1], "") or None
+        _families[key] = _pick_family(candidates, override)
     family = _families[key]
     if UI_FONT_POINTS:
         size = max(6, UI_FONT_POINTS + delta)          # points: scaled by the DPI
@@ -439,8 +467,8 @@ FILE_MANAGERS = ("caja", "nautilus", "thunar", "nemo", "pcmanfm", "dolphin",
 
 
 def file_managers():
-    """File managers to try, best first; CGUI_FILEMANAGER wins."""
-    forced = os.environ.get("CGUI_FILEMANAGER")
+    """File managers to try, best first; PVFLOW_FILEMANAGER / CGUI_FILEMANAGER wins."""
+    forced = env_get("PVFLOW_FILEMANAGER", "CGUI_FILEMANAGER")
     return (forced,) if forced else FILE_MANAGERS
 
 
@@ -491,7 +519,7 @@ def file_types(kind):
 # Terminal emulators to try, best first, each with the flag that means "run this
 # command". Shared by the Run buttons (a verification in its own window) and the
 # LOADING tab (a shell on another machine).
-# CGUI_TERMINAL forces one, e.g. CGUI_TERMINAL=mate-terminal.
+# PVFLOW_TERMINAL (or CGUI_TERMINAL) forces one, e.g. PVFLOW_TERMINAL=mate-terminal.
 TERMINALS = (
     ["xterm", "-fg", "white", "-bg", "black", "-e"],
     ["gnome-terminal", "--"], ["konsole", "-e"],
@@ -500,11 +528,11 @@ TERMINALS = (
 
 
 def terminals():
-    """Terminal emulators to try, best first; CGUI_TERMINAL wins.
+    """Terminal emulators to try, best first; PVFLOW_TERMINAL / CGUI_TERMINAL wins.
 
     A forced one is given "-e", which every emulator here but gnome-terminal
-    understands; use CGUI_TERMINAL only to pick between the known ones."""
-    forced = os.environ.get("CGUI_TERMINAL")
+    understands; use PVFLOW_TERMINAL only to pick between the known ones."""
+    forced = env_get("PVFLOW_TERMINAL", "CGUI_TERMINAL")
     if not forced:
         return TERMINALS
     for term in TERMINALS:
@@ -516,7 +544,7 @@ def terminals():
 def desktop_env():
     """Environment for launching an ordinary desktop application.
 
-    cgui runs in a shell with EDA modules loaded, so LD_LIBRARY_PATH points
+    pvflow runs in a shell with EDA modules loaded, so LD_LIBRARY_PATH points
     into the tool trees; a desktop program inheriting it loads those libraries
     instead of the system ones (dolphin failed on calibre's libpng15 exactly
     this way). These programs are built against the system libraries, so the
@@ -530,8 +558,8 @@ def desktop_env():
 
 
 # klayout executable for the KLAYOUT tab (independent of PROCESS / design).
-# Override via env CGUI_KLAYOUT.
-KLAYOUT_BIN = os.environ.get("CGUI_KLAYOUT", "/usr/bin/klayout")
+# Override via env PVFLOW_KLAYOUT (or legacy CGUI_KLAYOUT).
+KLAYOUT_BIN = env_get("PVFLOW_KLAYOUT", "CGUI_KLAYOUT", "/usr/bin/klayout")
 
 # Left-hand menu items (simplified Calibre DRC trial build)
 MENU_ITEMS = ["DRC", "SYSTEM"]
@@ -575,9 +603,9 @@ PAGE_FILES = {
 # The PDFs live in the central dir too, next to the DOC.txt of that process:
 #     <DOC_ROOT>/<DESIGN>/doc/<Doc. No.>/<Doc ID>/*.pdf
 # DOC_ROOT defaults to the central dir, so everything belonging to a process
-# stays under <DEFAULT_COM_DIR>/<DESIGN>/. Point CGUI_DOC_ROOT elsewhere only
+# stays under <DEFAULT_COM_DIR>/<DESIGN>/. Point PVFLOW_DOC_ROOT elsewhere only
 # if the PDF tree has to be hosted on a different share.
-DOC_ROOT = os.environ.get("CGUI_DOC_ROOT", DEFAULT_COM_DIR)
+DOC_ROOT = env_get("PVFLOW_DOC_ROOT", "CGUI_DOC_ROOT", DEFAULT_COM_DIR)
 DOC_SUBDIR = "doc"
 
 
@@ -612,36 +640,48 @@ def read_doc_index(design):
 # --------------------------------------------------------------------------
 # Deployed-version detection
 # --------------------------------------------------------------------------
-# Releases live in <bin>/_cgui/<version>/cgui/ and <bin>/_cgui/current is
-# the symlink naming the release everyone should be on. Switching version just
-# repoints it, so an instance that is already running stays on the release it
-# started from.
-#
-# The live release is read from that symlink, not from <bin>/cgui: the entry
-# point users type may be a *copy* of the launcher rather than a symlink into a
-# release, in which case resolving it yields <bin> and tells us nothing.
-#
-# The link is derived from where we are running (APP_DIR is the install/binary
-# directory), so no absolute path is hard-coded and a source checkout simply
-# finds nothing. Override with CGUI_CURRENT_LINK.
+# EDA release layout:
+#   /apps/cadsemi/pvflow/<version>/{bin/pvflow, libexec/pvflow.bin, data/}
+#   /apps/cadsemi/pvflow/current -> <version>   (optional, managed by CAD/IT)
+# Legacy layout (<root>/<version>/cgui/ + <root>/current) is also supported.
+# Switching version just repoints `current`, so an instance that is already
+# running stays on the release it started from.
+# Override with PVFLOW_CURRENT_LINK (or legacy CGUI_CURRENT_LINK).
 RELEASE_LINK = "current"
 
 
 def current_link():
     """<releases root>/current -- sibling of the release we run from."""
-    return (os.environ.get("CGUI_CURRENT_LINK")
-            or os.path.join(os.path.dirname(os.path.dirname(APP_DIR)), RELEASE_LINK))
+    override = env_get("PVFLOW_CURRENT_LINK", "CGUI_CURRENT_LINK")
+    if override:
+        return override
+    primary = os.path.join(os.path.dirname(INSTALL_DIR), RELEASE_LINK)
+    if os.path.exists(primary):
+        return primary
+    legacy = os.path.join(os.path.dirname(os.path.dirname(APP_DIR)), RELEASE_LINK)
+    if os.path.exists(legacy):
+        return legacy
+    return primary
 
 
 def live_install_dir():
-    """Install directory inside the release <current> points at, else None."""
+    """Install directory of the release <current> points at, else None."""
     try:
         link = current_link()
         if not os.path.exists(link):
             return None
-        # keep our own sub-directory name (…/<version>/cgui)
-        live = os.path.join(os.path.realpath(link), os.path.basename(APP_DIR))
-        return live if os.path.isdir(live) else None
+        target = os.path.realpath(link)
+        if not os.path.isdir(target):
+            return None
+        # EDA release layout: <version>/{bin,libexec,data}
+        if (os.path.isdir(os.path.join(target, "bin"))
+                or os.path.isdir(os.path.join(target, "libexec"))):
+            return target
+        # Legacy layout: <version>/cgui
+        legacy_sub = os.path.join(target, os.path.basename(APP_DIR))
+        if os.path.isdir(legacy_sub):
+            return legacy_sub
+        return target
     except OSError:
         return None
 
@@ -649,15 +689,26 @@ def live_install_dir():
 def live_launcher():
     """The launcher script inside the live release (what a restart should run)."""
     live = live_install_dir()
-    return os.path.join(live, "cgui") if live else None
+    if not live:
+        return None
+    for cand in (
+        os.path.join(live, "bin", "pvflow"),
+        os.path.join(live, "pvflow"),
+        os.path.join(live, "cgui"),
+    ):
+        if os.path.isfile(cand):
+            return cand
+    return os.path.join(live, "bin", "pvflow")
 
 
 def release_name(path):
-    """Display name of a release directory: '/..._cgui/2026.0728/cgui'
-    -> '2026.0728' (the version dir), otherwise the directory's own name."""
+    """Display name of a release directory: '/apps/cadsemi/pvflow/26.11.001'
+    or '/.../26.11.001/libexec' -> '26.11.001'."""
     path = path.rstrip(os.sep)
     head, tail = os.path.split(path)
-    return os.path.basename(head) if tail == "cgui" and head else tail
+    if tail in ("cgui", "libexec", "bin") and head:
+        return os.path.basename(head)
+    return tail
 
 
 def running_release():
@@ -670,12 +721,14 @@ def running_release():
         link = current_link()
         if not os.path.exists(link):
             return None
-        releases_root = os.path.dirname(os.path.realpath(link))
-        running = os.path.realpath(APP_DIR)
-        if (os.path.normpath(os.path.dirname(os.path.dirname(running)))
-                != os.path.normpath(releases_root)):
-            return None
-        return release_name(running)
+        releases_root = os.path.normpath(os.path.dirname(os.path.realpath(link)))
+        running_root = os.path.realpath(INSTALL_DIR)
+        if os.path.normpath(os.path.dirname(running_root)) == releases_root:
+            return release_name(running_root)
+        running_app = os.path.realpath(APP_DIR)
+        if os.path.normpath(os.path.dirname(os.path.dirname(running_app))) == releases_root:
+            return release_name(running_app)
+        return None
     except OSError:
         return None
 
@@ -690,7 +743,11 @@ def pending_update():
     running_name = running_release()
     if not live or not running_name:
         return None
-    if os.path.normpath(live) == os.path.normpath(os.path.realpath(APP_DIR)):
+    live_norm = os.path.normpath(live)
+    if live_norm in (
+        os.path.normpath(os.path.realpath(INSTALL_DIR)),
+        os.path.normpath(os.path.realpath(APP_DIR)),
+    ):
         return None
     return running_name, release_name(live), live
 
@@ -698,20 +755,21 @@ def pending_update():
 # Directory holding the XRC hcell / xcell cell lists (per PDK / process). Used
 # only as the fallback for the XRC tab's Hcell / Xcell fields when the central
 # XRC.inc names no path of its own; the run passes the field as -hcell / -xcell.
-# Override via env CGUI_XRC_HCELL_DIR.
-XRC_HCELL_DIR = os.environ.get(
+# Override via env PVFLOW_XRC_HCELL_DIR (or legacy CGUI_XRC_HCELL_DIR).
+XRC_HCELL_DIR = env_get(
+    "PVFLOW_XRC_HCELL_DIR",
     "CGUI_XRC_HCELL_DIR",
     "/datacenter/techLibs/tsmc/T22N/tools/pdk_sirius/T22N/calibre_layout/"
     "tsmc/T22/T22ULL_1P7M_4X1Z1U/layout_run/xrc",
 )
 
 # To override a tab's file via an environment variable, list the mapping here.
-# e.g. export CGUI_SYSTEM_FILE=/path/to/xxx.txt
+# e.g. export PVFLOW_SYSTEM_FILE=/path/to/xxx.txt
 _ENV_OVERRIDES = {
-    "SYSTEM":  "CGUI_SYSTEM_FILE",
-    "PROCESS": "CGUI_PROCESS_FILE",
-    "ENV":     "CGUI_ENV_FILE",
-    "LOADING": "CGUI_LOADING_FILE",
+    "SYSTEM":  ("PVFLOW_SYSTEM_FILE", "CGUI_SYSTEM_FILE"),
+    "PROCESS": ("PVFLOW_PROCESS_FILE", "CGUI_PROCESS_FILE"),
+    "ENV":     ("PVFLOW_ENV_FILE", "CGUI_ENV_FILE"),
+    "LOADING": ("PVFLOW_LOADING_FILE", "CGUI_LOADING_FILE"),
 }
 
 
@@ -721,9 +779,11 @@ def page_file(module_name):
     Priority: environment-variable override > PAGE_FILES (the file shipped in
     data/, alongside the release). Returns None when there is no setting.
     """
-    env_var = _ENV_OVERRIDES.get(module_name)
-    if env_var and os.environ.get(env_var):
-        return os.path.abspath(os.path.expanduser(os.environ[env_var]))
+    env_vars = _ENV_OVERRIDES.get(module_name)
+    if env_vars:
+        val = env_get(env_vars[0], env_vars[1])
+        if val:
+            return os.path.abspath(os.path.expanduser(val))
 
     rel = PAGE_FILES.get(module_name)
     if rel is None:

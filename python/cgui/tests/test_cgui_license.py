@@ -386,20 +386,23 @@ class TestLicensePolicyAndAntiTamper(unittest.TestCase):
 
 
 class TestSubprocessCLI(unittest.TestCase):
-    BIN_PATH = os.path.join(ROOT, "dist", "cgui", "cgui.bin")
-    WRAPPER_PATH = os.path.join(ROOT, "dist", "cgui", "cgui")
+    _VER = config.latest_revision()
+    BIN_PATH = os.path.join(ROOT, "dist", _VER, "libexec", "pvflow.bin")
+    WRAPPER_PATH = os.path.join(ROOT, "dist", _VER, "bin", "pvflow")
     PRIV_KEY_PATH = os.path.join(ROOT, "lic_issuer", "keys", "private_key.pem")
 
     @classmethod
     def setUpClass(cls):
+        if not os.path.isfile(cls.PRIV_KEY_PATH):
+            raise unittest.SkipTest("Vendor private_key.pem not present in checkout")
         with open(cls.PRIV_KEY_PATH, "rb") as f:
             cls.priv = serialization.load_pem_private_key(f.read(), password=None)
 
     def _run_target(self, cmd, tmp_dir, lic_path=None):
         env = dict(os.environ)
         env["HOME"] = tmp_dir
-        env["CGUI_USER_DIR"] = os.path.join(tmp_dir, "cgui_user")
-        env["CGUI_LIC_STATE_DIR"] = os.path.join(tmp_dir, "lic_state")
+        env["PVFLOW_USER_DIR"] = os.path.join(tmp_dir, "pvflow_user")
+        env["PVFLOW_LIC_STATE_DIR"] = os.path.join(tmp_dir, "lic_state")
         env["DISPLAY"] = ""
         env.pop("CADSEMI_LICENSE_FILE", None)
         env.pop("CTMP_LICENSE_FILE", None)
@@ -420,7 +423,7 @@ class TestSubprocessCLI(unittest.TestCase):
             os.path.isfile(self.BIN_PATH) and os.access(self.BIN_PATH, os.X_OK),
             "Compiled binary missing: %s" % self.BIN_PATH,
         )
-        dist_dir = os.path.dirname(self.BIN_PATH)
+        dist_dir = os.path.dirname(os.path.dirname(self.BIN_PATH))
         for dp, dirs, files in os.walk(dist_dir):
             self.assertNotIn("lic_issuer", dirs)
             for fn in files:
@@ -447,7 +450,7 @@ class TestSubprocessCLI(unittest.TestCase):
                     self.assertEqual(r_eng.returncode, 0, r_eng.stderr)
                     self.assertIn("demo_process", r_eng.stdout)
 
-                    # Expiring soon (15 days left) -> allowed + yellow notice
+                    # Expiring soon (15 days left) -> allowed + plain notice
                     lic_warn = os.path.join(tmp, "warn.lic")
                     exp_warn = (today + datetime.timedelta(days=15)).strftime("%Y-%m-%d")
                     _issue_temp_lic(self.priv, lic_warn, exp_warn)
@@ -500,8 +503,8 @@ class TestSubprocessCLI(unittest.TestCase):
                     )
                     env_rb = dict(os.environ)
                     env_rb["HOME"] = tmp
-                    env_rb["CGUI_USER_DIR"] = os.path.join(tmp, "cgui_user")
-                    env_rb["CGUI_LIC_STATE_DIR"] = state_rb
+                    env_rb["PVFLOW_USER_DIR"] = os.path.join(tmp, "pvflow_user")
+                    env_rb["PVFLOW_LIC_STATE_DIR"] = state_rb
                     env_rb["DISPLAY"] = ""
                     env_rb.pop("CTMP_LICENSE_FILE", None)
                     env_rb["CADSEMI_LICENSE_FILE"] = lic_ok
@@ -531,20 +534,22 @@ class TestGuiSmoke(unittest.TestCase):
         sys_txt = os.path.join(ROOT, "data", "system.txt")
         with open(sys_txt, "r", encoding="utf-8") as f:
             first_line = f.readline().strip()
-        self.assertEqual(first_line, "cgui @cadsemi")
-        self.assertEqual(config.latest_revision(), "1.0.0")
+        self.assertEqual(first_line, "pvflow @cadsemi")
+        self.assertEqual(config.latest_revision(), "26.11.001")
 
     def test_simplified_drc_trial_config_and_scripts(self):
         self.assertEqual(config.MENU_ITEMS, ["DRC", "SYSTEM"])
         self.assertEqual(config.VERIFY_MODULES, ["DRC"])
         title = config.window_title()
-        self.assertTrue(title.startswith("cgui"))
+        self.assertTrue(title.startswith("pvflow"))
         self.assertNotIn("Cadsemi", title)
         self.assertNotIn(" - ", title)
         self.assertNotIn("t22_1p7m_4x1z1u", title)
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "No DISPLAY available for Tk smoke test")
     def test_gui_status_bar_and_system_page(self):
+        if not os.path.isfile(TestSubprocessCLI.PRIV_KEY_PATH):
+            self.skipTest("Vendor private_key.pem not present in checkout")
         import cgui_app
         with open(TestSubprocessCLI.PRIV_KEY_PATH, "rb") as f:
             priv = serialization.load_pem_private_key(f.read(), password=None)
@@ -552,7 +557,7 @@ class TestGuiSmoke(unittest.TestCase):
         today = datetime.date.today()
         with tempfile.TemporaryDirectory() as tmp:
             old_user_dir = config.USER_DIR
-            config.USER_DIR = os.path.join(tmp, "cgui_user")
+            config.USER_DIR = os.path.join(tmp, "pvflow_user")
             try:
                 lic_warn = os.path.join(tmp, "warn.lic")
                 _issue_temp_lic(
@@ -562,7 +567,7 @@ class TestGuiSmoke(unittest.TestCase):
                 )
                 with mock.patch.dict(os.environ, {
                     "CADSEMI_LICENSE_FILE": lic_warn,
-                    "CGUI_LIC_STATE_DIR": os.path.join(tmp, "state"),
+                    "PVFLOW_LIC_STATE_DIR": os.path.join(tmp, "state"),
                 }):
                     os.environ.pop("CTMP_LICENSE_FILE", None)
                     res = cgui_license.check_license(update_state=False)
@@ -579,7 +584,7 @@ class TestGuiSmoke(unittest.TestCase):
                             list(app._menus.keys()),
                             ["File", "Tools", "Options", "Window", "License", "Help"],
                         )
-                        self.assertTrue(app.title().startswith("cgui"))
+                        self.assertTrue(app.title().startswith("pvflow"))
                         self.assertNotIn("Cadsemi", app.title())
                         self.assertNotIn("t22_1p7m_4x1z1u", app.title())
                         self.assertEqual(app.cget("bg"), config.THEME["bg"])
@@ -597,18 +602,18 @@ class TestGuiSmoke(unittest.TestCase):
                             return out
 
                         home_page = app._pages["HOME"]
-                        self.assertEqual(home_page.heading_lbl.cget("text"), "CGUI")
+                        self.assertEqual(home_page.heading_lbl.cget("text"), "PVFlow")
                         self.assertEqual(home_page.tools_lbl.cget("text"), "Tools")
                         self.assertEqual(home_page.app_tiles["Help"].sub_lbl.cget("text"), "User Guide")
 
-                        # Offline User Guide exists and Help tile / Help -> CGUI Help opens it via browser
+                        # Offline User Guide exists and Help tile / Help -> PVFlow Help opens it via browser
                         guide_path = app.user_guide_path()
                         self.assertTrue(os.path.isfile(guide_path))
                         self.assertTrue(guide_path.endswith(os.path.join("data", "help", "index.html")))
                         help_menu = app.nametowidget(app._menus["Help"].cget("menu"))
                         self.assertEqual(
                             _menu_labels(help_menu),
-                            ["CGUI Help", "About CGUI"],
+                            ["PVFlow Help", "About PVFlow"],
                         )
                         tools_menu = app.nametowidget(app._menus["Tools"].cget("menu"))
                         self.assertEqual(
@@ -1006,6 +1011,131 @@ class TestTerminalOutput(unittest.TestCase):
                 out_missing = cgui_app.format_eda_tool_status()
         self.assertIn("[Tool] calibre : NOT FOUND (not sourced or module loaded)", out_missing)
         self.assertIn("[Tool] klayout : NOT FOUND (not sourced or module loaded)", out_missing)
+
+
+class TestEdaHierarchyAndUpwardLicense(unittest.TestCase):
+    def test_upward_license_discovery_in_eda_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vendor = os.path.join(tmp, "cadsemi")
+            product = os.path.join(vendor, "pvflow")
+            ver = os.path.join(product, "26.11.001")
+            libexec = os.path.join(ver, "libexec")
+            vendor_lic_dir = os.path.join(vendor, "license")
+            os.makedirs(libexec, exist_ok=True)
+            os.makedirs(vendor_lic_dir, exist_ok=True)
+
+            vendor_lic = os.path.join(vendor_lic_dir, "cadsemi.lic")
+            with open(vendor_lic, "w", encoding="utf-8") as f:
+                f.write("{}")
+
+            env_clean = dict(os.environ)
+            env_clean.pop("CADSEMI_LICENSE_FILE", None)
+            env_clean.pop("CTMP_LICENSE_FILE", None)
+            old_user_dir = config.USER_DIR
+            config.USER_DIR = os.path.join(tmp, "empty_user")
+            try:
+                with mock.patch.dict(os.environ, env_clean, clear=True), \
+                     mock.patch.object(config, "INSTALL_DIR", ver), \
+                     mock.patch.object(config, "APP_DIR", libexec), \
+                     mock.patch.object(config, "BASE_DIR", libexec):
+                    found, _, _ = cgui_license._resolve_license_path()
+                    self.assertEqual(found, vendor_lic)
+
+                    # Product-level license overrides vendor-level
+                    prod_lic = os.path.join(product, "cadsemi.lic")
+                    with open(prod_lic, "w", encoding="utf-8") as f:
+                        f.write("{}")
+                    found2, _, _ = cgui_license._resolve_license_path()
+                    self.assertEqual(found2, prod_lic)
+
+                    # Version-level license takes highest auto-discovery priority
+                    ver_lic = os.path.join(ver, "cadsemi.lic")
+                    with open(ver_lic, "w", encoding="utf-8") as f:
+                        f.write("{}")
+                    found3, _, _ = cgui_license._resolve_license_path()
+                    self.assertEqual(found3, ver_lic)
+            finally:
+                config.USER_DIR = old_user_dir
+
+    def test_current_symlink_release_detection_and_pending_update(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            product = os.path.join(tmp, "cadsemi", "pvflow")
+            v1 = os.path.join(product, "26.11.001")
+            v2 = os.path.join(product, "26.12.001")
+            for v in (v1, v2):
+                os.makedirs(os.path.join(v, "bin"), exist_ok=True)
+                os.makedirs(os.path.join(v, "libexec"), exist_ok=True)
+                with open(os.path.join(v, "bin", "pvflow"), "w", encoding="utf-8") as f:
+                    f.write("#!/bin/bash\n")
+            cur = os.path.join(product, "current")
+            os.symlink("26.11.001", cur)
+
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("PVFLOW_CURRENT_LINK", None)
+                os.environ.pop("CGUI_CURRENT_LINK", None)
+                with mock.patch.object(config, "INSTALL_DIR", v1), \
+                     mock.patch.object(config, "APP_DIR", os.path.join(v1, "libexec")):
+                    self.assertEqual(config.current_link(), cur)
+                    self.assertEqual(config.running_release(), "26.11.001")
+                    self.assertEqual(config.live_install_dir(), os.path.realpath(v1))
+                    self.assertEqual(config.live_launcher(), os.path.join(os.path.realpath(v1), "bin", "pvflow"))
+                    self.assertIsNone(config.pending_update())
+
+                    # Flip current -> 26.12.001
+                    os.unlink(cur)
+                    os.symlink("26.12.001", cur)
+                    upd = config.pending_update()
+                    self.assertIsNotNone(upd)
+                    self.assertEqual(upd[0], "26.11.001")
+                    self.assertEqual(upd[1], "26.12.001")
+                    self.assertEqual(config.live_launcher(), os.path.join(os.path.realpath(v2), "bin", "pvflow"))
+
+    def test_pvflow_and_cgui_launchers_help(self):
+        for script in ("pvflow", "cgui"):
+            r = subprocess.run(
+                [os.path.join(ROOT, script), "--help"],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("usage: pvflow", r.stdout)
+
+    def test_eda_release_assembly_helpers_and_wrapper(self):
+        import cgui_build_nuitka as builder
+        with tempfile.TemporaryDirectory() as tmp:
+            ver = os.path.join(tmp, "cadsemi", "pvflow", "26.11.001")
+            bin_d = os.path.join(ver, "bin")
+            libexec_d = os.path.join(ver, "libexec")
+            etc_d = os.path.join(ver, "etc")
+            os.makedirs(bin_d)
+            os.makedirs(libexec_d)
+
+            fake_bin = os.path.join(libexec_d, "pvflow.bin")
+            with open(fake_bin, "w", encoding="utf-8") as f:
+                f.write("#!/bin/bash\necho FAKE_BIN:$@\n")
+            os.chmod(fake_bin, 0o755)
+
+            launcher = os.path.join(bin_d, "pvflow")
+            shutil.copy2(os.path.join(ROOT, "pvflow"), launcher)
+            builder._pin_default_home(launcher, "/apps/cadsemi/pvflow/current")
+            os.symlink("pvflow", os.path.join(bin_d, "cgui"))
+            mod = builder._write_modulefile_example(etc_d, "26.11.001")
+            readme = builder._write_release_readme(ver, "26.11.001")
+            builder._audit_dist(ver)
+
+            with open(mod, "r", encoding="utf-8") as f:
+                self.assertEqual(f.readline().strip(), "#%Module1.0")
+            with open(readme, "r", encoding="utf-8") as f:
+                self.assertIn("pvflow_26.11.001_linux_x64.tar.gz", f.read())
+
+            cur = os.path.join(tmp, "cadsemi", "pvflow", "current")
+            os.symlink("26.11.001", cur)
+            for name in ("pvflow", "cgui"):
+                r = subprocess.run(
+                    [os.path.join(cur, "bin", name), "-L"],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout.strip(), "FAKE_BIN:-L")
 
 
 if __name__ == "__main__":

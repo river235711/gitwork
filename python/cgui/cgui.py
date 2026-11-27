@@ -23,13 +23,15 @@ for _stream_name in ("stdout", "stderr"):
     except Exception:
         pass
 
-_TIMING = os.environ.get("CGUI_TIMING") not in (None, "", "0")
+_TIMING = (
+    os.environ.get("PVFLOW_TIMING") or os.environ.get("CGUI_TIMING")
+) not in (None, "", "0")
 _T0 = time.time()
 
 
 def _report(label, since):
     if _TIMING:
-        sys.stderr.write("[cgui] %-34s %6.1f ms\n"
+        sys.stderr.write("[pvflow] %-34s %6.1f ms\n"
                          % (label, (time.time() - since) * 1000))
 
 
@@ -39,5 +41,5 @@ _report("import cgui_app", _t)
 
 if __name__ == "__main__":
     if _TIMING:
-        os.environ["CGUI_START"] = str(_T0)
+        os.environ["PVFLOW_START"] = str(_T0)
     sys.exit(cgui_app.main())

@@ -1242,13 +1242,13 @@ class VerifyPage(BasePage):
     def _prepare_folder(self):
         folder = self.entries["RunFolder"].get().strip()
         if not folder:
-            messagebox.showerror("cgui", "Please fill in RunFolder first")
+            messagebox.showerror("pvflow", "Please fill in RunFolder first")
             return None
         folder = os.path.expanduser(folder)
         try:
             os.makedirs(folder, exist_ok=True)
         except OSError as e:
-            messagebox.showerror("cgui", "Failed to create RunFolder:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to create RunFolder:\n%s" % e)
             return None
         return folder
 
@@ -1276,7 +1276,7 @@ class VerifyPage(BasePage):
             try:
                 self._write_run(folder, self._run_script())
             except OSError as e:
-                messagebox.showerror("cgui", "Failed to write run:\n%s" % e)
+                messagebox.showerror("pvflow", "Failed to write run:\n%s" % e)
                 return
             self._launch_terminal(folder)
             return
@@ -1284,10 +1284,10 @@ class VerifyPage(BasePage):
         if "CmdFile" in self.entries:
             deck = os.path.expanduser(self._entry("CmdFile"))
             if not deck:
-                messagebox.showerror("cgui", "Please choose CmdFile (DRC rule deck) first")
+                messagebox.showerror("pvflow", "Please choose CmdFile (DRC rule deck) first")
                 return
             if not os.path.isfile(deck) and not messagebox.askyesno(
-                    "cgui", "CmdFile not found:\n%s\n\nRun anyway?" % deck):
+                    "pvflow", "CmdFile not found:\n%s\n\nRun anyway?" % deck):
                 return
         try:
             com_path = os.path.join(folder, self._com_filename())
@@ -1302,7 +1302,7 @@ class VerifyPage(BasePage):
                           encoding="utf-8") as f:
                     f.write(self._jivaro_xml(infile))
         except OSError as e:
-            messagebox.showerror("cgui", "Failed to write files:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to write files:\n%s" % e)
             return
         if self.module in DRC_CLASS and hasattr(self.app, "record_recent_run"):
             self.app.record_recent_run(self._collect_state())
@@ -1361,7 +1361,7 @@ class VerifyPage(BasePage):
     def _run_jivaro(self, folder):
         infile = self.entries["File"].get().strip()
         if not infile:
-            messagebox.showerror("cgui", "Please choose a post-layout netlist File first")
+            messagebox.showerror("pvflow", "Please choose a post-layout netlist File first")
             return
         infile = os.path.expanduser(infile)
         try:
@@ -1372,7 +1372,7 @@ class VerifyPage(BasePage):
                             "module load %s\n"
                             "jivaro -xml jivaro.xml\n" % self._jivaro_env())
         except OSError as e:
-            messagebox.showerror("cgui", "Failed to write files:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to write files:\n%s" % e)
             return
         self._launch_terminal(folder)
 
@@ -1386,7 +1386,7 @@ class VerifyPage(BasePage):
         try:
             self._write_run(folder, self._run_script_rve())
         except OSError as e:
-            messagebox.showerror("cgui", "Failed to write run:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to write run:\n%s" % e)
             return
         self._launch_terminal(folder)
 
@@ -1432,17 +1432,17 @@ class VerifyPage(BasePage):
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(self.cmd_text.get_text())
             except OSError as e:
-                messagebox.showerror("cgui", "Save failed:\n%s" % e)
+                messagebox.showerror("pvflow", "Save failed:\n%s" % e)
 
     # ==================================================================
     # External programs
     # ==================================================================
     def _launch_terminal(self, folder):
         if not os.environ.get("DISPLAY"):
-            messagebox.showerror("cgui", "No DISPLAY, cannot open a terminal.\n"
-                                         "Run it manually:\n%s/run" % folder)
+            messagebox.showerror("pvflow", "No DISPLAY, cannot open a terminal.\n"
+                                           "Run it manually:\n%s/run" % folder)
             return
-        wrapper = os.path.join(folder, ".cgui_run.sh")
+        wrapper = os.path.join(folder, ".pvflow_run.sh")
         try:
             with open(wrapper, "w", encoding="utf-8") as f:
                 f.write('#!/bin/bash\n'
@@ -1458,7 +1458,7 @@ class VerifyPage(BasePage):
                         'read\n')
             os.chmod(wrapper, 0o755)
         except OSError as e:
-            messagebox.showerror("cgui", "Failed to create run wrapper:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to create run wrapper:\n%s" % e)
             return
         for term in config.terminals():
             if shutil.which(term[0]):
@@ -1467,14 +1467,14 @@ class VerifyPage(BasePage):
                     return
                 except Exception:
                     continue
-        messagebox.showerror("cgui",
+        messagebox.showerror("pvflow",
                              "No usable terminal found. Run it manually:\n%s/run" % folder)
 
     def _terminal_title(self):
         """Title for the run window, so several of them stay tellable apart:
-        '.cgui_run.sh - <TAB>'. Quotes and percent signs would upset the printf
+        '.pvflow_run.sh - <TAB>'. Quotes and percent signs would upset the printf
         that emits it, so they are dropped."""
-        title = ".cgui_run.sh - %s" % self.module
+        title = ".pvflow_run.sh - %s" % self.module
         return title.replace("'", "").replace("%", "")
 
     def _on_view(self):
@@ -1493,7 +1493,7 @@ class VerifyPage(BasePage):
     def _edit_entry(self, key):
         path = self.entries[key].get().strip()
         if not path:
-            messagebox.showwarning("cgui", "%s is empty" % key)
+            messagebox.showwarning("pvflow", "%s is empty" % key)
             return
         editor = self.app.env.get("editor") or "gvim"
         self._spawn([editor], path, "editor not found: %s" % editor)
@@ -1512,7 +1512,7 @@ class VerifyPage(BasePage):
                     return
                 except Exception:
                     continue
-        messagebox.showinfo("cgui", not_found_msg)
+        messagebox.showinfo("pvflow", not_found_msg)
 
     # ------------------------------------------------------------------
     def _browse_path(self, key, directory=False):

@@ -175,7 +175,7 @@ class CGui(tk.Tk):
     def _show_grace_popup(self):
         res = self.license_result
         if res and res.status == cgui_license.STATUS_GRACE:
-            messagebox.showwarning("cgui - License Grace Period", res.notice)
+            messagebox.showwarning("pvflow - License Grace Period", res.notice)
 
     def _periodic_license_check(self):
         self._lic_job = None
@@ -183,7 +183,7 @@ class CGui(tk.Tk):
         self.license_result = res
         self._update_license_bar(res)
         if not res.allowed:
-            messagebox.showerror("cgui - License Error", res.message)
+            messagebox.showerror("pvflow - License Error", res.message)
             return
         self._lic_job = self.after(_LIC_CHECK_INTERVAL_MS,
                                    self._periodic_license_check)
@@ -195,7 +195,7 @@ class CGui(tk.Tk):
         self._update_license_bar(res)
         if not res.allowed:
             messagebox.showerror(
-                "cgui - License Error",
+                "pvflow - License Error",
                 "Cannot %s:\n\n%s" % (action, res.message),
             )
             return False
@@ -211,10 +211,10 @@ class CGui(tk.Tk):
     @staticmethod
     def _report_startup():
         """Total from process start, when the bootstrap passed its own T0 on."""
-        started = os.environ.pop("CGUI_START", None)
+        started = os.environ.pop("PVFLOW_START", None) or os.environ.pop("CGUI_START", None)
         if started and config.TIMING:
             import time
-            sys.stderr.write("[cgui] %-34s %6.1f ms\n"
+            sys.stderr.write("[pvflow] %-34s %6.1f ms\n"
                              % ("=> window ready, total",
                                 (time.time() - float(started)) * 1000))
 
@@ -465,9 +465,9 @@ class CGui(tk.Tk):
         m_lic.add_command(label="Reload License", command=self._reload_license)
 
         m_help = _make_menu("Help")
-        m_help.add_command(label="CGUI Help", accelerator="F1",
+        m_help.add_command(label="PVFlow Help", accelerator="F1",
                            command=self.open_user_guide)
-        m_help.add_command(label="About CGUI", command=self._show_about)
+        m_help.add_command(label="About PVFlow", command=self._show_about)
 
     def _rebuild_recent_menu(self):
         m = self._recent_menu
@@ -653,18 +653,18 @@ class CGui(tk.Tk):
 
     @staticmethod
     def user_guide_path():
-        """Return the absolute path to the offline HTML CGUI User Guide."""
+        """Return the absolute path to the offline HTML PVFlow User Guide."""
         return os.path.abspath(os.path.join(config.DATA_DIR, "help", "index.html"))
 
     def open_user_guide(self):
-        """Open the offline HTML CGUI User Guide in the user's web browser."""
+        """Open the offline HTML PVFlow User Guide in the user's web browser."""
         path = self.user_guide_path()
         if not os.path.isfile(path):
-            messagebox.showerror("CGUI Help", "User Guide file not found:\n%s" % path)
+            messagebox.showerror("PVFlow Help", "User Guide file not found:\n%s" % path)
             return
         url = Path(path).as_uri()
         base_env = config.desktop_env()
-        forced = os.environ.get("CGUI_BROWSER", "").strip()
+        forced = config.env_get("PVFLOW_BROWSER", "CGUI_BROWSER").strip()
         candidates = (forced,) if forced else (
             "google-chrome", "chromium", "chromium-browser", "xdg-open", "firefox",
         )
@@ -695,7 +695,7 @@ class CGui(tk.Tk):
                 continue
         if not webbrowser.open(url):
             messagebox.showerror(
-                "CGUI Help",
+                "PVFlow Help",
                 "Could not launch a web browser.\nOpen manually:\n%s" % path,
             )
             return None
@@ -779,7 +779,7 @@ class CGui(tk.Tk):
         if page is not None and hasattr(page, "_on_save"):
             page._on_save()
         else:
-            messagebox.showinfo("cgui", "Open a DRC tab first to save a command file.")
+            messagebox.showinfo("pvflow", "Open a DRC tab first to save a command file.")
 
     def _apply_license_result(self, res):
         self.license_result = res
@@ -797,16 +797,16 @@ class CGui(tk.Tk):
         _, _, status_text, details = license_summary(res)
         messagebox.showinfo(
             "License Info",
-            "cgui license\n%s\n\n%s" % (status_text, details),
+            "pvflow license\n%s\n\n%s" % (status_text, details),
         )
 
     def _reload_license(self):
         res = cgui_license.check_license(update_state=False)
         self._apply_license_result(res)
         if res.allowed:
-            messagebox.showinfo("cgui - License", cgui_license.format_license_info(res))
+            messagebox.showinfo("pvflow - License", cgui_license.format_license_info(res))
         else:
-            messagebox.showerror("cgui - License Error", res.message)
+            messagebox.showerror("pvflow - License Error", res.message)
 
     def _select_license_file(self):
         path = filedialog.askopenfilename(
@@ -817,17 +817,17 @@ class CGui(tk.Tk):
             return
         res = cgui_license.check_license(license_file=path, update_state=False)
         if not res.allowed:
-            messagebox.showerror("cgui - License Error", res.message)
+            messagebox.showerror("pvflow - License Error", res.message)
             return
         os.environ[cgui_license.LICENSE_ENV_VAR] = path
         self._saved_license_file = path
         self._save_ui_state()
         self._apply_license_result(res)
-        messagebox.showinfo("cgui - License", cgui_license.format_license_info(res))
+        messagebox.showinfo("pvflow - License", cgui_license.format_license_info(res))
 
     def _open_terminal(self):
         if not os.environ.get("DISPLAY"):
-            messagebox.showerror("cgui", "No DISPLAY, cannot open a terminal.")
+            messagebox.showerror("pvflow", "No DISPLAY, cannot open a terminal.")
             return
         folder = self.launch_dir
         page = self._page
@@ -845,7 +845,7 @@ class CGui(tk.Tk):
                     return
                 except Exception:
                     continue
-        messagebox.showerror("cgui", "No usable terminal found.")
+        messagebox.showerror("pvflow", "No usable terminal found.")
 
     def _new_window(self):
         launcher = config.live_launcher()
@@ -858,7 +858,7 @@ class CGui(tk.Tk):
         try:
             subprocess.Popen(cmd, start_new_session=True, close_fds=True)
         except Exception as e:
-            messagebox.showerror("cgui", "Could not open new window:\n%s" % e)
+            messagebox.showerror("pvflow", "Could not open new window:\n%s" % e)
 
     def _toggle_fullscreen(self, toggle=False):
         if toggle:
@@ -876,7 +876,7 @@ class CGui(tk.Tk):
             "Ctrl+W   Close Current Tab\n"
             "Ctrl+Q   Quit\n"
             "F11      Toggle Full Screen\n"
-            "F1       CGUI Help",
+            "F1       PVFlow Help",
         )
 
     def _set_font_px(self, px):
@@ -905,7 +905,7 @@ class CGui(tk.Tk):
         T = config.THEME
         win = tk.Toplevel(self)
         self._about_win = win
-        win.title("About CGUI")
+        win.title("About PVFlow")
         win.configure(bg=T["bg"])
         win.resizable(False, False)
         if self.winfo_viewable():
@@ -953,7 +953,7 @@ class CGui(tk.Tk):
 
         # Large product title & company block
         cv.create_text(
-            banner_w // 2, 54, text="CGUI", fill="#fefdfb",
+            banner_w // 2, 54, text="PVFlow", fill="#fefdfb",
             font=("DejaVu Sans", 30, "bold"), anchor="center",
         )
         cv.create_rectangle(24, 108, 36, 120, fill=accent, outline="")
@@ -1071,16 +1071,16 @@ class CGui(tk.Tk):
         notices_text = (
             "Third-Party Trademarks & Compatibility Notice\n\n"
             "\"Calibre\" is a registered trademark of Siemens Industry Software Inc. "
-            "(Siemens EDA) and may be registered in certain jurisdictions. Cadsemi CGUI "
+            "(Siemens EDA) and may be registered in certain jurisdictions. Cadsemi PVFlow "
             "is an independent EDA workflow interface and is not affiliated with, "
             "sponsored by, or endorsed by Siemens EDA. Command-line EDA engines are "
             "invoked only from the user's own licensed environment.\n\n"
             "\"KLayout\" is an open-source layout viewer licensed under the GNU General "
             "Public License (GPL v2 or later / GPL v3; https://www.klayout.de). Cadsemi "
-            "CGUI does not redistribute modified KLayout binaries and invokes an external "
+            "PVFlow does not redistribute modified KLayout binaries and invokes an external "
             "KLayout executable present in the user's environment.\n\n"
             "Free and Open Source Software Notices\n\n"
-            "CGUI includes or relies on open-source runtime components including Python "
+            "PVFlow includes or relies on open-source runtime components including Python "
             "(PSF License), Tcl/Tk (Tcl/Tk License), Ed25519 signature verification "
             "routines, and Nuitka (Apache License 2.0).\n\n"
             "Trademark & Support Inquiries\n\n"
@@ -1192,8 +1192,8 @@ class CGui(tk.Tk):
             return True
         running, live, _dir = update
         if messagebox.askyesno(
-                "cgui",
-                "This window is running cgui %s, but %s is now the current "
+                "pvflow",
+                "This window is running pvflow %s, but %s is now the current "
                 "release.\n\nRun with the version you have?\n\n"
                 "Yes  -- run now with %s\n"
                 "No   -- restart into %s first"
@@ -1207,8 +1207,8 @@ class CGui(tk.Tk):
         """Save everything, start the app again from the entry point, and exit."""
         launcher = config.live_launcher()
         if not launcher:
-            messagebox.showerror("cgui", "The current release could not be found;\n"
-                                         "close cgui and start it again manually.")
+            messagebox.showerror("pvflow", "The current release could not be found;\n"
+                                           "close pvflow and start it again manually.")
             return
         self._flush_page()
         self._save_ui_state()
@@ -1216,18 +1216,18 @@ class CGui(tk.Tk):
             subprocess.Popen([launcher], start_new_session=True, close_fds=True)
         except Exception as e:
             messagebox.showerror(
-                "cgui", "Could not restart from:\n%s\n\n%s\n\n"
-                        "Close cgui and start it again manually." % (launcher, e))
+                "pvflow", "Could not restart from:\n%s\n\n%s\n\n"
+                          "Close pvflow and start it again manually." % (launcher, e))
             return
         self.destroy()
 
 
-USAGE = """usage: cgui [-l | -e <engineer-mode options> | -L]
+USAGE = """usage: pvflow [-l | -e <engineer-mode options> | -L]
 
   -l, --loading   open the machine chooser only: the LOADING page on its own,
-                  to see which machine is free and start cgui there
+                  to see which machine is free and start pvflow there
   -e, --engineer  engineer mode: the command-line tools, run in this terminal
-                  instead of opening a window. `cgui -e -h` lists them.
+                  instead of opening a window. `pvflow -e -h` lists them.
   -L, --license   print license status and details, then exit
   -h, --help      this message
 
@@ -1246,7 +1246,7 @@ def parse_argv(argv):
             return "__LICENSE__", None, 0
         if argv[0] in ("-h", "--help"):
             return None, USAGE, 0
-    return None, "cgui: unknown option %s\n\n%s" % (" ".join(argv), USAGE), 2
+    return None, "pvflow: unknown option %s\n\n%s" % (" ".join(argv), USAGE), 2
 
 
 def _loaded_module_for(tool_name):
@@ -1287,7 +1287,7 @@ def _show_gui_license_error(message):
     try:
         root = tk.Tk()
         root.withdraw()
-        messagebox.showerror("cgui - License Error", message)
+        messagebox.showerror("pvflow - License Error", message)
         root.destroy()
     except tk.TclError:
         pass
@@ -1302,7 +1302,7 @@ def main(argv=None):
         if not any(a in ("-h", "--help") for a in argv[1:]):
             res = cgui_license.check_license()
             if not res.allowed:
-                sys.stderr.write("cgui: %s\n" % res.message)
+                sys.stderr.write("pvflow: %s\n" % res.message)
                 return 3
             if res.notice:
                 sys.stderr.write(cgui_license.format_terminal_notice(res) + "\n")
@@ -1326,7 +1326,7 @@ def main(argv=None):
 
     res = cgui_license.check_license()
     if not res.allowed:
-        sys.stderr.write("cgui: %s\n" % res.message)
+        sys.stderr.write("pvflow: %s\n" % res.message)
         _show_gui_license_error(res.message)
         return 3
     if res.notice:

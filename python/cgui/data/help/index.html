@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CGUI User Guide - cadsemi</title>
+<title>PVFlow User Guide - cadsemi</title>
 <style type="text/css">
   body {
     margin: 0;
@@ -346,7 +346,7 @@
   <tr>
     <td class="topbar-left">
       <a class="brand" href="#getting-started">
-        <span class="brand-mark"></span>CGUI User Documentation
+        <span class="brand-mark"></span>PVFlow User Documentation
       </a>
       <span class="brand-sub">cadsemi.com</span>
     </td>
@@ -415,9 +415,9 @@
       <div class="main-inner">
         <div class="breadcrumb" id="breadcrumbText">Home &rsaquo; Getting Started &rsaquo; Home &amp; Workspace Overview</div>
 
-        <h1>CGUI User Guide</h1>
+        <h1>PVFlow User Guide</h1>
         <p class="lead">
-          Offline documentation for <strong>Cadsemi CGUI</strong> &mdash; unified launcher and workspace for
+          Offline documentation for <strong>Cadsemi PVFlow</strong> &mdash; unified launcher and workspace for
           <strong>DRC Verification</strong>, interactive <strong>RVE</strong> debugging, and
           <strong>KLayout GDS Viewer</strong> inspection on Linux workstations.
         </p>
@@ -429,7 +429,7 @@
         <div id="getting-started" class="topic" data-keywords="home workspace tools tiles drc gdsviewer help tab bar">
           <h2><span class="sec-num">01</span> Home &amp; Workspace Overview</h2>
           <p>
-            When CGUI launches, the <strong>Home</strong> tab displays the available <strong>Tools</strong> tiles and
+            When PVFlow launches, the <strong>Home</strong> tab displays the available <strong>Tools</strong> tiles and
             provides direct access to every application in a tabbed environment:
           </p>
           <table class="cards-tbl" role="presentation">
@@ -463,7 +463,7 @@
           <h2><span class="sec-num">02</span> IC Verification Workflow</h2>
           <p>Follow the verification workflow below or use the sidebar Contents to jump directly to any topic.</p>
           <div class="diagram-box">
-            <svg viewBox="0 0 760 155" width="720" height="155" role="img" aria-label="CGUI Workflow Diagram" style="max-width:100%;height:auto;display:block;margin:0 auto;">
+            <svg viewBox="0 0 760 155" width="720" height="155" role="img" aria-label="PVFlow Workflow Diagram" style="max-width:100%;height:auto;display:block;margin:0 auto;">
               <rect x="12" y="38" width="150" height="72" rx="6" fill="#f5f2ea" stroke="#a0522d" stroke-width="1.5"/>
               <text x="87" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#141413">1. Select Input</text>
               <text x="87" y="88" text-anchor="middle" font-size="11" fill="#625f58">GDS / .gds.gz + Top Cell</text>
@@ -509,7 +509,7 @@
           <ul>
             <li><strong>Dynamic Tab Strip:</strong> Each open tool tab displays a close button (<code>&times;</code>). Opening many tabs compacts tab widths smoothly, while the <kbd>+</kbd> button creates additional <strong>Home</strong> tabs.</li>
             <li><strong>File &rarr; Recent Runs:</strong> Remembered DRC runs (layout file &amp; rule/command mode) appear in the <strong>File &rarr; Recent Runs</strong> submenu. Select an entry to reopen it directly in a tab, or click <strong>Clear Recent Runs</strong> to reset history.</li>
-            <li><strong>Multiple Windows:</strong> Use <strong>Window &rarr; New Window</strong> (<kbd>Ctrl+N</kbd>) when you want side-by-side CGUI windows on multi-monitor desktops.</li>
+            <li><strong>Multiple Windows:</strong> Use <strong>Window &rarr; New Window</strong> (<kbd>Ctrl+N</kbd>) when you want side-by-side PVFlow windows on multi-monitor desktops.</li>
           </ul>
         </div>
 
@@ -523,7 +523,7 @@
             <tbody>
               <tr>
                 <td><code>LayoutPath</code></td>
-                <td>Select your input <code>.gds</code> or <code>.gds.gz</code> layout file. CGUI resolves relative paths and assists in filling <code>LayoutPrimary</code> when choosing a layout file.</td>
+                <td>Select your input <code>.gds</code> or <code>.gds.gz</code> layout file. PVFlow resolves relative paths and assists in filling <code>LayoutPrimary</code> when choosing a layout file.</td>
               </tr>
               <tr>
                 <td><code>LayoutPrimary</code></td>
@@ -540,7 +540,7 @@
             </tbody>
           </table>
           <div class="callout">
-            <strong>Tip:</strong> When reusing an existing deck with <strong>File &rarr; Open Cmd...</strong>, CGUI normalizes relative <code>../</code> includes so your command file runs reliably from the chosen <code>RunFolder</code>, and automatically manages <code>DRC ICSTATION YES</code> settings when configured.
+            <strong>Tip:</strong> When reusing an existing deck with <strong>File &rarr; Open Cmd...</strong>, PVFlow normalizes relative <code>../</code> includes so your command file runs reliably from the chosen <code>RunFolder</code>, and automatically manages <code>DRC ICSTATION YES</code> settings when configured.
           </div>
         </div>
 
@@ -556,7 +556,7 @@
               <tr><td><strong>Edit</strong></td><td>Opens the command file in your configured text editor (<em>Options &rarr; Editor</em>).</td></tr>
               <tr><td><strong>Run</strong></td><td>Starts the user-licensed DRC verification command in the specified <code>RunFolder</code>.</td></tr>
               <tr><td><strong>RunRVE</strong></td><td>Launches the user-licensed results viewer (RVE) against the DRC results database.</td></tr>
-              <tr><td><strong>View</strong></td><td>Opens the configured layout in <strong>KLayout</strong> using CGUI's 3-tier KLayout resolution.</td></tr>
+              <tr><td><strong>View</strong></td><td>Opens the configured layout in <strong>KLayout</strong> using PVFlow's 3-tier KLayout resolution.</td></tr>
             </tbody>
           </table>
         </div>
@@ -569,7 +569,7 @@
           </p>
           <ol>
             <li>Select the layout file in <strong>LayoutFile</strong>.</li>
-            <li>Click <strong>Scan Cells</strong> to inspect cell names directly inside binary <code>.gds</code> / <code>.gds.gz</code> files using CGUI's built-in pure-Python GDSII scanner (no external Python GDS packages required).</li>
+            <li>Click <strong>Scan Cells</strong> to inspect cell names directly inside binary <code>.gds</code> / <code>.gds.gz</code> files using PVFlow's built-in pure-Python GDSII scanner (no external Python GDS packages required).</li>
             <li>Double-click or select a cell from the cell list to pass that TopCell directly to KLayout, or click <strong>Open KLayout</strong> to launch KLayout.</li>
           </ol>
         </div>
@@ -582,17 +582,17 @@
           </p>
           <ul>
             <li>Providing an existing <code>.lyp</code> file passes it directly to KLayout (<code>-l &lt;file.lyp&gt;</code>).</li>
-            <li>Providing a <code>.layermap</code> file triggers CGUI's built-in <code>layermap_to_lyp</code> converter, automatically generating a ready-to-use KLayout <code>.lyp</code> palette with layer names, layer/datatype pairs, colors, and stipple patterns before launching KLayout.</li>
+            <li>Providing a <code>.layermap</code> file triggers PVFlow's built-in <code>layermap_to_lyp</code> converter, automatically generating a ready-to-use KLayout <code>.lyp</code> palette with layer names, layer/datatype pairs, colors, and stipple patterns before launching KLayout.</li>
           </ul>
         </div>
 
-        <div id="klayout-lookup" class="topic" data-keywords="klayout path CGUI_KLAYOUT tools/klayout binary executable">
+        <div id="klayout-lookup" class="topic" data-keywords="klayout path PVFLOW_KLAYOUT tools/klayout binary executable">
           <h2><span class="sec-num">08</span> KLayout Resolution Priority</h2>
           <p>Both <strong>GdsViewer</strong> and the DRC <strong>View</strong> button locate the KLayout executable in strict order:</p>
           <ol>
-            <li><strong><code>CGUI_KLAYOUT</code> environment variable:</strong> Explicit path set by the user or CAD environment wrapper.</li>
+            <li><strong><code>PVFLOW_KLAYOUT</code> environment variable:</strong> Explicit path set by the user or CAD environment wrapper.</li>
             <li><strong>System <code>PATH</code> (<code>klayout</code>):</strong> Pre-installed customer KLayout on the workstation or via environment modules.</li>
-            <li><strong>Bundled fallback (<code>tools/klayout</code>):</strong> Optional self-contained fallback location inside the CGUI installation directory.</li>
+            <li><strong>Bundled fallback (<code>tools/klayout</code>):</strong> Optional self-contained fallback location inside the PVFlow installation directory.</li>
           </ol>
         </div>
 
@@ -625,7 +625,7 @@
               </tr>
               <tr>
                 <td><strong>Help</strong></td>
-                <td><code>CGUI Help</code> (<kbd>F1</kbd> &mdash; opens this User Guide), <code>About CGUI</code> (version, copyright, and <code>Notices</code> button for third-party trademarks &amp; open-source legal notices).</td>
+                <td><code>PVFlow Help</code> (<kbd>F1</kbd> &mdash; opens this User Guide), <code>About PVFlow</code> (version, copyright, and <code>Notices</code> button for third-party trademarks &amp; open-source legal notices).</td>
               </tr>
             </tbody>
           </table>
@@ -638,24 +638,25 @@
               <tr><th>Shortcut</th><th>Command</th></tr>
             </thead>
             <tbody>
-              <tr><td><kbd>F1</kbd></td><td>Open <strong>CGUI Help</strong> (this User Guide in your web browser).</td></tr>
+              <tr><td><kbd>F1</kbd></td><td>Open <strong>PVFlow Help</strong> (this User Guide in your web browser).</td></tr>
               <tr><td><kbd>F11</kbd></td><td>Toggle Full Screen mode.</td></tr>
               <tr><td><kbd>Ctrl+T</kbd></td><td>Open a new <strong>Home</strong> tab.</td></tr>
-              <tr><td><kbd>Ctrl+N</kbd></td><td>Open a new CGUI window.</td></tr>
+              <tr><td><kbd>Ctrl+N</kbd></td><td>Open a new PVFlow window.</td></tr>
               <tr><td><kbd>Ctrl+W</kbd></td><td>Close the current active tab.</td></tr>
-              <tr><td><kbd>Ctrl+Q</kbd></td><td>Quit CGUI.</td></tr>
+              <tr><td><kbd>Ctrl+Q</kbd></td><td>Quit PVFlow.</td></tr>
             </tbody>
           </table>
         </div>
 
         <div id="license-cli" class="topic" data-keywords="license cli CADSEMI_LICENSE_FILE -L -only expiring grace valid trial">
           <h2><span class="sec-num">11</span> License &amp; CLI Reference</h2>
-          <p>CGUI verifies its signed license at startup without needing an external flexlm daemon.</p>
-          <pre>cgui                       # Standard launch (checks CADSEMI_LICENSE_FILE and default license paths)
-cgui -L /path/to/site.lic  # Specify a license file explicitly on the command line
-cgui -only                 # Minimal workspace mode</pre>
+          <p>PVFlow verifies its signed license at startup without needing an external flexlm daemon.</p>
+          <pre>pvflow           # Standard launch (checks CADSEMI_LICENSE_FILE and upward license paths)
+pvflow -L        # Print license status and details
+pvflow -l        # Machine chooser (LOADING) only
+pvflow -e -h     # Engineer CLI mode options</pre>
           <ul>
-            <li><strong>Quick Trial Setup:</strong> Place <code>cadsemi.lic</code> directly inside the extracted <code>cgui/</code> directory next to the <code>cgui</code> launcher to start without setting environment variables.</li>
+            <li><strong>Quick Trial Setup:</strong> Place <code>cadsemi.lic</code> directly in <code>/apps/cadsemi/license/cadsemi.lic</code>, <code>/apps/cadsemi/pvflow/cadsemi.lic</code>, or inside the extracted version directory (e.g. <code>26.11.001/cadsemi.lic</code>) to start without setting environment variables.</li>
             <li><strong>Environment Variable:</strong> Set <code>CADSEMI_LICENSE_FILE=/path/to/license.lic</code> in your shell startup or modulefile.</li>
             <li><strong>Normal Valid State:</strong> Keeps the workspace uncluttered with no persistent bottom bar; inspect full details anytime via <strong>License &rarr; License Info...</strong>.</li>
             <li><strong>Expiring / Grace / Invalid States:</strong> Displays a warning banner at the bottom of the window so administrators can renew or select a new <code>.lic</code> file via <strong>License &rarr; Select License File...</strong>.</li>
@@ -666,15 +667,15 @@ cgui -only                 # Minimal workspace mode</pre>
           <h2><span class="sec-num">12</span> Support &amp; Troubleshooting</h2>
           <div class="card">
             <ul>
-              <li><strong>Browser did not launch on <kbd>F1</kbd>:</strong> CGUI tries <code>CGUI_BROWSER</code> (if set), then <code>google-chrome</code>, <code>chromium</code>, <code>chromium-browser</code>, <code>xdg-open</code>, <code>firefox</code>, and Python's <code>webbrowser</code> fallback. On minimal headless/VNC servers, verify one of these browsers is in <code>PATH</code> or open <code>data/help/index.html</code> directly.</li>
-              <li><strong>KLayout not found:</strong> Ensure <code>klayout</code> is on <code>PATH</code>, set <code>CGUI_KLAYOUT=/path/to/klayout</code>, or place the binary at <code>tools/klayout</code> next to <code>cgui</code>.</li>
+              <li><strong>Browser did not launch on <kbd>F1</kbd>:</strong> PVFlow tries <code>PVFLOW_BROWSER</code> (if set), then <code>google-chrome</code>, <code>chromium</code>, <code>chromium-browser</code>, <code>xdg-open</code>, <code>firefox</code>, and Python's <code>webbrowser</code> fallback. On minimal headless/VNC servers, verify one of these browsers is in <code>PATH</code> or open <code>data/help/index.html</code> directly.</li>
+              <li><strong>KLayout not found:</strong> Ensure <code>klayout</code> is on <code>PATH</code>, set <code>PVFLOW_KLAYOUT=/path/to/klayout</code>, or place the binary at <code>&lt;version&gt;/tools/klayout</code> inside the PVFlow installation directory.</li>
               <li><strong>Customer Support:</strong> Email <a href="mailto:support@cadsemi.com">support@cadsemi.com</a> or visit <a href="https://cadsemi.com">https://cadsemi.com</a>.</li>
             </ul>
           </div>
         </div>
 
         <div class="footer">
-          &copy; cadsemi.com &mdash; Cadsemi CGUI Offline Documentation &nbsp;|&nbsp;
+          &copy; cadsemi.com &mdash; Cadsemi PVFlow Offline Documentation &nbsp;|&nbsp;
           Support: <a href="mailto:support@cadsemi.com">support@cadsemi.com</a>
         </div>
       </div>

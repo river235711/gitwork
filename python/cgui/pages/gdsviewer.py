@@ -161,31 +161,31 @@ class GdsViewerPage(BasePage):
     def _edit_layermap(self):
         path = self._entry("LayerMap")
         if not path:
-            messagebox.showwarning("cgui", "LayerMap is empty")
+            messagebox.showwarning("pvflow", "LayerMap is empty")
             return
         editor = self.app.env.get("editor") or "gvim"
         if not shutil.which(editor):
-            messagebox.showinfo("cgui", "editor not found: %s" % editor)
+            messagebox.showinfo("pvflow", "editor not found: %s" % editor)
             return
         try:
             subprocess.Popen([editor, os.path.expanduser(path)],
                              env=config.desktop_env())
         except Exception as e:
-            messagebox.showerror("cgui", "Failed to launch editor:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to launch editor:\n%s" % e)
 
     def _on_scan_cells(self):
         gds = self._entry("LayoutFile")
         if not gds:
-            messagebox.showwarning("cgui", "Please select a LayoutFile first")
+            messagebox.showwarning("pvflow", "Please select a LayoutFile first")
             return
         full = os.path.expanduser(gds)
         if not os.path.isfile(full):
-            messagebox.showerror("cgui", "LayoutFile not found:\n%s" % full)
+            messagebox.showerror("pvflow", "LayoutFile not found:\n%s" % full)
             return
         try:
             top_cells, all_cells = scan_gds_cells(full)
         except Exception as e:
-            messagebox.showerror("cgui", "Failed to scan GDS cells:\n%s" % e)
+            messagebox.showerror("pvflow", "Failed to scan GDS cells:\n%s" % e)
             return
 
         self.cell_list.delete(0, tk.END)

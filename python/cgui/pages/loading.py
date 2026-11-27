@@ -243,7 +243,7 @@ class LoadingPage(BasePage):
         if not getattr(self.app, "only", None):
             # how to get to this page without the rest of cgui -- not worth
             # saying in the window that command already opened
-            tk.Label(head, text="(command: cgui -l)", bg=self.bg, fg=_GREY,
+            tk.Label(head, text="(command: pvflow -l)", bg=self.bg, fg=_GREY,
                      anchor="w", font=config.ui_font(-1)
                      ).grid(row=0, column=1, sticky="w", padx=(10, 0))
         tk.Button(head, text="Refresh", width=10,
@@ -297,19 +297,19 @@ class LoadingPage(BasePage):
         tk.Button(table, text="Terminal", width=9,
                   command=lambda m=machine: self._open_terminal(m)
                   ).grid(row=index, column=6, padx=(0, 4))
-        tk.Button(table, text="cgui", width=9,
+        tk.Button(table, text="pvflow", width=9,
                   command=lambda m=machine: self._open_terminal(m, with_cgui=True)
                   ).grid(row=index, column=7)
         return row
 
     # ------------------------------------------------------------------
     def _open_terminal(self, machine, with_cgui=False):
-        """Open a terminal on that machine, optionally starting cgui in it."""
+        """Open a terminal on that machine, optionally starting pvflow in it."""
         machine = _machine(machine)
         launcher = self._launcher() if with_cgui else None
         if with_cgui and not launcher:
-            messagebox.showerror("cgui", "Could not find the cgui launcher "
-                                         "to start on %s." % machine.name)
+            messagebox.showerror("pvflow", "Could not find the pvflow launcher "
+                                           "to start on %s." % machine.name)
             return
         command = shell_command(machine, launcher=launcher,
                                 workdir=getattr(self.app, "launch_dir", None))
@@ -321,20 +321,25 @@ class LoadingPage(BasePage):
                     return
                 except Exception:
                     continue
-        messagebox.showerror("cgui", "No usable terminal found. Run it "
-                                     "manually:\n%s" % " ".join(command))
+        messagebox.showerror("pvflow", "No usable terminal found. Run it "
+                                       "manually:\n%s" % " ".join(command))
 
     @staticmethod
     def _launcher():
-        """The cgui to start on the other machine.
+        """The pvflow launcher to start on the other machine.
 
         The current release first, so a machine opened from a superseded window
-        still gets the new cgui; otherwise the launcher beside this code. Both
-        are absolute paths on the shared filesystem, so they mean the same thing
-        on every machine -- no site path is hard-coded here."""
-        candidates = [config.live_launcher(),
-                      os.path.join(config.APP_DIR, "cgui"),
-                      os.path.join(config.BASE_DIR, "cgui")]
+        still gets the new pvflow; otherwise the launcher beside this code."""
+        install_dir = getattr(config, "INSTALL_DIR", config.APP_DIR)
+        candidates = [
+            config.live_launcher(),
+            os.path.join(install_dir, "bin", "pvflow"),
+            os.path.join(install_dir, "pvflow"),
+            os.path.join(config.APP_DIR, "pvflow"),
+            os.path.join(config.BASE_DIR, "pvflow"),
+            os.path.join(config.APP_DIR, "cgui"),
+            os.path.join(config.BASE_DIR, "cgui"),
+        ]
         for path in candidates:
             if path and os.path.isfile(path):
                 return path

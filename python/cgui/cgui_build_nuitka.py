@@ -3,14 +3,26 @@
 """
 cgui_build_nuitka.py
 --------------------
-Compile cgui into a native Linux ELF binary using Nuitka (no Python source or
-.pyc bytecode shipped to customers) and assemble a clean deploy directory in
-dist/cgui/.
+Compile Cadsemi PVFlow (`pvflow`) into a native Linux ELF binary using Nuitka
+(no Python source or .pyc bytecode shipped to customers) and assemble a clean
+EDA-style release directory:
+
+    dist/<version>/
+    ├── README.md                  # Customer quick-start & install guide
+    ├── bin/
+    │   ├── pvflow                 # Bash launcher wrapper (add bin/ to PATH)
+    │   └── cgui -> pvflow         # Legacy command symlink
+    ├── libexec/
+    │   ├── pvflow.bin             # Native ELF binary
+    │   └── *.so                   # Isolated runtime libraries
+    ├── data/                      # Offline help HTML, templates, system.txt
+    └── etc/
+        └── modulefile.example     # Environment Modules template
 
 Usage:
     .build_venv/bin/python cgui_build_nuitka.py
-    .build_venv/bin/python cgui_build_nuitka.py --mode standalone --out dist/cgui
-    .build_venv/bin/python cgui_build_nuitka.py --mode onefile --out dist/cgui_onefile
+    .build_venv/bin/python cgui_build_nuitka.py --version 26.11.001 --out dist/26.11.001
+    .build_venv/bin/python cgui_build_nuitka.py --mode onefile --out dist/26.11.001
 """
 
 import argparse
@@ -25,6 +37,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 import cgui_license
+import config
 
 
 def _pick_python(explicit=None):
@@ -56,6 +69,84 @@ def _pin_default_home(launcher_path, install_dir):
     with open(launcher_path, "wb") as f:
         f.write(src.encode("utf-8"))
     os.chmod(launcher_path, 0o755)
+
+
+def _write_modulefile_example(etc_dir, version):
+    os.makedirs(etc_dir, exist_ok=True)
+    content = (
+        "#%%Module1.0\n"
+        "## Cadsemi PVFlow %s modulefile\n"
+        "proc ModulesHelp { } {\n"
+        "    puts stderr \"Adds Cadsemi PVFlow %s to your environment.\"\n"
+        "}\n"
+        "module-whatis \"Cadsemi PVFlow %s - Physical Verification Flow\"\n"
+        "\n"
+        "set root /apps/cadsemi/pvflow/%s\n"
+        "prepend-path PATH $root/bin\n"
+        "setenv PVFLOW_HOME $root\n"
+        "# Optional: uncomment to override automatic cadsemi.lic discovery\n"
+        "# setenv CADSEMI_LICENSE_FILE /apps/cadsemi/license/cadsemi.lic\n"
+    ) % (version, version, version, version)
+    path = os.path.join(etc_dir, "modulefile.example")
+    with open(path, "wb") as f:
+        f.write(content.encode("utf-8"))
+    return path
+
+
+def _write_release_readme(out_dir, version):
+    content = (
+        "# Cadsemi PVFlow %s\n"
+        "\n"
+        "## Standard EDA Installation\n"
+        "\n"
+        "```bash\n"
+        "# 1. Extract into your EDA apps tree (e.g. /apps/cadsemi/pvflow)\n"
+        "mkdir -p /apps/cadsemi/pvflow /apps/cadsemi/license\n"
+        "tar -xzf pvflow_%s_linux_x64.tar.gz -C /apps/cadsemi/pvflow/\n"
+        "\n"
+        "# 2. Install license file (shared across all PVFlow versions)\n"
+        "cp cadsemi.lic /apps/cadsemi/license/cadsemi.lic\n"
+        "#    (Alternative: cp cadsemi.lic /apps/cadsemi/pvflow/%s/cadsemi.lic\n"
+        "#     or export CADSEMI_LICENSE_FILE=/path/to/cadsemi.lic)\n"
+        "\n"
+        "# 3. Verify license & environment\n"
+        "/apps/cadsemi/pvflow/%s/bin/pvflow -L\n"
+        "\n"
+        "# 4. (Optional) Point `current` symlink when ready to roll out\n"
+        "ln -sfn %s /apps/cadsemi/pvflow/current\n"
+        "```\n"
+        "\n"
+        "## User Setup\n"
+        "\n"
+        "Add to `~/.bashrc`:\n"
+        "```bash\n"
+        "export PATH=/apps/cadsemi/pvflow/current/bin:$PATH\n"
+        "```\n"
+        "\n"
+        "Or `~/.cshrc`:\n"
+        "```csh\n"
+        "set path = (/apps/cadsemi/pvflow/current/bin $path)\n"
+        "```\n"
+        "\n"
+        "Or install `etc/modulefile.example` into your site `MODULEPATH` and run:\n"
+        "```bash\n"
+        "module load pvflow/%s\n"
+        "pvflow\n"
+        "```\n"
+        "\n"
+        "## Directory Layout\n"
+        "\n"
+        "- `bin/pvflow` : Main launcher wrapper (`bin/cgui` symlink kept for compatibility)\n"
+        "- `libexec/`   : Native ELF binary (`pvflow.bin`) and bundled runtime libraries\n"
+        "- `data/`      : Offline HTML User Guide (`data/help/index.html`) and templates\n"
+        "- `etc/`       : Example Environment Modules file (`modulefile.example`)\n"
+        "\n"
+        "Support: %s | https://cadsemi.com\n"
+    ) % (version, version, version, version, version, version, cgui_license.SUPPORT_EMAIL)
+    path = os.path.join(out_dir, "README.md")
+    with open(path, "wb") as f:
+        f.write(content.encode("utf-8"))
+    return path
 
 
 def _audit_dist(out_dir):
@@ -143,8 +234,8 @@ def _detect_tcltk_dirs(python_exe):
     return tcl_dir, None
 
 
-def build(mode="standalone", out="dist/cgui", install_dir=None, python_exe=None,
-          max_glibc=None):
+def build(mode="standalone", out=None, install_dir=None, python_exe=None,
+          max_glibc=None, version=None):
     if not cgui_license.is_public_key_configured():
         raise RuntimeError(
             "Embedded Ed25519 public key in cgui_license.py is still all zeros.\n"
@@ -152,10 +243,12 @@ def build(mode="standalone", out="dist/cgui", install_dir=None, python_exe=None,
             "--out-dir lic_issuer/keys --embed cgui_license.py"
         )
 
+    version = version or config.latest_revision()
     py = _pick_python(python_exe)
+    out = out or os.path.join("dist", version)
     out_dir = out if os.path.isabs(out) else os.path.join(SRC, out)
     out_dir = os.path.abspath(out_dir)
-    install_dir = os.path.abspath(install_dir) if install_dir else out_dir
+    install_dir = install_dir or "/apps/cadsemi/pvflow/current"
     build_dir = os.path.join(SRC, "build_nuitka")
 
     if os.path.exists(build_dir):
@@ -180,7 +273,7 @@ def build(mode="standalone", out="dist/cgui", install_dir=None, python_exe=None,
         "--include-data-dir=%s=data" % os.path.join(SRC, "data"),
         "--nofollow-import-to=lic_issuer",
         "--nofollow-import-to=tests",
-        "--output-filename=cgui.bin",
+        "--output-filename=pvflow.bin",
         "--output-dir=%s" % build_dir,
     ]
     if tcl_dir:
@@ -188,52 +281,79 @@ def build(mode="standalone", out="dist/cgui", install_dir=None, python_exe=None,
     if tk_dir:
         cmd.append("--tk-library-dir=%s" % tk_dir)
     cmd.append(os.path.join(SRC, "cgui.py"))
-    print("Running Nuitka (%s):" % mode)
+    print("Running Nuitka (%s, version=%s):" % (mode, version))
     print("  " + " ".join(cmd))
     subprocess.check_call(cmd, env=env, cwd=SRC)
+
+    bin_dir = os.path.join(out_dir, "bin")
+    libexec_dir = os.path.join(out_dir, "libexec")
+    data_dir = os.path.join(out_dir, "data")
+    etc_dir = os.path.join(out_dir, "etc")
+    os.makedirs(bin_dir, exist_ok=True)
 
     if mode == "standalone":
         dist_src = os.path.join(build_dir, "cgui.dist")
         if not os.path.isdir(dist_src):
             raise RuntimeError("Expected Nuitka dist directory missing: %s" % dist_src)
-        shutil.copytree(dist_src, out_dir, symlinks=True)
+        shutil.copytree(dist_src, libexec_dir, symlinks=True)
+        libexec_data = os.path.join(libexec_dir, "data")
+        if os.path.isdir(libexec_data):
+            shutil.move(libexec_data, data_dir)
+        else:
+            shutil.copytree(os.path.join(SRC, "data"), data_dir)
     else:
-        bin_src = os.path.join(build_dir, "cgui.bin")
+        bin_src = os.path.join(build_dir, "pvflow.bin")
         if not os.path.isfile(bin_src):
             raise RuntimeError("Expected Nuitka onefile binary missing: %s" % bin_src)
-        os.makedirs(out_dir, exist_ok=True)
-        shutil.copy2(bin_src, os.path.join(out_dir, "cgui.bin"))
+        os.makedirs(libexec_dir, exist_ok=True)
+        shutil.copy2(bin_src, os.path.join(libexec_dir, "pvflow.bin"))
+        shutil.copytree(os.path.join(SRC, "data"), data_dir)
 
-    launcher_dst = os.path.join(out_dir, "cgui")
-    shutil.copy2(os.path.join(SRC, "cgui"), launcher_dst)
+    launcher_dst = os.path.join(bin_dir, "pvflow")
+    shutil.copy2(os.path.join(SRC, "pvflow"), launcher_dst)
     _pin_default_home(launcher_dst, install_dir)
+
+    legacy_link = os.path.join(bin_dir, "cgui")
+    if os.path.lexists(legacy_link):
+        os.unlink(legacy_link)
+    os.symlink("pvflow", legacy_link)
+
+    mod_path = _write_modulefile_example(etc_dir, version)
+    readme_path = _write_release_readme(out_dir, version)
 
     _audit_dist(out_dir)
     max_found = _audit_glibc(out_dir, max_glibc) if max_glibc else None
 
-    bin_path = os.path.join(out_dir, "cgui.bin")
+    bin_path = os.path.join(libexec_dir, "pvflow.bin")
     file_out = subprocess.run(
         ["file", bin_path], capture_output=True, text=True
     ).stdout.strip()
 
     print("\nBuild complete:")
-    print("  Deploy dir   : %s" % out_dir)
+    print("  Version      : %s" % version)
+    print("  Release dir  : %s" % out_dir)
     print("  Launcher     : %s (DEFAULT_HOME=%s)" % (launcher_dst, install_dir))
     print("  Native binary: %s" % (file_out or bin_path))
+    print("  Modulefile   : %s" % mod_path)
+    print("  Release notes: %s" % readme_path)
     print("  Audit        : PASS (no .py / .pyc / .pem / .lic / lic_issuer in dist)")
     if max_glibc:
         print("  Max GLIBC    : %s (limit: %s) -- PASS" % (max_found, max_glibc))
-    print("\nCustomer setup (.cshrc):")
-    print("  setenv CADSEMI_LICENSE_FILE /proj/cad/lic/cadsemi.lic")
-    print("  %s" % launcher_dst)
+    print("\nCustomer installation:")
+    print("  mkdir -p /apps/cadsemi/pvflow /apps/cadsemi/license")
+    print("  tar -xzf pvflow_%s_linux_x64.tar.gz -C /apps/cadsemi/pvflow/" % version)
+    print("  cp cadsemi.lic /apps/cadsemi/license/cadsemi.lic")
+    print("  ln -sfn %s /apps/cadsemi/pvflow/current" % version)
     return out_dir
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Build native ELF binary for cgui via Nuitka")
+    parser = argparse.ArgumentParser(description="Build native ELF binary for Cadsemi PVFlow via Nuitka")
     parser.add_argument("--mode", choices=("standalone", "onefile"), default="standalone")
-    parser.add_argument("--out", default="dist/cgui", help="Output directory")
-    parser.add_argument("--install-dir", default=None,
+    parser.add_argument("--version", default=None,
+                        help="Release version string (default: latest revision from data/system.txt)")
+    parser.add_argument("--out", default=None, help="Output directory (default: dist/<version>)")
+    parser.add_argument("--install-dir", default="/apps/cadsemi/pvflow/current",
                         help="Target install dir pinned into launcher DEFAULT_HOME")
     parser.add_argument("--python", default=None, help="Python executable with Nuitka")
     parser.add_argument("--max-glibc", default=None,
@@ -241,7 +361,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     build(mode=args.mode, out=args.out,
           install_dir=args.install_dir, python_exe=args.python,
-          max_glibc=args.max_glibc)
+          max_glibc=args.max_glibc, version=args.version)
     return 0
 
 

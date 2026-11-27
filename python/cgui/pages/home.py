@@ -158,7 +158,7 @@ class HomePage(BasePage):
 
         # Header section
         self.heading_lbl = tk.Label(
-            body, text="CGUI", bg=self.bg, fg=T["text"],
+            body, text="PVFlow", bg=self.bg, fg=T["text"],
             font=config.ui_font(10, "bold"), anchor="w",
         )
         self.heading_lbl.pack(anchor="w")

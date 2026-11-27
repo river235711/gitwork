@@ -137,4 +137,4 @@ class DocPage(BasePage):
                     return
                 except Exception:
                     continue
-        messagebox.showinfo("cgui", "No PDF viewer found for:\n%s" % path)
+        messagebox.showinfo("pvflow", "No PDF viewer found for:\n%s" % path)

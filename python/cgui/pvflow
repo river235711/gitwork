@@ -1,0 +1,155 @@
+#!/bin/bash
+#==============================================================================
+# pvflow  -- Cadsemi PVFlow launcher (bash wrapper)
+#
+# Standard EDA release layout:
+#   /apps/cadsemi/pvflow/<version>/
+#     ├── bin/pvflow             (this wrapper; add .../bin to PATH)
+#     ├── libexec/pvflow.bin     (Nuitka native ELF binary + runtime libs)
+#     ├── data/                  (help HTML, templates, system.txt)
+#     └── etc/modulefile.example
+#
+# Also works directly inside a Python source checkout (next to cgui.py).
+#
+# Order for locating the PVFlow install root (HOME_DIR):
+#   1. EDA release layout: ../libexec/pvflow.bin relative to this script
+#   2. Flat / dev layout:  ./libexec/pvflow.bin, ./pvflow.bin, or ./cgui.py
+#   3. Environment variable $PVFLOW_HOME (or legacy $CGUI_HOME)
+#   4. Built-in DEFAULT_HOME below
+#
+# License environment variable:
+#   CADSEMI_LICENSE_FILE   path to cadsemi.lic (also auto-discovered in
+#                          <version>/, <product>/, or <vendor>/license/)
+#
+# Overridable environment variables:
+#   PVFLOW_HOME    directory containing libexec/pvflow.bin (or cgui.py)
+#   PVFLOW_MODULE  python to module-load in source mode (default python/3.6.3)
+#   PVFLOW_PYTHON  python executable to use directly in source mode
+#
+# Usage:
+#   pvflow           the full window
+#   pvflow -l        the machine chooser only (LOADING on its own)
+#   pvflow -e ...    engineer mode: command-line tools (foreground)
+#   pvflow -L        show license status/details (foreground)
+#   pvflow --help    the option list
+#==============================================================================
+
+# --- Built-in default install path (used when $PVFLOW_HOME is unset and the
+#     script is not inside an install tree) -----------------------------------
+DEFAULT_HOME="/apps/cadsemi/pvflow/current"
+
+# --- 1. Resolve this script's real directory (following symlinks) ------------
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    _dir="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$_dir/$SOURCE"
+done
+SELFDIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+PARENT_DIR="$(cd -P "$SELFDIR/.." >/dev/null 2>&1 && pwd)"
+
+# --- 2. Decide which directory is the install root ---------------------------
+if [ -x "$PARENT_DIR/libexec/pvflow.bin" ]; then
+    HOME_DIR="$PARENT_DIR"
+elif [ -x "$SELFDIR/libexec/pvflow.bin" ] || [ -x "$SELFDIR/pvflow.bin" ] \
+  || [ -x "$SELFDIR/cgui.bin" ] || [ -f "$SELFDIR/cgui.py" ]; then
+    HOME_DIR="$SELFDIR"
+elif [ -n "${PVFLOW_HOME:-}" ]; then
+    HOME_DIR="$(cd "$PVFLOW_HOME" 2>/dev/null && pwd || printf '%s' "$PVFLOW_HOME")"
+elif [ -n "${CGUI_HOME:-}" ]; then
+    HOME_DIR="$(cd "$CGUI_HOME" 2>/dev/null && pwd || printf '%s' "$CGUI_HOME")"
+else
+    HOME_DIR="$DEFAULT_HOME"
+fi
+
+PVFLOW_BIN=""
+for _bin in "$HOME_DIR/libexec/pvflow.bin" "$HOME_DIR/pvflow.bin" "$HOME_DIR/cgui.bin"; do
+    if [ -x "$_bin" ]; then
+        PVFLOW_BIN="$_bin"
+        break
+    fi
+done
+PVFLOW_PY="$HOME_DIR/cgui.py"
+
+# --- 3. Fast path: compiled Nuitka native binary -----------------------------
+if [ -n "$PVFLOW_BIN" ]; then
+    case "${1:-}" in
+        -e|--engineer|-h|--help|-L|--license|--license-info)
+            exec "$PVFLOW_BIN" "$@"
+            ;;
+    esac
+    "$PVFLOW_BIN" "$@" &
+    echo "pvflow started in the background (PID $!, binary: $PVFLOW_BIN)"
+    exit 0
+fi
+
+# --- 4. Fallback: source checkout via Python + tkinter -----------------------
+if [ ! -f "$PVFLOW_PY" ]; then
+    echo "pvflow: main program not found under $HOME_DIR" >&2
+    echo "        Set PVFLOW_HOME to the directory containing PVFlow, e.g.:" >&2
+    echo "          export PVFLOW_HOME=/apps/cadsemi/pvflow/current" >&2
+    exit 1
+fi
+
+PVFLOW_PYTHON="${PVFLOW_PYTHON:-${CGUI_PYTHON:-}}"
+PVFLOW_MODULE="${PVFLOW_MODULE:-${CGUI_MODULE:-python/3.6.3}}"
+PVFLOW_MODULE_PURGE="${PVFLOW_MODULE_PURGE:-${CGUI_MODULE_PURGE:-1}}"
+PVFLOW_TIMING="${PVFLOW_TIMING:-${CGUI_TIMING:-0}}"
+
+find_python() {
+    for _c in "$PVFLOW_PYTHON" python3 python; do
+        [ -n "$_c" ] || continue
+        if "$_c" -c 'import tkinter' >/dev/null 2>&1; then
+            PY="$_c"
+            return 0
+        fi
+    done
+    return 1
+}
+
+PY=""
+if ! find_python; then
+    if ! type module >/dev/null 2>&1; then
+        for _init in "$MODULESHOME/init/bash" \
+                     /usr/share/Modules/init/bash \
+                     /etc/profile.d/modules.sh \
+                     /usr/share/lmod/lmod/init/bash; do
+            if [ -f "$_init" ]; then
+                source "$_init"
+                break
+            fi
+        done
+    fi
+
+    if type module >/dev/null 2>&1; then
+        if [ "$PVFLOW_MODULE_PURGE" != "0" ]; then
+            module purge >/dev/null 2>&1
+        fi
+        module load "$PVFLOW_MODULE" >/dev/null 2>&1
+    fi
+    find_python
+fi
+
+if [ -z "$PY" ]; then
+    echo "pvflow: no python with a built-in tkinter found." >&2
+    echo "        - Check the module name (currently: $PVFLOW_MODULE), or use" >&2
+    echo "          export PVFLOW_MODULE=python/<version>  to pick another one" >&2
+    echo "        - Or point directly at a tkinter-capable python:" >&2
+    echo "            export PVFLOW_PYTHON=/path/to/python3" >&2
+    echo "        - Or install it:  sudo yum install python3-tkinter" >&2
+    exit 1
+fi
+
+if [ "$PVFLOW_TIMING" != "0" ] && [ -n "${SECONDS:-}" ]; then
+    printf '[pvflow] %-34s %6.1f ms\n' "launcher (find python)" \
+        "$(awk "BEGIN{print $SECONDS * 1000}")" >&2
+fi
+
+case "${1:-}" in
+    -e|--engineer|-h|--help|-L|--license|--license-info)
+        exec "$PY" "$PVFLOW_PY" "$@"
+        ;;
+esac
+
+"$PY" "$PVFLOW_PY" "$@" &
+echo "pvflow started in the background (PID $!, python: $PY)"

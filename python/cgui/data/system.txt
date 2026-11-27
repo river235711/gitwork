@@ -1,10 +1,14 @@
-cgui @cadsemi
+pvflow @cadsemi
 
 Revision     Date          Description
 ----------   ----------    ------------------------------------------------------------
-1.0.0        2026/11/26    * Initial public release of Cadsemi CGUI for Linux (RHEL / CentOS 7+)
+26.11.001    2026/11/27    * Rebrand product and launcher from CGUI to Cadsemi PVFlow (`pvflow`)
+                           * Standard EDA release directory layout: /apps/cadsemi/pvflow/<version>/{bin,libexec,data,etc}
+                           * Upward cadsemi.lic auto-discovery (<version>/ -> <product>/ -> <vendor>/license/)
+                           * Plain-text terminal license notices (default terminal color) and startup EDA tool status echo (calibre / klayout)
+1.0.0        2026/11/26    * Initial public release of Cadsemi PVFlow (formerly CGUI) for Linux (RHEL / CentOS 7+)
                            * Multi-tab workspace with Home launcher tiles (DRC, GdsViewer, LVS/XRC custom-on-request, Help) and File -> Recent Runs history
                            * DRC Verification workspace (LayoutPath, LayoutPrimary, CmdFile with DRC ICSTATION YES, RunFolder, Run, RunRVE, Edit, View, File -> Open/Save Cmd)
                            * GdsViewer with pure-Python binary GDSII/.gds.gz Scan Cells, .layermap -> .lyp converter, and 3-tier KLayout lookup
                            * Offline Ed25519 licensing (cadsemi.lic auto-discovery, CADSEMI_LICENSE_FILE, License Info popup, Select License File, expiry/grace banner)
-                           * Offline HTML User Guide (F1 / Help -> CGUI Help) and branded About CGUI / Legal Notices dialogs
+                           * Offline HTML User Guide (F1 / Help -> PVFlow Help) and branded About PVFlow / Legal Notices dialogs

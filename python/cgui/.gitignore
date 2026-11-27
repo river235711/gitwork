@@ -12,6 +12,7 @@ lic_issuer/keys/
 *.lic
 cgui.key
 .cgui_run.sh
+.pvflow_run.sh
 run
 calibre_*.com
 *.tar.gz

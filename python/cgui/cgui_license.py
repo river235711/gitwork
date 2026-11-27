@@ -252,12 +252,16 @@ def _open_state(blob, key):
 
 
 def _state_paths(state_dir=None):
-    explicit = state_dir or os.environ.get("CGUI_LIC_STATE_DIR")
+    explicit = (
+        state_dir
+        or os.environ.get("PVFLOW_LIC_STATE_DIR")
+        or os.environ.get("CGUI_LIC_STATE_DIR")
+    )
     if explicit:
         return [os.path.join(os.path.expanduser(explicit), ".lic_state")]
     return [
         os.path.join(config.USER_DIR, ".lic_state"),
-        os.path.expanduser("~/.cache/.cgui_lic_ts"),
+        os.path.expanduser("~/.cache/.pvflow_lic_ts"),
     ]
 
 
@@ -405,7 +409,33 @@ def _resolve_license_path(license_file=None):
         if os.path.isfile(p):
             return p, None, searched
 
-    for base in (config.APP_DIR, config.BASE_DIR):
+    search_dirs = []
+
+    def _add_dir(d):
+        if not d:
+            return
+        d = os.path.normpath(d)
+        # Avoid walking into filesystem root
+        if d == os.path.dirname(d):
+            return
+        if d not in search_dirs:
+            search_dirs.append(d)
+
+    install_dir = getattr(config, "INSTALL_DIR", config.APP_DIR)
+    product_dir = os.path.dirname(os.path.normpath(install_dir)) if install_dir else ""
+    vendor_dir = os.path.dirname(os.path.normpath(product_dir)) if product_dir else ""
+
+    _add_dir(install_dir)
+    _add_dir(config.APP_DIR)
+    _add_dir(config.BASE_DIR)
+    _add_dir(product_dir)
+    if product_dir and product_dir != os.path.dirname(product_dir):
+        _add_dir(os.path.join(product_dir, "license"))
+    if vendor_dir and vendor_dir != os.path.dirname(vendor_dir):
+        _add_dir(os.path.join(vendor_dir, "license"))
+        _add_dir(vendor_dir)
+
+    for base in search_dirs:
         for fname in (DEFAULT_LICENSE_FILENAME,) + LEGACY_LICENSE_FILENAMES:
             p = os.path.join(base, fname)
             if p not in searched:

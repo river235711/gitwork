@@ -105,7 +105,7 @@ class SystemPage(BasePage):
             self, bg=bg, bd=0,
             highlightthickness=1, highlightbackground=T["border"],
         )
-        tk.Label(frame, text="cgui license", bg=bg, fg=T["text"], anchor="w",
+        tk.Label(frame, text="pvflow license", bg=bg, fg=T["text"], anchor="w",
                  font=config.ui_font(0, "bold")).pack(anchor="w", padx=12, pady=(10, 2))
         tk.Label(frame, text=status_text, bg=bg, fg=fg, anchor="w",
                  font=config.ui_font(0, "bold")).pack(anchor="w", padx=12)
@@ -124,7 +124,7 @@ class SystemPage(BasePage):
             self, bg=bg, bd=0,
             highlightthickness=1, highlightbackground=T["border"],
         )
-        tk.Label(frame, text="cgui version", bg=bg, fg=T["text"], anchor="w",
+        tk.Label(frame, text="pvflow version", bg=bg, fg=T["text"], anchor="w",
                  font=config.ui_font(0, "bold")).pack(anchor="w", padx=12, pady=(10, 2))
 
         if outdated:

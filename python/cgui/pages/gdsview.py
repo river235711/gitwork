@@ -82,19 +82,19 @@ def open_gds(app, gds):
         return
     gds = (gds or "").strip()
     if not gds:
-        messagebox.showwarning("cgui", "no GDS file specified")
+        messagebox.showwarning("pvflow", "no GDS file specified")
         return
     if not os.environ.get("DISPLAY"):
-        messagebox.showerror("cgui", "No DISPLAY, cannot open skipper")
+        messagebox.showerror("pvflow", "No DISPLAY, cannot open skipper")
         return
 
     conf, conf_path = _skipper_conf()
     if not conf.get("cdsTech"):
         messagebox.showwarning(
-            "cgui",
+            "pvflow",
             "skipper cds paths are not configured; opening with -i only.\n\n"
             "SKIPPER.conf: %s\n(exists: %s)\n\n"
-            "Check config.DEFAULT_COM_DIR / $CGUI_DEFAULT_DIR and that the file "
+            "Check config.DEFAULT_COM_DIR / $PVFLOW_DEFAULT_DIR and that the file "
             "sits under <DEFAULT_COM_DIR>/%s/SKIPPER.conf."
             % (conf_path, os.path.isfile(conf_path), config.DESIGN_NAME))
 
@@ -116,11 +116,11 @@ def find_klayout():
     """Return path to KLayout executable via 3-tier lookup, or None.
 
     Order:
-      1. $CGUI_KLAYOUT (user override)
+      1. $PVFLOW_KLAYOUT (or legacy $CGUI_KLAYOUT)
       2. klayout in $PATH (customer's existing installation)
-      3. Bundled fallback <app>/tools/klayout/klayout or .../bin/klayout
+      3. Bundled fallback <install>/tools/klayout/klayout or .../bin/klayout
     """
-    env_bin = os.environ.get("CGUI_KLAYOUT", "").strip()
+    env_bin = config.env_get("PVFLOW_KLAYOUT", "CGUI_KLAYOUT").strip()
     if env_bin:
         cand = os.path.abspath(os.path.expanduser(env_bin))
         if os.path.isfile(cand) and os.access(cand, os.X_OK):
@@ -131,7 +131,8 @@ def find_klayout():
         return which_bin
 
     seen = set()
-    for base in (config.APP_DIR, config.BASE_DIR):
+    install_dir = getattr(config, "INSTALL_DIR", config.APP_DIR)
+    for base in (install_dir, config.APP_DIR, config.BASE_DIR):
         if not base:
             continue
         for rel in (
@@ -270,21 +271,21 @@ def open_gds_klayout(app, gds, layer_map=None, edit_mode=False):
         return
     gds = (gds or "").strip()
     if not gds:
-        messagebox.showwarning("cgui", "no GDS file specified")
+        messagebox.showwarning("pvflow", "no GDS file specified")
         return
     if not os.environ.get("DISPLAY"):
-        messagebox.showerror("cgui", "No DISPLAY, cannot open KLayout")
+        messagebox.showerror("pvflow", "No DISPLAY, cannot open KLayout")
         return
 
     klayout_bin = find_klayout()
     if not klayout_bin:
         messagebox.showerror(
-            "cgui",
+            "pvflow",
             "KLayout executable not found.\n\n"
             "Checked:\n"
-            "  1. $CGUI_KLAYOUT\n"
+            "  1. $PVFLOW_KLAYOUT (or $CGUI_KLAYOUT)\n"
             "  2. klayout in $PATH\n"
-            "  3. <cgui>/tools/klayout/klayout (or tools/klayout/bin/klayout)",
+            "  3. <pvflow>/tools/klayout/klayout (or tools/klayout/bin/klayout)",
         )
         return
 
@@ -297,13 +298,13 @@ def open_gds_klayout(app, gds, layer_map=None, edit_mode=False):
     if lm:
         lm_path = os.path.expanduser(lm)
         if not os.path.isfile(lm_path):
-            messagebox.showerror("cgui", "LayerMap file not found:\n%s" % lm_path)
+            messagebox.showerror("pvflow", "LayerMap file not found:\n%s" % lm_path)
             return
         if not lm_path.lower().endswith(".lyp"):
             try:
                 lm_path = layermap_to_lyp(lm_path)
             except Exception as e:
-                messagebox.showerror("cgui", "Failed to convert layermap:\n%s" % e)
+                messagebox.showerror("pvflow", "Failed to convert layermap:\n%s" % e)
                 return
         cmd.extend(["-l", lm_path])
 
@@ -311,14 +312,14 @@ def open_gds_klayout(app, gds, layer_map=None, edit_mode=False):
     try:
         subprocess.Popen(cmd, start_new_session=True, close_fds=True)
     except Exception as e:
-        messagebox.showerror("cgui", "Failed to launch KLayout:\n%s" % e)
+        messagebox.showerror("pvflow", "Failed to launch KLayout:\n%s" % e)
 
 
 # ==========================================================================
 # shared launch
 # ==========================================================================
 def _write_and_launch(script, name):
-    """Write ~/.cgui/<name>.sh and run it (terminal preferred, else background)."""
+    """Write ~/.pvflow/<name>.sh and run it (terminal preferred, else background)."""
     try:
         os.makedirs(config.USER_DIR, exist_ok=True)
         sh_path = os.path.join(config.USER_DIR, name + ".sh")
@@ -326,7 +327,7 @@ def _write_and_launch(script, name):
             f.write(script)
         os.chmod(sh_path, 0o755)
     except OSError as e:
-        messagebox.showerror("cgui", "Failed to write viewer script:\n%s" % e)
+        messagebox.showerror("pvflow", "Failed to write viewer script:\n%s" % e)
         return
     if not _launch_in_terminal(sh_path):
         _launch_background(sh_path)
@@ -359,7 +360,7 @@ def _launch_in_terminal(sh_path):
 
 def _launch_background(sh_path):
     """Detached background launch (own session, immune to the parent's SIGHUP;
-    output goes to ~/.cgui/<name>.log)."""
+    output goes to ~/.pvflow/<name>.log)."""
     log_path = sh_path[:-len(".sh")] + ".log"
     try:
         logf = open(log_path, "w")
@@ -372,4 +373,4 @@ def _launch_background(sh_path):
         logf.close()
         devnull.close()
     except Exception as e:
-        messagebox.showerror("cgui", "Failed to launch viewer:\n%s" % e)
+        messagebox.showerror("pvflow", "Failed to launch viewer:\n%s" % e)

@@ -36,7 +36,7 @@ import sys
 import cgui_license
 import config
 
-USAGE = """usage: cgui -e [options] <gds|gds.gz>        (engineer mode)
+USAGE = """usage: pvflow -e [options] <gds|gds.gz>        (engineer mode)
 
 Open a layout with skipper from the command line -- no window, no tabs. The
 process supplies the cds tech / display / layermap from its central
@@ -50,12 +50,12 @@ options:
   -h, --help             this message
 
   <process> may also be given as the first of two arguments:
-      cgui -e <process> <gds>
+      pvflow -e <process> <gds>
 
 examples:
-  cgui -e -p t22_1p7m_4x1z1u top.gds.gz
-  cgui -e top.gds                 # asks which process
-  cgui -e -n -p t40lp_1p6m_4x1u top.gds
+  pvflow -e -p t22_1p7m_4x1z1u top.gds.gz
+  pvflow -e top.gds                 # asks which process
+  pvflow -e -n -p t40lp_1p6m_4x1u top.gds
 """
 
 
@@ -109,7 +109,7 @@ def ask_process():
         chosen = resolve_process(answer)
         if chosen:
             return chosen
-        sys.stderr.write("cgui: no such process: %s\n" % answer.strip())
+        sys.stderr.write("pvflow: no such process: %s\n" % answer.strip())
 
 
 # --------------------------------------------------------------------------
@@ -136,12 +136,12 @@ def view_gds(process, gds, dry_run=False):
 
     res = cgui_license.check_license(update_state=False)
     if not res.allowed:
-        sys.stderr.write("cgui: %s\n" % res.message)
+        sys.stderr.write("pvflow: %s\n" % res.message)
         return 3
 
     gds = os.path.abspath(os.path.expanduser(gds))
     if not os.path.isfile(gds):
-        sys.stderr.write("cgui: no such file: %s\n" % gds)
+        sys.stderr.write("pvflow: no such file: %s\n" % gds)
         return 2
 
     # The whole viewer configuration hangs off the current design, so set it and
@@ -150,9 +150,9 @@ def view_gds(process, gds, dry_run=False):
     config.DESIGN_NAME = process
     conf_path = config.central_skipper_conf(process)
     if not os.path.isfile(conf_path):
-        sys.stderr.write("cgui: warning: no SKIPPER.conf for %s\n"
-                         "      (%s)\n"
-                         "      opening with -i only; layers will be unmapped.\n"
+        sys.stderr.write("pvflow: warning: no SKIPPER.conf for %s\n"
+                         "        (%s)\n"
+                         "        opening with -i only; layers will be unmapped.\n"
                          % (process, conf_path))
 
     script = build_skipper_script(_Session(), gds)
@@ -161,7 +161,7 @@ def view_gds(process, gds, dry_run=False):
         return 0
 
     if not os.environ.get("DISPLAY"):
-        sys.stderr.write("cgui: no DISPLAY, cannot open skipper\n")
+        sys.stderr.write("pvflow: no DISPLAY, cannot open skipper\n")
         return 1
 
     try:
@@ -171,10 +171,10 @@ def view_gds(process, gds, dry_run=False):
             f.write(script)
         os.chmod(sh_path, 0o755)
     except OSError as e:
-        sys.stderr.write("cgui: failed to write viewer script: %s\n" % e)
+        sys.stderr.write("pvflow: failed to write viewer script: %s\n" % e)
         return 1
 
-    sys.stderr.write("cgui: %s  <-  %s\n" % (process, gds))
+    sys.stderr.write("pvflow: %s  <-  %s\n" % (process, gds))
     # Foreground, in the terminal that asked for it: this was typed at a shell,
     # so that shell is where the viewer's output belongs.
     return subprocess.call(["bash", "-l", sh_path])
@@ -199,7 +199,7 @@ def parse_argv(argv):
         elif arg in ("-p", "--process"):
             i += 1
             if i >= len(argv):
-                return None, "cgui -e: %s needs a process name\n\n%s" % (arg, USAGE), 2
+                return None, "pvflow -e: %s needs a process name\n\n%s" % (arg, USAGE), 2
             opts["process"] = argv[i]
         elif arg.startswith("--process="):
             opts["process"] = arg.split("=", 1)[1]
@@ -207,7 +207,7 @@ def parse_argv(argv):
             rest += argv[i + 1:]
             break
         elif arg.startswith("-") and arg != "-":
-            return None, "cgui -e: unknown option %s\n\n%s" % (arg, USAGE), 2
+            return None, "pvflow -e: unknown option %s\n\n%s" % (arg, USAGE), 2
         else:
             rest.append(arg)
         i += 1
@@ -216,16 +216,16 @@ def parse_argv(argv):
     if len(rest) == 2 and opts["process"] is None:
         opts["process"], rest = rest[0], rest[1:]
     if not rest:
-        return None, "cgui -e: no GDS given\n\n%s" % USAGE, 2
+        return None, "pvflow -e: no GDS given\n\n%s" % USAGE, 2
     if len(rest) > 1:
-        return None, ("cgui -e: one GDS at a time (got %d: %s)\n\n%s"
+        return None, ("pvflow -e: one GDS at a time (got %d: %s)\n\n%s"
                       % (len(rest), " ".join(rest), USAGE)), 2
     opts["gds"] = rest[0]
 
     if opts["process"] is not None:
         chosen = resolve_process(opts["process"])
         if not chosen:
-            return None, ("cgui -e: no such process: %s\n\nknown processes:\n%s\n"
+            return None, ("pvflow -e: no such process: %s\n\nknown processes:\n%s\n"
                           % (opts["process"],
                              "".join("  " + n + "\n" for n in process_list()))), 2
         opts["process"] = chosen
@@ -240,6 +240,6 @@ def main(argv):
 
     process = opts["process"] or ask_process()
     if not process:
-        sys.stderr.write("cgui: no process chosen, nothing opened\n")
+        sys.stderr.write("pvflow: no process chosen, nothing opened\n")
         return 1
     return view_gds(process, opts["gds"], dry_run=opts["dry_run"])
